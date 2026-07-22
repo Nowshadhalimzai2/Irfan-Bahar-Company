@@ -8,9 +8,17 @@ import React, { useEffect, useState } from 'react'
 interface GuestLayoutProps {
     children: React.ReactNode;
 }
+type LinkType = { name: string; url: string; }
+const links: LinkType[] = [
+    { name: "Home", url: "/" },
+    { name: "Products", url: "/products" },
+    { name: "Contact Us", url: "/contact-us" },
+    { name: "About Us", url: "/about-us" },
+
+]
 const GuestLayout = ({ children }: GuestLayoutProps) => {
     const [screenWdith, setScreenWidth] = useState<number>(window.innerWidth);
-    const { auth } = usePage().props;
+    const { props: { auth }, url } = usePage();
     const socialLinks = [
         { name: 'WhatsApp', href: 'https://wa.me/782641141', icon: Phone },
         { name: 'Instagram', href: 'https://www.instagram.com/', icon: Instagram },
@@ -25,7 +33,7 @@ const GuestLayout = ({ children }: GuestLayoutProps) => {
 
     return (
         <div className=" dark:bg-accent-foreground">
-            <header className="border-b border-secondary px-4 shadow py-5">
+            <header className="border-b border-secondary px-4 shadow py-4">
                 <nav className="flex justify-between items-center">
                     {/* LOGO appears here */}
                     <CompanyTitle />
@@ -33,10 +41,9 @@ const GuestLayout = ({ children }: GuestLayoutProps) => {
                         //  ===================== FOR LARAGER SCREENS MENU BAR =========
                         ? <div className="Large Screen MenuBar flex justify-between items-center w-3/4">
                             <div className="Quick_Links flex items-center gap-8">
-                                <Link href="/" className=" text-primary font-semibold hover:text-accent">Home </Link>
-                                <Link href="/products" className=" text-primary font-semibold hover:text-accent">Products </Link>
-                                <Link href="/contact-us" className=" text-primary font-semibold hover:text-accent">Contact Us</Link>
-                                <Link href="/about-us" className=" text-primary font-semibold hover:text-accent">About Us</Link>
+                                {links.map((link) =>
+                                    <Link href={link.url} className={` font-semibold hover:text-accent-foreground ${link.url === url ? "text-accent" : "text-secondary-foreground"}`}>{link.name}</Link>
+                                )}
                             </div>
                             {auth.user
                                 ?
@@ -53,23 +60,22 @@ const GuestLayout = ({ children }: GuestLayoutProps) => {
                         : <div>
                             <Dialog>
                                 <DialogTrigger asChild>
-                                    <Button className="dark:bg-accent-foreground bg-popover-foreground">
-                                        <Menu className="text-secondary dark:text-foreground size-7" />
+                                    <Button variant={"ghost"} className="dark:bg-accent-foreground ">
+                                        <Menu className="text-accent-foreground dark:text-foreground size-7" />
                                     </Button>
                                 </DialogTrigger>
                                 <DialogContent>
                                     {/* small screen menu items  */}
                                     <div className="flex flex-col divide-accent gap-4">
-                                        <Link href={"/"}>Home </Link>
-                                        <Link href={"/products"}>Product </Link>
-                                        <Link href={"/contact-us"}>Contact Us </Link>
-                                        <Link href={"/about-us"}>About Us</Link>
+                                        {links.map((link) =>
+                                            <Link href={link.url} className={` font-semibold hover:text-accent ${link.url === url ? "text-accent" : "text-primary"}`}>{link.name}</Link>
+                                        )}
                                         {auth.user ?
-                                            <Link href={logout()} className="text-start">Log out</Link>
+                                            <Link href={logout()} className="text-start bg-red-50 p-1.5 border-red-100 rounded-sm text-red-500 border">Log out</Link>
                                             :
                                             <>
-                                                <Link href={login()}>Log in</Link>
-                                                <Link href={register()}>Sign up</Link>
+                                                <Link className="text-start bg-green-50 p-1.5 border-green-100 rounded-sm text-green-500 border" href={login()}>Log in</Link>
+                                                <Link className="text-start bg-yellow-50 p-1.5 border-yellow-100 rounded-sm text-yellow-500 border" href={register()}>Sign up</Link>
                                             </>
                                         }
 
@@ -82,7 +88,7 @@ const GuestLayout = ({ children }: GuestLayoutProps) => {
                         </div>}
                 </nav>
             </header>
-            <main className="px-4 h-screen py-24 mx-auto flex flex-col items-center">
+            <main className="min-h-screen mx-auto ">
                 {children}
             </main>
             <footer className="py-6 px-4 bg-foreground rounded-sm">

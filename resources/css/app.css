@@ -193,6 +193,9 @@
         background: var(--primary);
         color: white;
     }
+    .section {
+        @apply py-20 mb-8 ;
+    }
 }
 
 
