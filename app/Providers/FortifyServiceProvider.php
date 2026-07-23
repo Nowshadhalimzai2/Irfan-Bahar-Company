@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -70,13 +71,13 @@ class FortifyServiceProvider extends ServiceProvider
         ]));
 
         Fortify::registerView(function () {
-            
-            // the autoCreateRoles method will create all roles if there's none
+
+            Gate::authorize('manage-users');            // the autoCreateRoles method will create all roles if there's none
             $this->autoCreateRoles();
-            
+
             return Inertia::render('auth/register', [
                 'passwordRules' => Password::defaults()->toPasswordRulesString(),
-                'roles' => Role::select('id','name')->get() ,
+                'roles' => Role::select('id', 'name')->get(),
             ]);
         });
 
@@ -106,12 +107,13 @@ class FortifyServiceProvider extends ServiceProvider
             );
         });
     }
-    
-    private function autoCreateRoles(){
-        if(User::all()->count()==0){
-            if(Role::all()->count()==0){
-                $roles = ['super_admin','admin','shop_clerk','factory_clerk'];
-                foreach($roles as $role){
+
+    private function autoCreateRoles()
+    {
+        if (User::all()->count() == 0) {
+            if (Role::all()->count() == 0) {
+                $roles = ['super_admin', 'admin', 'shop_clerk', 'factory_clerk'];
+                foreach ($roles as $role) {
                     Role::create([
                         'name' => $role
                     ]);
@@ -120,4 +122,3 @@ class FortifyServiceProvider extends ServiceProvider
         }
     }
 }
-

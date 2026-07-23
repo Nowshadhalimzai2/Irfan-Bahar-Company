@@ -1,5 +1,5 @@
 import { CompanyTitle } from '@/components/company-title';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
 import { login, logout, register } from '@/routes';
 import { Link, usePage } from '@inertiajs/react';
@@ -19,6 +19,7 @@ const links: LinkType[] = [
 const GuestLayout = ({ children }: GuestLayoutProps) => {
     const [screenWdith, setScreenWidth] = useState<number>(window.innerWidth);
     const { props: { auth }, url } = usePage();
+
     const socialLinks = [
         { name: 'WhatsApp', href: 'https://wa.me/782641141', icon: Phone },
         { name: 'Instagram', href: 'https://www.instagram.com/', icon: Instagram },
@@ -30,6 +31,7 @@ const GuestLayout = ({ children }: GuestLayoutProps) => {
 
     }, [window.innerWidth]);
 
+    const { role_id } = auth.user ?? 0;
 
     return (
         <div className=" dark:bg-accent-foreground">
@@ -42,17 +44,19 @@ const GuestLayout = ({ children }: GuestLayoutProps) => {
                         ? <div className="Large Screen MenuBar flex justify-between items-center w-3/4">
                             <div className="Quick_Links flex items-center gap-8">
                                 {links.map((link) =>
-                                    <Link href={link.url} className={` font-semibold hover:text-accent-foreground ${link.url === url ? "text-accent" : "text-secondary-foreground"}`}>{link.name}</Link>
+                                    <Link key={link.url} href={link.url} className={` font-semibold hover:text-accent-foreground ${link.url === url ? "text-accent" : "text-secondary-foreground"}`}>{link.name}</Link>
                                 )}
                             </div>
                             {auth.user
                                 ?
                                 <div className="Auth flex gap-2">
-                                    <Link href={logout()}><Button>Log out</Button></Link>
+                                    <Link href={logout()} className={buttonVariants({
+                                        variant: "default"
+                                    })}>Log out</Link>
                                 </div>
                                 : <div className="Auth flex gap-2">
                                     <Link href={login()}><Button>Log in</Button></Link>
-                                    <Link href={register()}><Button>Sign up</Button></Link>
+                                    {(role_id === 1 || role_id == 2) && <Link href={register()}><Button>Sign up</Button></Link>}
                                 </div>
                             }
                         </div>
@@ -68,14 +72,14 @@ const GuestLayout = ({ children }: GuestLayoutProps) => {
                                     {/* small screen menu items  */}
                                     <div className="flex flex-col divide-accent gap-4">
                                         {links.map((link) =>
-                                            <Link href={link.url} className={` font-semibold hover:text-accent ${link.url === url ? "text-accent" : "text-primary"}`}>{link.name}</Link>
+                                            <Link key={link.url} href={link.url} className={` font-semibold hover:text-accent ${link.url === url ? "text-accent" : "text-primary"}`}>{link.name}</Link>
                                         )}
                                         {auth.user ?
                                             <Link href={logout()} className="text-start bg-red-50 p-1.5 border-red-100 rounded-sm text-red-500 border">Log out</Link>
                                             :
                                             <>
                                                 <Link className="text-start bg-green-50 p-1.5 border-green-100 rounded-sm text-green-500 border" href={login()}>Log in</Link>
-                                                <Link className="text-start bg-yellow-50 p-1.5 border-yellow-100 rounded-sm text-yellow-500 border" href={register()}>Sign up</Link>
+                                                {(role_id === 1 || role_id == 2) && <Link href={register()}><Button>Sign up</Button></Link>}
                                             </>
                                         }
 
