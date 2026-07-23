@@ -11,9 +11,12 @@ import { store } from '@/routes/register';
 
 type Props = {
     passwordRules: string;
+    roles:{id:number;name:string;}[]
 };
 
-export default function Register({ passwordRules }: Props) {
+export default function Register({ passwordRules,roles }: Props) {
+    
+    
     return (
         <>
             <Head title="Register" />
@@ -59,6 +62,25 @@ export default function Register({ passwordRules }: Props) {
                             </div>
 
                             <div className="grid gap-2">
+                                <Label htmlFor="role">Role</Label>
+                                <select
+                                    id="role"
+                                    name="role_id"
+                                    required
+                                    tabIndex={4}
+                                    className="border rounded px-3 py-2"
+                                >
+                                    <option value="">Select a role</option>
+                                    {roles.map((role) => (
+                                        <option key={role.id} value={role.id}>
+                                            {role.name.replace(/_/g, ' ')}
+                                        </option>
+                                    ))}
+                                </select>
+                                <InputError message={errors.role_id} />
+                            </div>
+
+                            <div className="grid gap-2">
                                 <Label htmlFor="password">Password</Label>
                                 <PasswordInput
                                     id="password"
@@ -71,6 +93,7 @@ export default function Register({ passwordRules }: Props) {
                                 />
                                 <InputError message={errors.password} />
                             </div>
+
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password_confirmation">
