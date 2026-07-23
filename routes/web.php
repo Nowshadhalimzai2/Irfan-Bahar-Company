@@ -1,11 +1,14 @@
 <?php
 
 use App\Actions\Fortify\CreateNewUser;
+use App\Custome\Log;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LogController;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Models\Role;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rules\Password;
@@ -29,7 +32,16 @@ Route::middleware(['auth', 'can:manage-users'])->group(function () {
     })->name('register');
 
     Route::post('/register', function (Request $request, CreateNewUser $creator) {
-        $creator->create($request->all());
+        DB::beginTransaction();
+        try {
+            $user = $creator->create($request->all());
+            $log = new Log();
+            $log->create('insert',' برای '.$user->name.' اکونت ساخته شده توسط '.Auth::user()->name);
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            return redirect()->back()->with('error',$th->getMessage());
+        }
 
         return redirect()->route('dashboard')->with('success', 'User created successfully.');
     })->name('register.store');
