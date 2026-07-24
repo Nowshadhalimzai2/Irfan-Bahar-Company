@@ -9,23 +9,27 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import { SectionTitle } from "../section-title";
-import { User } from "@/types";
+import { Role, User } from "@/types";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button } from "../ui/button";
 import { MoreHorizontalIcon } from "lucide-react";
 import { router, usePage } from "@inertiajs/react";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import axios from "axios";
 interface Props {
     users: User[];
+    roles: Role[]
 }
-function UserList({ users }: Props) {
-    const {auth} =usePage().props;
-    console.log(auth);
+function UserList({ users, roles }: Props) {
+    const { auth } = usePage().props;
 
     return (
         <section className="section">
@@ -50,17 +54,34 @@ function UserList({ users }: Props) {
                                 <TableCell className="font-medium">{user.name}</TableCell>
                                 <TableCell>{user.email}</TableCell>
                                 <TableCell>{user.role.name}</TableCell>
-                                <TableCell> <DropdownMenu>
-                                    <DropdownMenuTrigger ><Button variant="ghost" size="icon" className="size-8"><MoreHorizontalIcon /><span className="sr-only">Open menu</span></Button></DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                                        <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                                        <DropdownMenuSeparator />
-                                        <DropdownMenuItem variant="destructive">
-                                            <Button variant={'destructive'} onClick={()=>router.get('/dashboard')} disabled={user.id===auth.user.id}>Delete</Button>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+                                <TableCell>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger>
+                                            <Button variant="ghost" size="icon" className="size-8"><MoreHorizontalIcon /><span className="sr-only">Open menu</span></Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            {
+                                                // simple roles list; adjust as needed
+                                                roles.map((role) => (
+                                                    <DropdownMenuItem key={role.id} onClick={async () => {
+                                                        try {
+                                                            const res = await axios.post(`/users/${user.id}/role`, { role: role.name });
+                                                            console.log('success response: ', res.data);
+
+                                                            router.reload();
+                                                        } catch (e) {
+                                                            console.error(e);
+                                                        }
+                                                    }}>
+                                                        {role.name}
+                                                    </DropdownMenuItem>
+                                                ))
+                                            }
+                                            <DropdownMenuItem variant="destructive">
+                                                <Button variant={'destructive'} onClick={() => router.get('/users/'+user.id)} disabled={user.id === auth.user.id}>Delete</Button>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </TableCell>
                             </TableRow>
                         ))}

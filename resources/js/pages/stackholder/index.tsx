@@ -14,21 +14,22 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs"
 import UserList from "@/components/user/user-list";
-import { User } from "@/types";
+import { Role, User } from "@/types";
 import { router } from "@inertiajs/core";
 import { useMemo } from "react";
 interface Props{
     users:User[];
+    roles:Role[]
 }
-export default function Index({users}:Props) {
+export default function Index({users,roles}:Props) {
     return (
         <section className="">
             <div>
                 <div className="mt-2">
                     <Tabs defaultValue="overview" className="w-full px-2 md:px-8">
                         <TabsList className="flex justify-between items-center w-full">
-                            <TabsTrigger value="employees">Emploees</TabsTrigger>
-                            <TabsTrigger value="users">System Users</TabsTrigger>
+                            <TabsTrigger value="employees">کاریګر ها</TabsTrigger>
+                            <TabsTrigger value="users">استفاده کنندګان سیستم</TabsTrigger>
                             <TabsTrigger value="tellers">Tellers</TabsTrigger>
                             <TabsTrigger value="vendors">Vendor</TabsTrigger>
                         </TabsList>
@@ -36,7 +37,7 @@ export default function Index({users}:Props) {
                             <EmployeeList />
                         </TabsContent>
                         <TabsContent value="users">
-                            <UserList  users={users}/>
+                            <UserList  users={users} roles={roles}/>
                         </TabsContent>
                         <TabsContent value="tellers">
                             <Card>

@@ -4,7 +4,6 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Custome\Log;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LogController;
-use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -47,10 +46,11 @@ Route::middleware(['auth', 'can:manage-users'])->group(function () {
     })->name('register.store');
 });
 
-Route::middleware(['auth', 'superadmin'])->group(function(){
+Route::middleware(['auth', 'can:manage-users'])->group(function(){
     Route::get('/stackholders', [EmployeeController::class,'index']);
     Route::get('/logs',[LogController::class,'index'])->name('logs.index');
 
 });
 
 require __DIR__.'/settings.php';
+require __DIR__.'/axios-routes.php';
