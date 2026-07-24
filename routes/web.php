@@ -5,6 +5,7 @@ use App\Custome\Log;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LogController;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -22,29 +23,45 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
 });
 
-Route::middleware(['auth', 'can:manage-users'])->group(function () {
-    Route::get('/register', function () {
-        return Inertia::render('auth/register', [
-            'passwordRules' => Password::defaults()->toPasswordRulesString(),
-            'roles' => Role::select('id', 'name')->get(),
-        ]);
-    })->name('register');
+Route::get('/register', function () {
+    foreach (['super_admin', 'admin', 'shop_clerk', 'factory_clerk'] as $roleName) {
+        Role::firstOrCreate(['name' => $roleName]);
+    }
 
-    Route::post('/register', function (Request $request, CreateNewUser $creator) {
-        DB::beginTransaction();
-        try {
-            $user = $creator->create($request->all());
-            $log = new Log();
-            $log->create('insert',' برای '.$user->name.' اکونت ساخته شده توسط '.Auth::user()->name);
-            DB::commit();
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            return redirect()->back()->with('error',$th->getMessage());
+    if (User::query()->exists()) {
+        Gate::authorize('manage-users');
+    }
+
+    return Inertia::render('auth/register', [
+        'passwordRules' => Password::defaults()->toPasswordRulesString(),
+        'roles' => Role::select('id', 'name')->get(),
+    ]);
+})->name('register');
+
+Route::post('/register', function (Request $request, CreateNewUser $creator) {
+    if (User::query()->exists()) {
+        Gate::authorize('manage-users');
+    }
+
+    DB::beginTransaction();
+    try {
+        $user = $creator->create($request->all());
+
+        if (! Auth::check()) {
+            Auth::login($user);
         }
 
-        return redirect()->route('dashboard')->with('success', 'User created successfully.');
-    })->name('register.store');
-});
+        $actorName = Auth::check() ? Auth::user()->name : 'system';
+        $log = new Log();
+        $log->create('insert', ' برای '.$user->name.' اکونت ساخته شده توسط '.$actorName);
+        DB::commit();
+    } catch (\Throwable $th) {
+        DB::rollBack();
+        return redirect()->back()->with('error', $th->getMessage());
+    }
+
+    return redirect()->route('dashboard')->with('success', 'User created successfully.');
+})->name('register.store');
 
 Route::middleware(['auth', 'can:manage-users'])->group(function(){
     Route::get('/stackholders', [EmployeeController::class,'index']);

@@ -72,6 +72,6 @@ class EmployeeController extends Controller
      */
     public function destroy(User $user)
     {
-        $user
+        
     }
 }

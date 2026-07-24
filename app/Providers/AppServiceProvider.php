@@ -27,8 +27,12 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
-        Gate::define('manage-users', function (User $user): bool {
-            return Auth::user() && $user->hasAnyRole(['admin', 'super_admin']);
+        Gate::define('manage-users', function (?User $user): bool {
+            if (! User::query()->exists()) {
+                return true;
+            }
+
+            return $user instanceof User && $user->hasAnyRole(['admin', 'super_admin']);
         });
     }
 

@@ -110,14 +110,9 @@ class FortifyServiceProvider extends ServiceProvider
 
     private function autoCreateRoles()
     {
-        if (User::all()->count() == 0) {
-            if (Role::all()->count() == 0) {
-                $roles = ['super_admin', 'admin', 'shop_clerk', 'factory_clerk'];
-                foreach ($roles as $role) {
-                    Role::create([
-                        'name' => $role
-                    ]);
-                }
+        if (User::query()->count() === 0) {
+            foreach (['super_admin', 'admin', 'shop_clerk', 'factory_clerk'] as $roleName) {
+                Role::firstOrCreate(['name' => $roleName]);
             }
         }
     }

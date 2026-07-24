@@ -4,6 +4,7 @@ namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
@@ -19,17 +20,45 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        Validator::make($input, [
+        $isFirstUser = User::query()->count() === 0;
+
+        if ($isFirstUser) {
+            $this->ensureDefaultRolesExist();
+        }
+
+        $validationRules = [
             ...$this->profileRules(),
             'password' => $this->passwordRules(),
-            'role_id' => ['required', 'exists:roles,id'],
-        ])->validate();
+        ];
+
+        if (! $isFirstUser) {
+            $validationRules['role_id'] = ['required', 'exists:roles,id'];
+        }
+
+        Validator::make($input, $validationRules)->validate();
+
+        $roleId = $input['role_id'] ?? null;
+
+        if ($isFirstUser) {
+            $roleId = Role::where('name', 'super_admin')->value('id');
+        }
+
+        if (! $roleId) {
+            throw new \InvalidArgumentException('A valid role is required to create a user.');
+        }
 
         return User::create([
             'name' => $input['name'],
             'email' => $input['email'],
             'password' => $input['password'],
-            'role_id' => $input['role_id'],
+            'role_id' => $roleId,
         ]);
+    }
+
+    private function ensureDefaultRolesExist(): void
+    {
+        foreach (['super_admin', 'admin', 'shop_clerk', 'factory_clerk'] as $roleName) {
+            Role::firstOrCreate(['name' => $roleName]);
+        }
     }
 }
