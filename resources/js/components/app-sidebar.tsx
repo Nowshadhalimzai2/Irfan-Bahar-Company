@@ -18,12 +18,12 @@ import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     {
-        title: 'Dashboard',
+        title: 'دشبورد',
         href: dashboard(),
         icon: LayoutGrid,
     },
     {
-        title: 'Stackholder',
+        title: 'کار کننده ګان',
         href: "/stackholders",
         icon: GroupIcon,
     },

@@ -61,6 +61,7 @@ class EmployeeController extends Controller
     {
         DB::beginTransaction();
         try {
+            $preRole=$user->role->name;
             $data = $request->validate([
                 'role' => 'required|string|exists:roles,name',
             ]);
@@ -69,8 +70,8 @@ class EmployeeController extends Controller
             $user->save();
             //          Create new log for role updatation
             $log = new Log();
-            $log->create('update', 'نقش', null, URL::previous());
-            Inertia::flash('toast', ['type' => 'success', 'message' => 'role updated']);
+            $log->create('update',  $request->role .' به '.$preRole .' از '.' نقش', $user, URL::previous());
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'نقش یوزر را موفقانه به روز شد']);
             DB::commit();
             return response()->json(['user' => $user->load('role:id,name'), 'role' => $request->role]);
         } catch (\Throwable $th) {

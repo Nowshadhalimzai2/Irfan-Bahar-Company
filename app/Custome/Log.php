@@ -20,10 +20,10 @@ class Log
                 $template = "{$desc} رکورد جدید را ایجاد کرد. توضیحات: {$username}";
                 break;
             case 'update':
-                $template = "{$desc} رکورد را به‌روز کرد. توضیحات: {$username}";
+                $template = "{$desc} رکورد را به‌روز کرد. {$targetedUser->name} توضیحات: {$username}";
                 break;
             case 'delete':
-                $template = "{$desc}  رکورد {$targetedUser->name} را حذف کرد. توضیحات: {$username}";
+                $template = "{$desc}در سیستم به روز کرد. توضیحات {$targetedUser->name} حالت {$username}";
                 break;
             default:
                 $template = "{$desc} فعالیتی انجام داد: {$actType}. توضیحات: {$username}";

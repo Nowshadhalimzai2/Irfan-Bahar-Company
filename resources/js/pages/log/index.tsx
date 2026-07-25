@@ -45,8 +45,8 @@ const Index = ({ logs,newLogs }: Props) => {
                             <TableCell>{ind + 1}</TableCell>
                             <TableCell>{log.user.name}</TableCell>
                             <TableCell className="font-medium">{log.activity_type}</TableCell>
-                            <TableCell>{log.description}</TableCell>
-                            <TableCell>{new Date(log.activity_date).toDateString()}</TableCell>
+                            <TableCell>{log.description.length>50? log.description.slice(50):log.description}</TableCell>
+                            <TableCell>{new Date(log.activity_date).toLocaleString()}</TableCell>
                         </TableRow>
                     )) : <>
                         <TableCell colSpan={2}></TableCell>
@@ -59,7 +59,7 @@ const Index = ({ logs,newLogs }: Props) => {
                 </TableBody>
                 <TableFooter>
                     <TableRow>
-                        <TableCell colSpan={3}>Total logs</TableCell>
+                        <TableCell colSpan={4}>Total logs</TableCell>
                         <TableCell className="text-right">{logs.length}</TableCell>
                     </TableRow>
                 </TableFooter>
