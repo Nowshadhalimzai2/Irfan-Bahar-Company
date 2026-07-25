@@ -2,8 +2,9 @@
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Custome\Log;
-use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\EmployeeController;
+
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -58,7 +59,7 @@ Route::post('/register', function (Request $request, CreateNewUser $creator) {
         DB::commit();
     } catch (\Throwable $th) {
         DB::rollBack();
-        Inertia::flash('toast', ['type' => 'success', 'message' => ' یک مشکل در وجود امد. '.$th->getMessage()]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => ' یک مشکل در وجود امد. ' . $th->getMessage()]);
         return redirect()->back();
     }
 
