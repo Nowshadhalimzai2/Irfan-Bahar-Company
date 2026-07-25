@@ -18,18 +18,20 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Button } from "../ui/button";
+import { Button, buttonVariants } from "../ui/button";
 import { MoreHorizontalIcon } from "lucide-react";
-import { router, usePage } from "@inertiajs/react";
+import { Link, router, usePage } from "@inertiajs/react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import axios from "axios";
+import { register } from "@/routes";
 interface Props {
     users: User[];
     roles: Role[]
 }
 function UserList({ users, roles }: Props) {
     const { auth } = usePage().props;
+    console.log(users[0].status);
 
     return (
         <section className="section">
@@ -40,8 +42,9 @@ function UserList({ users, roles }: Props) {
                     <TableHeader>
                         <TableRow>
                             <TableHead className="w-25">No</TableHead>
-                            <TableHead>name</TableHead>
-                            <TableHead>email</TableHead>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead >Status</TableHead>
                             <TableHead >Role</TableHead>
                             <TableHead >Action</TableHead>
 
@@ -49,10 +52,12 @@ function UserList({ users, roles }: Props) {
                     </TableHeader>
                     <TableBody>
                         {users.map((user, ind) => (
-                            <TableRow key={user.id}>
+                            <TableRow key={user.id} >
                                 <TableCell>{ind + 1}</TableCell>
                                 <TableCell className="font-medium">{user.name}</TableCell>
                                 <TableCell>{user.email}</TableCell>
+                                <TableCell className={` rounded-md ${user.status?"text-green-500  border-primary/30":"text-destructive  border-destructive/30"}`}>{user.status?"Activted":"Deactiveted"}</TableCell>
+
                                 <TableCell>{user.role.name}</TableCell>
                                 <TableCell>
                                     <DropdownMenu>
@@ -77,8 +82,8 @@ function UserList({ users, roles }: Props) {
                                                     </DropdownMenuItem>
                                                 ))
                                             }
-                                            <DropdownMenuItem variant="destructive">
-                                                <Button variant={'destructive'} onClick={() => router.get('/users/'+user.id)} disabled={user.id === auth.user.id}>Delete</Button>
+                                            <DropdownMenuItem variant="destructive" className=" py-0 mt-1 border-t">
+                                                <Button variant={'ghost'} className={`${!user.status?"text-green-500":"text-red-500"}`} onClick={() => router.put('/users/'+!user.status+'/' + user.id)} disabled={user.id === auth.user.id}>{user.status?"Deactivate":"Activate"}</Button>
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
@@ -88,11 +93,16 @@ function UserList({ users, roles }: Props) {
                     </TableBody>
                     <TableFooter>
                         <TableRow>
-                            <TableCell colSpan={3}>Total Users</TableCell>
+                            <TableCell colSpan={4}>Total Users</TableCell>
                             <TableCell className="text-right">{users.length}</TableCell>
                         </TableRow>
                     </TableFooter>
                 </Table>
+            </div>
+            <div className="flex justify-end flex-col items-end">
+                <Link href={register()} className={buttonVariants({
+                    variant: 'default'
+                }) + "  "}>ایجاد یوزر جدید</Link>
             </div>
         </section>
     )
