@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
+use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 
 Route::inertia('/', 'welcome')->name('home');
 // Route::inertia('/products',)->name('products.index');
@@ -66,7 +67,7 @@ Route::post('/register', function (Request $request, CreateNewUser $creator) {
 })->name('register.store');
 
 Route::middleware(['auth', 'can:manage-users'])->group(function () {
-    Route::get('/stackholders', [EmployeeController::class, 'index']);
+    Route::get('/stackholders', [RegisteredUserController::class, 'index']);
     Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
 });
 
