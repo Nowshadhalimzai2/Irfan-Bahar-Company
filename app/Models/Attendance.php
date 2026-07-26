@@ -2,16 +2,26 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Attendance extends Model
 {
-    protected $fillable = ['present', 'employee_id', 'date'];
+    use HasFactory;
 
-    public function employee(): BelongsTo
+    protected $fillable = [
+        'employee_id',
+        'date',
+        'is_present',
+    ];
+
+    protected $casts = [
+        'date' => 'date',
+        'is_present' => 'boolean',
+    ];
+
+    public function employee()
     {
-
         return $this->belongsTo(Employee::class);
     }
 }

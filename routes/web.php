@@ -52,14 +52,13 @@ Route::post('/register', function (Request $request, CreateNewUser $creator) {
             Auth::login($user);
         }
 
-        $actorName = Auth::check() ? Auth::user()->name : 'system';
         $log = new Log();
-        $log->create('insert', $request->name . ' یوزر ساخته شد برای');
+        $log->create('insert', ' یوزر  جدید', $user->name);
         Inertia::flash('toast', ['type' => 'success', 'message' => ' موفقانه ایجاد شد {$request->name} اکونت یوزر']);
         DB::commit();
     } catch (\Throwable $th) {
         DB::rollBack();
-        Inertia::flash('toast', ['type' => 'success', 'message' => ' یک مشکل در وجود امد. '.$th->getMessage()]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => ' یک مشکل در وجود امد. ' . $th->getMessage()]);
         return redirect()->back();
     }
 
@@ -69,7 +68,9 @@ Route::post('/register', function (Request $request, CreateNewUser $creator) {
 Route::middleware(['auth', 'can:manage-users'])->group(function () {
     Route::get('/stackholders', [RegisteredUserController::class, 'index'])->name('employees.index');
     Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
-    Route::resource('employees',EmployeeController::class)->except('index')->names('employees');
+    Route::resource('employees', EmployeeController::class)->except('index')->names('employees');
+    Route::post('/employees/{employee}/attendance-toggle', [EmployeeController::class, 'toggleAttendance'])
+        ->name('employees.attendance.toggle');
 });
 
 require __DIR__ . '/settings.php';

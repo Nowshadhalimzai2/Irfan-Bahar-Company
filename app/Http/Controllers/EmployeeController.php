@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Custome\Log;
+use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
@@ -11,10 +12,23 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 
-class EmployeeController extends Controller
+class 
+EmployeeController extends Controller
 {
 
 
+    public function toggleAttendance(Request $request,Employee $employee)
+    {
+        $attendance = Attendance::firstOrCreate(
+            ['employee_id' => $employee->id, 'date' => today()],
+            ['is_present' => true]
+        );
+
+        $attendance->is_present = ! $attendance->is_present;
+        $attendance->save();
+
+        return redirect()->back();
+    }
     /**
      * Show the form for creating a new resource.
      */
@@ -46,14 +60,14 @@ class EmployeeController extends Controller
                 ...$validated,
                 'recruitment_date' => now(),
             ]);
-            $log=new Log();
-            $log->create('insert'," کارکن جدید ",$emp->name);
+            $log = new Log();
+            $log->create('insert', " کارکن جدید ", $emp->name);
             DB::commit();
-            Inertia::flash('toast', ['type' => 'success', 'message' => ' را موفقانه در سیستم اضافه شد '.$emp->name]);
+            Inertia::flash('toast', ['type' => 'success', 'message' => ' را موفقانه در سیستم اضافه شد ' . $emp->name]);
             return redirect()->to(route('employees.index'));
         } catch (\Throwable $th) {
             DB::rollBack();
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'کارکن را در سیستم اضافه نشد '.$th->getMessage()]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'کارکن را در سیستم اضافه نشد ' . $th->getMessage()]);
             return redirect()->back();
         }
     }
