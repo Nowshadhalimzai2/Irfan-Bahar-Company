@@ -1,33 +1,29 @@
 <?php
-
 namespace App\Custome;
 
 use App\Models\Log as ModelsLog;
-use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 
 class Log
 {
-    public function create(string $actType, string $desc, ?User $targetedUser = null,?string $link=null)
+    public function create(string $actType, string $desc, ?string $targetedUser = null, ?string $link = null)
     {
-        $user = Auth::user();
-        $username = $user ? $user->name : 'سیستم';
-        
+        $desc = trim((string)$desc);
+        $targetedUser = $targetedUser ? trim($targetedUser) : null;
 
-        // Create meaningful Dari templates for each activity
-        switch ($actType) {
-            case 'insert':
-                $template = "{$desc} رکورد جدید را ایجاد کرد. توضیحات: {$username}";
-                break;
-            case 'update':
-                $template = "{$desc} رکورد را به‌روز کرد. {$targetedUser->name} توضیحات: {$username}";
-                break;
-            case 'delete':
-                $template = "{$desc}در سیستم به روز کرد. توضیحات {$targetedUser->name} حالت {$username}";
-                break;
-            default:
-                $template = "{$desc} فعالیتی انجام داد: {$actType}. توضیحات: {$username}";
-                break;
+        $suffixMap = [
+            'insert' => 'در سیستم اضافه شد',
+            'update' => 'به‌روزرسانی شد',
+            'delete' => 'از سیستم حذف شد',
+        ];
+        $suffix = $suffixMap[$actType] ?? "فعالیتی انجام داد: {$actType}";
+
+        if ($desc !== '') {
+            $template = $targetedUser ? "{$desc} {$suffix} - {$targetedUser}" : "{$desc} {$suffix}";
+        } elseif ($targetedUser) {
+            $template = "{$targetedUser} {$suffix}";
+        } else {
+            $template = $suffix;
         }
 
         ModelsLog::create([

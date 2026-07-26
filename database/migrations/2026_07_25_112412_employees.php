@@ -21,7 +21,7 @@ return new class extends Migration
             $table->enum('shift', ['day', 'night']);
             $table->decimal('salary', 6, 2);
             $table->date('recruitment_date');
-            $table->boolean('status');
+            $table->boolean('status')->default(true);
             $table->timestamps();
         });
     }

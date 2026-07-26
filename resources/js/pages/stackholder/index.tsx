@@ -14,14 +14,15 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs"
 import UserList from "@/components/user/user-list";
-import { Role, User } from "@/types";
+import { Employee, Role, User } from "@/types";
 import { router } from "@inertiajs/core";
 import { useMemo } from "react";
 interface Props{
     users:User[];
-    roles:Role[]
+    roles:Role[];
+    employees:Employee[];
 }
-export default function Index({users,roles}:Props) {
+export default function Index({users,roles,employees}:Props) {
     return (
         <section className="">
             <div>
@@ -34,7 +35,7 @@ export default function Index({users,roles}:Props) {
                             <TabsTrigger value="vendors">Vendor</TabsTrigger>
                         </TabsList>
                         <TabsContent value="employees">
-                            <EmployeeList />
+                            <EmployeeList employees={employees}/>
                         </TabsContent>
                         <TabsContent value="users">
                             <UserList  users={users} roles={roles}/>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Custome\Log;
+use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -12,22 +13,15 @@ use Inertia\Inertia;
 
 class EmployeeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        $users = User::with('role:id,name')->select(['id', 'name', 'email', 'role_id','status'])->get();
-        $roles = Role::select('id', 'name')->get();
-        return Inertia::render('stackholder/index', compact('users', 'roles'));
-    }
+
 
     /**
      * Show the form for creating a new resource.
      */
     public function create()
     {
-        //
+
+        return Inertia::render('employee/create');
     }
 
     /**
@@ -35,7 +29,33 @@ class EmployeeController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'f_name' => 'required|string|max:255',
+            // phone: allow numeric string up to 10 characters
+            'phone' => 'required|string|max:10|starts_with:07',
+            'address' => 'required|string|max:255',
+            'position' => 'required|string',
+            'salary' => 'required|numeric',
+            'shift' => 'required|string',
+
+        ]);
+        DB::beginTransaction();
+        try {
+            $emp = Employee::create([
+                ...$validated,
+                'recruitment_date' => now(),
+            ]);
+            $log=new Log();
+            $log->create('insert'," کارکن جدید ",$emp->name);
+            DB::commit();
+            Inertia::flash('toast', ['type' => 'success', 'message' => ' را موفقانه در سیستم اضافه شد '.$emp->name]);
+            return redirect()->to(route('employees.index'));
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'کارکن را در سیستم اضافه نشد '.$th->getMessage()]);
+            return redirect()->back();
+        }
     }
 
     /**
@@ -61,7 +81,7 @@ class EmployeeController extends Controller
     {
         DB::beginTransaction();
         try {
-            $preRole=$user->role->name;
+            $preRole = $user->role->name;
             $data = $request->validate([
                 'role' => 'required|string|exists:roles,name',
             ]);
@@ -70,7 +90,7 @@ class EmployeeController extends Controller
             $user->save();
             //          Create new log for role updatation
             $log = new Log();
-            $log->create('update',  $request->role .' به '.$preRole .' از '.' نقش', $user, URL::previous());
+            $log->create('update',  $request->role . ' به ' . $preRole . ' از ' . ' نقش', $user->name, URL::previous());
             Inertia::flash('toast', ['type' => 'success', 'message' => 'نقش یوزر را موفقانه به روز شد']);
             DB::commit();
             return response()->json(['user' => $user->load('role:id,name'), 'role' => $request->role]);
@@ -84,18 +104,18 @@ class EmployeeController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(bool $status,User $user)
+    public function destroy(bool $status, User $user)
     {
         DB::beginTransaction();
         try {
             $log = new Log();
-            $log->create('delete','',$user);
+            $log->create('delete', '', $user->name);
             $user->status = $status;
             $user->save();
             Inertia::flash('toast', ['type' => 'success', 'message' => ' موفقانه غیر فعال شد ' . $user->name . ' اکونت یوزر']);
             DB::commit();
         } catch (\Throwable $th) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => ' غیر فعال نشد '.$user->name.' اکونت یوزر' . $th->getMessage()]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => ' غیر فعال نشد ' . $user->name . ' اکونت یوزر' . $th->getMessage()]);
             DB::rollBack();
         }
         return redirect()->back();

@@ -14,3 +14,32 @@ export interface User{
     status:boolean;
 
 }
+
+export interface Employee{
+    id:number;
+    salaries:Salary[];
+    attendances:Attandance[];
+    name:string;
+    f_name:string;
+    phone:string;
+    position: 'clerk' | 'worker' | 'shopkeeper' | 'machine_operator' | 'other';
+    recruitment_date: Date;
+    address:string;
+    salary:number;
+    status:boolean;
+
+}
+
+export interface Salary{
+    id:number;
+    employee_id:number;
+    amount:number;
+    payment_date:Date;    
+}
+
+export interface Attandance{
+    id:number;
+    employee_id:number;
+    present:boolean;
+    date:Date;    
+}

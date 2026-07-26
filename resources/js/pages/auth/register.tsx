@@ -67,7 +67,7 @@ export default function Register({ passwordRules,roles }: Props) {
                                     id="role"
                                     name="role_id"
                                     required
-                                    tabIndex={4}
+                                    tabIndex={3}
                                     className="border rounded px-3 py-2"
                                 >
                                     <option value="">Select a role</option>
@@ -85,7 +85,7 @@ export default function Register({ passwordRules,roles }: Props) {
                                 <PasswordInput
                                     id="password"
                                     required
-                                    tabIndex={3}
+                                    tabIndex={4}
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder="Password"
@@ -102,7 +102,7 @@ export default function Register({ passwordRules,roles }: Props) {
                                 <PasswordInput
                                     id="password_confirmation"
                                     required
-                                    tabIndex={4}
+                                    tabIndex={5}
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder="Confirm password"
@@ -116,7 +116,7 @@ export default function Register({ passwordRules,roles }: Props) {
                             <Button
                                 type="submit"
                                 className="mt-2 w-full"
-                                tabIndex={5}
+                                tabIndex={6}
                                 data-test="register-user-button"
                             >
                                 {processing && <Spinner />}

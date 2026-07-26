@@ -67,8 +67,9 @@ Route::post('/register', function (Request $request, CreateNewUser $creator) {
 })->name('register.store');
 
 Route::middleware(['auth', 'can:manage-users'])->group(function () {
-    Route::get('/stackholders', [RegisteredUserController::class, 'index']);
+    Route::get('/stackholders', [RegisteredUserController::class, 'index'])->name('employees.index');
     Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
+    Route::resource('employees',EmployeeController::class)->except('index')->names('employees');
 });
 
 require __DIR__ . '/settings.php';
