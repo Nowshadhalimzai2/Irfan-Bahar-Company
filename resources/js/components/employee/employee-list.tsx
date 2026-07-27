@@ -20,7 +20,10 @@ interface Props {
 }
 
 function EmployeeList({ employees }: Props) {
+
   const toggleAttendance = async (employee: Employee) => {
+    console.log(employee.today_attendance?.is_present);
+    
     router.post('/employees/' + employee.id + '/attendance-toggle', { employee: employee.id });
   };
   console.log(employees);
@@ -38,7 +41,7 @@ function EmployeeList({ employees }: Props) {
           <TableCaption>A list of your recent attendance.</TableCaption>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-25">ID</TableHead>
+              <TableHead className="w-15">ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Position</TableHead>
               <TableHead>Salary</TableHead>
@@ -53,10 +56,10 @@ function EmployeeList({ employees }: Props) {
               const isPresent = employee.today_attendance?.is_present ?? true;
 
               return (
-                <TableRow key={employee.id}>
+                <TableRow key={employee.id} className="hover:bg-secondary hover:border" onClick={()=>router.get("/employees/"+employee.id)}>
                   <TableCell>{ind + 1}</TableCell>
                   <TableCell className="font-medium">{employee.name}</TableCell>
-                  <TableCell>{employee.position}</TableCell>
+                  <TableCell>{employee.position.replace('_',' ')}</TableCell>
                   <TableCell>{employee.salary}</TableCell>
                   <TableCell>{employee.present_days}</TableCell>
                   <TableCell>{employee.absent_days}</TableCell>

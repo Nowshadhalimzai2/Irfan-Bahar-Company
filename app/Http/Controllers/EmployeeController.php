@@ -12,23 +12,35 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 
-class 
+class
 EmployeeController extends Controller
 {
 
 
-    public function toggleAttendance(Request $request,Employee $employee)
+    public function toggleAttendance(Request $request, Employee $employee)
     {
-        $attendance = Attendance::firstOrCreate(
-            ['employee_id' => $employee->id, 'date' => today()],
-            ['is_present' => true]
-        );
+        DB::beginTransaction();
+        try {
+            $attendance = Attendance::firstOrCreate(
+                ['employee_id' => $employee->id, 'date' => today()],
+                ['is_present' => true]
+            );
 
-        $attendance->is_present = ! $attendance->is_present;
-        $attendance->save();
+            $attendance->is_present = ! $attendance->is_present;
+            $is_present = $attendance->is_present ? "حاضر" : " غیر حاضر ";
+            Inertia::flash('toast', ['type' => 'success', 'message' => $employee->name.' را موفقانه در سیستم شد '.$is_present]);
+            $attendance->save();
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Inertia::flash('toast', ['type' => 'fail', 'message' => 'فعالیت در سیستم انجام نشد'.$th->getMessage()]);
+        }
+
 
         return redirect()->back();
     }
+
+
     /**
      * Show the form for creating a new resource.
      */
@@ -75,9 +87,10 @@ EmployeeController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(string $id)
+    public function show(Employee $employee)
     {
-        //
+        $employee->load('todayAttendance');
+        return Inertia::render("employee/show", compact("employee"));
     }
 
     /**
@@ -133,5 +146,17 @@ EmployeeController extends Controller
             DB::rollBack();
         }
         return redirect()->back();
+    }
+
+
+    public function paySalary(Request $request){
+ 
+        $empSalary=Employee::findOrFail($request->employee_id)->salary;
+        $empSalary=$empSalary?:0;
+        $request->validate([
+            'amount' => "required|gte:10|lte:{$empSalary}",
+            'employee_id' => "required|integer|exists:employees,id",
+        ]);
+        dd($request->all());
     }
 }

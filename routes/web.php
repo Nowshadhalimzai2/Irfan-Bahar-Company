@@ -71,6 +71,9 @@ Route::middleware(['auth', 'can:manage-users'])->group(function () {
     Route::resource('employees', EmployeeController::class)->except('index')->names('employees');
     Route::post('/employees/{employee}/attendance-toggle', [EmployeeController::class, 'toggleAttendance'])
         ->name('employees.attendance.toggle');
+
+    Route::post('/employees/{employee}/pay-salary', [EmployeeController::class, 'paySalary'])
+        ->name('employees.pay.salary');
 });
 
 require __DIR__ . '/settings.php';

@@ -58,7 +58,7 @@ function UserList({ users, roles }: Props) {
                                 <TableCell>{user.email}</TableCell>
                                 <TableCell className={` rounded-md ${user.status?"text-green-500  border-primary/30":"text-destructive  border-destructive/30"}`}>{user.status?"Activted":"Deactiveted"}</TableCell>
 
-                                <TableCell>{user.role.name}</TableCell>
+                                <TableCell>{user.role.name.replace("_"," ")}</TableCell>
                                 <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger>
@@ -78,7 +78,7 @@ function UserList({ users, roles }: Props) {
                                                             console.error(e);
                                                         }
                                                     }}>
-                                                        {role.name}
+                                                        {role.name.replace('_',' ')}
                                                     </DropdownMenuItem>
                                                 ))
                                             }

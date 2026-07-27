@@ -27,6 +27,7 @@ export interface Employee {
     address: string;
     salary: number;
     status: boolean;
+    shift: "day" | "night"
     today_attendance?: {
         is_present: boolean;
     };
