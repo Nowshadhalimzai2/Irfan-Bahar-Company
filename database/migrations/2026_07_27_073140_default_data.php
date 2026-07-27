@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Role;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
@@ -7,6 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (DB::table('roles')->count() === 0) {
+            foreach (['super_admin', 'admin', 'shop_clerk', 'factory_clerk'] as $roleName) {
+                Role::firstOrCreate(['name' => $roleName]);
+            }
+        }
         if (DB::table('currencies')->count() === 0) {
             $currencyIds = [];
 

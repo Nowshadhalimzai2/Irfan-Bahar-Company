@@ -25,9 +25,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 Route::get('/register', function () {
-    foreach (['super_admin', 'admin', 'shop_clerk', 'factory_clerk'] as $roleName) {
-        Role::firstOrCreate(['name' => $roleName]);
-    }
+  
 
     if (User::query()->exists()) {
         Gate::authorize('manage-users');
