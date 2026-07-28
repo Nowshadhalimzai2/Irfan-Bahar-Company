@@ -1,3 +1,5 @@
+import { Currency } from 'lucide-react';
+
 export type * from './auth';
 export type * from './navigation';
 export type * from './ui';
@@ -18,7 +20,7 @@ export interface User {
 export interface Employee {
     id: number;
     salaries: Salary[];
-    attendances: Attandance[];
+    attendances: Attendance[];
     name: string;
     f_name: string;
     phone: string;
@@ -43,9 +45,18 @@ export interface Salary {
     payment_date: Date;
 }
 
-export interface Attandance {
+export interface Attendance {
     id: number;
     employee_id: number;
     is_present: boolean;
     date: Date;
+}
+export interface Currency{
+    id:number;
+    name: "AFG" | "USD" | "PKR";
+}
+export interface Account{
+    id:number;
+    amount:number;
+    currency:Currency;
 }

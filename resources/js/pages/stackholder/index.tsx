@@ -6,13 +6,13 @@ import {
     CardDescription,
     CardHeader,
     CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
     Tabs,
     TabsContent,
     TabsList,
     TabsTrigger,
-} from "@/components/ui/tabs"
+} from "@/components/ui/tabs";
 import UserList from "@/components/user/user-list";
 import { Employee, Role, User } from "@/types";
 import { router } from "@inertiajs/core";

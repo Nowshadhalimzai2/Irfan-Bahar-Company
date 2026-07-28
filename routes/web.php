@@ -5,6 +5,7 @@ use App\Custome\Log;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LogController;
 use App\Models\Role;
+use App\Models\ShopAccount;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,11 +22,15 @@ Route::inertia('/contact-us', 'contact-us')->name('contact-us');
 Route::inertia('/about-us', 'about-us')->name('about-us');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::get('/dashboard', function () {
+        $sa = ShopAccount::with('currency:id,name')->select('id', 'amount', 'currency_id')->get();
+        // dd($sa);
+       return Inertia::render('dashboard',compact('sa'));
+    })->name('dashboard');
 });
 
 Route::get('/register', function () {
-  
+
 
     if (User::query()->exists()) {
         Gate::authorize('manage-users');

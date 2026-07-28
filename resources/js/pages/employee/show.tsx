@@ -1,20 +1,27 @@
+import EmployeeHistory from '@/components/employee/employee-history';
+import SalaryHistory from '@/components/employee/employee-history';
 import { SalaryPaymentDialog } from '@/components/employee/salary-payment_dialog';
 import { SectionTitle } from '@/components/section-title';
 import { Button } from '@/components/ui/button';
 import { dashboard } from '@/routes';
 import employees from '@/routes/employees';
-import { Employee } from '@/types';
+import { Employee, Salary } from '@/types';
 import { router } from '@inertiajs/react';
-import { BadgeDollarSign, Briefcase, CalendarDays, DollarSign, Dot, ListStart, LocateFixedIcon, LucideIcon, LucideProps, LucideTrendingUp, MapPin, OctagonIcon, Phone, User, UserCheck2Icon, UserX } from 'lucide-react';
+import { BadgeDollarSign, Briefcase, CalendarDays, DollarSign, Dot, ListStart, LocateFixedIcon, LucideIcon, LucideProps, LucideTrendingUp, MapPin, Moon, OctagonIcon, Phone, Sun, User, UserCheck2Icon, UserX } from 'lucide-react';
 import React from 'react'
 
 interface Props {
     employee: Employee;
+    currentMonthSalaries: Salary[];
+    previousMonthSalaries: Salary[];
+    thisMonthSalary:number;
 }
-const Show = ({ employee }: Props) => {
-    console.log(employee.today_attendance?.is_present);
+const Show = ({ employee, currentMonthSalaries, previousMonthSalaries,thisMonthSalary }: Props) => {
+    console.log('current month salary', thisMonthSalary);
+    
+
     const toggleAttendance = async (employee: Employee) => {
-        
+
         router.post('/employees/' + employee.id + '/attendance-toggle', { employee: employee.id });
     };
 
@@ -24,8 +31,8 @@ const Show = ({ employee }: Props) => {
             ‍‍<div className="mx-auto max-w-3xl px-2 md:px-8">
                 <div className="grid grid-cols-2 gap-2 mb-5">
                     <div>
-                        <SalaryPaymentDialog employee={employee}/>
-                         
+                        <SalaryPaymentDialog employee={employee} />
+
                         <p className="text-muted-foreground py-1 text-sm text-end">
                             بقایه معاش: 5000.0
                         </p>
@@ -65,10 +72,11 @@ const Show = ({ employee }: Props) => {
                         <span className="text-primary">{new Date(employee.recruitment_date).toDateString()}</span>
                     </div>
 
-                    <div className="border flex justify-center items-center flex-col  rounded-sm p-4 shadow gap-y-2">
-                        <CalendarDays className="size-9 text-accent" />
-                        <span className="text-primary">{employee.shift}</span>
-                    </div>
+                    <CardItem Icon={employee.shift == "day" ? Sun : Moon} title="شفت کاری" value={employee.shift} />
+
+                </div>
+                <div className=" mt-5">
+                    <EmployeeHistory currentMonthSalary={currentMonthSalaries} previousMonthSalary={previousMonthSalaries} salaryPerMonth={employee.salary} />
                 </div>
             </div>
         </div>
