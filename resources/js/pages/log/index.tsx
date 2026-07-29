@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { SectionTitle } from '@/components/section-title';
 import { SearchX } from 'lucide-react';
+import AppLayout from '@/layouts/app-layout';
 
 interface Props {
     logs: {
@@ -21,11 +22,14 @@ interface Props {
         user: User;
         link: string;
     }[];
-    newLogs:number;
 }
-const Index = ({ logs,newLogs }: Props) => {
+const Index = ({ logs }: Props) => {
     return (
-        <div>
+        <AppLayout breadcrumbs={[
+            { title: 'دشبورد', href: "/dashboard" },
+            { title: 'لوګ', href: "/logs" },
+            
+        ]}>
             <SectionTitle title="Logs" description="This is a protected area. only authorized should see this area." />
             <Table>
                 <TableCaption>You can manage the users.</TableCaption>
@@ -45,13 +49,13 @@ const Index = ({ logs,newLogs }: Props) => {
                             <TableCell>{ind + 1}</TableCell>
                             <TableCell>{log.user.name}</TableCell>
                             <TableCell className="font-medium">{log.activity_type}</TableCell>
-                            <TableCell>{log.description.length>50? log.description.slice(50):log.description}</TableCell>
+                            <TableCell>{log.description.length > 50 ? log.description.slice(50) : log.description}</TableCell>
                             <TableCell>{new Date(log.activity_date).toLocaleString()}</TableCell>
                         </TableRow>
                     )) : <>
                         <TableCell colSpan={2}></TableCell>
                         <TableCell colSpan={1} className="  text-yellow-500">
-                            <div className="text-center">No logs availible yet! <SearchX className="ml-50"/> </div>
+                            <div className="text-center">No logs availible yet! <SearchX className="ml-50" /> </div>
                         </TableCell>
                         <TableCell colSpan={2}></TableCell>
 
@@ -64,7 +68,7 @@ const Index = ({ logs,newLogs }: Props) => {
                     </TableRow>
                 </TableFooter>
             </Table>
-        </div>
+        </AppLayout>
     )
 }
 

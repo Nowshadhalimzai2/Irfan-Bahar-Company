@@ -25,13 +25,14 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import axios from "axios";
 import { register } from "@/routes";
+import { useEffect } from "react";
 interface Props {
     users: User[];
     roles: Role[]
 }
 function UserList({ users, roles }: Props) {
     const { auth } = usePage().props;
-    console.log(users);
+const { role } = (auth.user as unknown as { role: { name: string } });
 
     return (
         <section className="section">
@@ -46,7 +47,7 @@ function UserList({ users, roles }: Props) {
                             <TableHead>Email</TableHead>
                             <TableHead >Status</TableHead>
                             <TableHead >Role</TableHead>
-                            <TableHead >Action</TableHead>
+                            {role.name === "super_admin" && <TableHead >Action</TableHead>}
 
                         </TableRow>
                     </TableHeader>
@@ -59,7 +60,7 @@ function UserList({ users, roles }: Props) {
                                 <TableCell className={` rounded-md ${user.status ? "text-green-500  border-primary/30" : "text-destructive  border-destructive/30"}`}>{user.status ? "Activted" : "Deactiveted"}</TableCell>
 
                                 <TableCell>{user.role.name.replace("_", " ")}</TableCell>
-                                <TableCell>
+                                {role.name ==="super_admin" && <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger>
                                             <Button variant="ghost" size="icon" className="size-8"><MoreHorizontalIcon /><span className="sr-only">Open menu</span></Button>
@@ -82,12 +83,12 @@ function UserList({ users, roles }: Props) {
                                                     </DropdownMenuItem>
                                                 ))
                                             }
-                                            <DropdownMenuItem variant="destructive" className=" py-0 mt-1 border-t">
-                                                <Button variant={'ghost'} className={`${!user.status ? "text-green-500" : "text-red-500"}`} onClick={() => router.put('/users/' + user.id + '/' + !user.status)} disabled={user.id === auth.user.id}>{user.status ? "Deactivate" : "Activate"}</Button>
+                                             <DropdownMenuItem variant="destructive" className=" py-0 mt-1 border-t">
+                                                <Button variant={'ghost'} className={`${!user.status ? "text-green-500" : "text-red-500"}`} onClick={() => router.put('/users/' + user.id + `${user.status ? "/false" : "/true"}`)} disabled={user.id === auth.user.id}>{user.status ? "Deactivate" : "Activate"}</Button>
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
-                                </TableCell>
+                                </TableCell>}
                             </TableRow>
                         ))}
                     </TableBody>

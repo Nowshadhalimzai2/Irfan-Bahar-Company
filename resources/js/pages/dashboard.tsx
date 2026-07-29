@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/react';
 import { dashboard } from '@/routes';
 import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
 import { Account } from '@/types';
+import AppLayout from '@/layouts/app-layout';
 
 interface Props {
     sa: Account[];
@@ -11,7 +12,12 @@ interface Props {
 export default function Dashboard({ sa }: Props) {
 
     return (
-        <>
+        <AppLayout breadcrumbs={[
+            {
+                title: 'دشبورد',
+                href: dashboard(),
+            },
+        ]}>
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex justify-end items-end">
@@ -32,15 +38,7 @@ export default function Dashboard({ sa }: Props) {
                     </div>
                 </div>
             </div>
-        </>
+        </AppLayout>
     );
 }
 
-Dashboard.layout = {
-    breadcrumbs: [
-        {
-            title: 'Dashboard',
-            href: dashboard(),
-        },
-    ],
-};

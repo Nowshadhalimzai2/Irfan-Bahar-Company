@@ -19,10 +19,10 @@ class EnsureUserIsSuperAdmin
     {
         $user = Auth::user();
 
-        if (! $user instanceof User || ! $user->hasRole('super_admin')) {
+        if (! ($user instanceof User) || ! $user->hasRole('super_admin')) {
             abort(403);
         }
-
+      
         return $next($request);
     }
 }

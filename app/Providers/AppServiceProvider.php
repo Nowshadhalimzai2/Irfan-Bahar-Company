@@ -31,6 +31,9 @@ class AppServiceProvider extends ServiceProvider
             if (! User::query()->exists()) {
                 return true;
             }
+            if (! $user->status) {
+                abort(403, 'اکونت شما بلاک شده. برای معلومات بیشتر با سوپر ادمین با تماس شوید');
+            }
 
             return $user instanceof User && $user->hasAnyRole(['admin', 'super_admin']);
         });
