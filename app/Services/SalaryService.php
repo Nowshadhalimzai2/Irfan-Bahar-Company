@@ -66,4 +66,57 @@ class SalaryService
 
         return max(0, round($adjusted, 2));
     }
+
+    public function paidThisMonth(Employee $employee, ?Carbon $referenceDate = null): float
+    {
+        $tz = config('app.timezone');
+        $now = $referenceDate ? $referenceDate->copy()->setTimezone($tz) : Carbon::now($tz);
+
+        $startOfMonth = $now->copy()->startOfMonth()->toDateString();
+        $endOfMonth = $now->copy()->endOfMonth()->toDateString();
+
+        return (float) $employee->salaries()
+            ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
+            ->sum('amount');
+    }
+
+    public function remainingSalary(Employee $employee, ?Carbon $referenceDate = null): float
+    {
+        $adjusted = $this->reduceSalaryBasedOnAbsentDays($employee, $this->thisMonthSalary($employee, $referenceDate), $referenceDate);
+        $paid = $this->paidThisMonth($employee, $referenceDate);
+
+        return max(0, round($adjusted - $paid, 2));
+    }
+
+    public function absentDays(Employee $employee, ?Carbon $referenceDate = null): int
+    {
+        $tz = config('app.timezone');
+        $now = $referenceDate ? $referenceDate->copy()->setTimezone($tz) : Carbon::now($tz);
+
+        $startOfMonth = $now->copy()->startOfMonth()->toDateString();
+        $endOfMonth = $now->copy()->endOfMonth()->toDateString();
+
+        if (!empty($employee->recruitment_date)) {
+            $recruitment = Carbon::parse($employee->recruitment_date)->setTimezone($tz);
+            if ($recruitment->year === $now->year && $recruitment->month === $now->month) {
+                $countStart = $recruitment->toDateString();
+            } else {
+                $countStart = $startOfMonth;
+            }
+        } else {
+            $countStart = $startOfMonth;
+        }
+
+        return (int) $employee->attendances()
+            ->whereBetween('date', [$countStart, $endOfMonth])
+            ->where('is_present', false)
+            ->count();
+    }
+
+    public function daysInMonth(?Carbon $referenceDate = null): int
+    {
+        $tz = config('app.timezone');
+        $now = $referenceDate ? $referenceDate->copy()->setTimezone($tz) : Carbon::now($tz);
+        return (int) $now->daysInMonth;
+    }
 }
