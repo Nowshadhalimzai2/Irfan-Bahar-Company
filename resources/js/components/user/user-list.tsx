@@ -31,7 +31,7 @@ interface Props {
 }
 function UserList({ users, roles }: Props) {
     const { auth } = usePage().props;
-    console.log(users[0].status);
+    console.log(users);
 
     return (
         <section className="section">
@@ -56,9 +56,9 @@ function UserList({ users, roles }: Props) {
                                 <TableCell>{ind + 1}</TableCell>
                                 <TableCell className="font-medium">{user.name}</TableCell>
                                 <TableCell>{user.email}</TableCell>
-                                <TableCell className={` rounded-md ${user.status?"text-green-500  border-primary/30":"text-destructive  border-destructive/30"}`}>{user.status?"Activted":"Deactiveted"}</TableCell>
+                                <TableCell className={` rounded-md ${user.status ? "text-green-500  border-primary/30" : "text-destructive  border-destructive/30"}`}>{user.status ? "Activted" : "Deactiveted"}</TableCell>
 
-                                <TableCell>{user.role.name.replace("_"," ")}</TableCell>
+                                <TableCell>{user.role.name.replace("_", " ")}</TableCell>
                                 <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger>
@@ -78,12 +78,12 @@ function UserList({ users, roles }: Props) {
                                                             console.error(e);
                                                         }
                                                     }}>
-                                                        {role.name.replace('_',' ')}
+                                                        {role.name.replace('_', ' ')}
                                                     </DropdownMenuItem>
                                                 ))
                                             }
                                             <DropdownMenuItem variant="destructive" className=" py-0 mt-1 border-t">
-                                                <Button variant={'ghost'} className={`${!user.status?"text-green-500":"text-red-500"}`} onClick={() => router.put('/users/'+!user.status+'/' + user.id)} disabled={user.id === auth.user.id}>{user.status?"Deactivate":"Activate"}</Button>
+                                                <Button variant={'ghost'} className={`${!user.status ? "text-green-500" : "text-red-500"}`} onClick={() => router.put('/users/' + user.id + '/' + !user.status)} disabled={user.id === auth.user.id}>{user.status ? "Deactivate" : "Activate"}</Button>
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
