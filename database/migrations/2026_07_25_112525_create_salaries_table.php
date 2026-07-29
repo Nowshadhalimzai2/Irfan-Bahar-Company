@@ -14,7 +14,7 @@ return new class extends Migration
     {
         Schema::create('salaries', function (Blueprint $table) {
             $table->id();
-            $table->foreignIdFor(Employee::class)->constrained()->cascadeOnUpdate()->nullOnDelete();
+            $table->foreignIdFor(Employee::class)->nullable()->constrained()->cascadeOnUpdate()->nullOnDelete();
             $table->decimal('amount', 6, 2);
             $table->date('payment_date');
             $table->timestamps();

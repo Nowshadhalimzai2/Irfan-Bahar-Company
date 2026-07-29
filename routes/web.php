@@ -2,8 +2,10 @@
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Custome\Log;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\SalaryController;
 use App\Models\Role;
 use App\Models\ShopAccount;
 use App\Models\User;
@@ -25,7 +27,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
         $sa = ShopAccount::with('currency:id,name')->select('id', 'amount', 'currency_id')->get();
         // dd($sa);
-       return Inertia::render('dashboard',compact('sa'));
+        return Inertia::render('dashboard', compact('sa'));
     })->name('dashboard');
 });
 
@@ -75,9 +77,17 @@ Route::middleware(['auth', 'can:manage-users'])->group(function () {
     Route::post('/employees/{employee}/attendance-toggle', [EmployeeController::class, 'toggleAttendance'])
         ->name('employees.attendance.toggle');
 
-    Route::post('/employees/{employee}/pay-salary', [EmployeeController::class, 'paySalary'])
+    Route::get('/employees/{employee}/salary-receipt/{salary}', [EmployeeController::class, 'salaryReceipt'])
+        ->name('employees.salary.receipt');
+
+    Route::post('/employees/{employee}/pay-salary', [EmployeeController::class, 'paySalary'])->name('pay.salary')
         ->name('employees.pay.salary');
 });
 
+Route::middleware(['auth'])->group(function () {
+    Route::get('/employees/{employee}/salary-record', [SalaryController::class, 'salaryRecord'])->name('emplyee-salary-record');
+    Route::get('/employees/{employee}/attendance-record', [AttendanceController::class, 'attendanceRecord'])->name('emplyee-attendance-record');
+    Route::post('/employees/{employee}/salary-range', [SalaryController::class, 'getSalryBasedOnMonth'])->name('emplyee-salary-range');
+});
 require __DIR__ . '/settings.php';
 require __DIR__ . '/axios-routes.php';

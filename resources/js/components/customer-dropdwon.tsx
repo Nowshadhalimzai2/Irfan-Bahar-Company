@@ -24,7 +24,7 @@ export const CustomeDropDownMenu = ({ items, deletion }: Props) => {
                 {items.map((item, ind) => <DropdownMenuItem key={ind} onClick={() => router.get(item.url)}>{item.name}</DropdownMenuItem>)}
                 <DropdownMenuSeparator />
                 {deletion?.id && <DropdownMenuItem variant="destructive">
-                    <Link className="text-red-500  p-0 w-full h-full" onClick={() => router.delete(deletion.url)}>Delete</Link>
+                    <Link className="text-red-500  p-0 w-full h-full" onClick={() => router.delete(deletion.url)}>حذف نمودن</Link>
                 </DropdownMenuItem>}
             </DropdownMenuContent>
         </DropdownMenu></div>
