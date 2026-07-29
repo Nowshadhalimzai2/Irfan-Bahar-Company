@@ -108,10 +108,36 @@ EmployeeController extends Controller
             ->whereMonth('payment_date', $previousMonth->month)
             ->get(['id', 'employee_id', 'amount', 'payment_date']);
         $salaryService = new SalaryService();
-        $grossMonthSalary = $salaryService->thisMonthSalary($employee);
-        $thisMonthSalary = $salaryService->reduceSalaryBasedOnAbsentDays($employee, $grossMonthSalary);
+        $paymentDate = Carbon::now(config('app.timezone'));
+        $grossMonthSalary = $salaryService->thisMonthSalary($employee, $paymentDate);
+        $thisMonthSalary = $salaryService->reduceSalaryBasedOnAbsentDays($employee, $grossMonthSalary, $paymentDate);
+        $absentDays = $salaryService->absentDays($employee, $paymentDate);
+        $paidThisMonth = $salaryService->paidThisMonth($employee, $paymentDate);
+        $remainingSalary = $salaryService->remainingSalary($employee, $paymentDate);
+        $daysInMonth = $salaryService->daysInMonth($paymentDate);
+        $perDay = $daysInMonth > 0 ? round($employee->salary / $daysInMonth, 2) : 0;
 
-        return Inertia::render("employee/show", compact("employee", "currentMonthSalaries", "previousMonthSalaries", 'thisMonthSalary'));
+        return Inertia::render("employee/show", compact("employee", "currentMonthSalaries", "previousMonthSalaries", 'thisMonthSalary', 'grossMonthSalary', 'absentDays', 'perDay', 'paidThisMonth', 'remainingSalary'));
+    }
+
+    public function salaryReceipt(Employee $employee, Salary $salary)
+    {
+        if ($salary->employee_id !== $employee->id) {
+            abort(404);
+        }
+
+        $paymentDate = Carbon::parse($salary->payment_date)->setTimezone(config('app.timezone'));
+        $salaryService = new SalaryService();
+
+        $grossMonthSalary = $salaryService->thisMonthSalary($employee, $paymentDate);
+        $adjustedSalary = $salaryService->reduceSalaryBasedOnAbsentDays($employee, $grossMonthSalary, $paymentDate);
+        $absentDays = $salaryService->absentDays($employee, $paymentDate);
+        $paidThisMonth = $salaryService->paidThisMonth($employee, $paymentDate);
+        $remainingSalary = $salaryService->remainingSalary($employee, $paymentDate);
+        $daysInMonth = $salaryService->daysInMonth($paymentDate);
+        $perDay = $daysInMonth > 0 ? round($employee->salary / $daysInMonth, 2) : 0;
+
+        return Inertia::render('employee/salary-receipt', compact('employee', 'salary', 'grossMonthSalary', 'adjustedSalary', 'absentDays', 'paidThisMonth', 'remainingSalary', 'perDay'));
     }
 
     /**
@@ -152,21 +178,21 @@ EmployeeController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(bool $status, User $user)
+    public function destroy(Employee $employee)
     {
         DB::beginTransaction();
         try {
             $log = new Log();
-            $log->create('delete', '', $user->name);
-            $user->status = $status;
-            $user->save();
-            Inertia::flash('toast', ['type' => 'success', 'message' => ' موفقانه غیر فعال شد ' . $user->name . ' اکونت یوزر']);
+            $log->create('delete', '', $employee->name);
+            $employee->delete();
+            Inertia::flash('toast', ['type' => 'success', 'message' => ' موفقانه از سیستم حذف شد ' . $employee->name . ' کارمند ']);
             DB::commit();
+            return redirect()->to(route('employees.index'));
         } catch (\Throwable $th) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => ' غیر فعال نشد ' . $user->name . ' اکونت یوزر' . $th->getMessage()]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => ' حذف نشد ' . $employee->name . ' کارمند' . $th->getMessage()]);
             DB::rollBack();
+            return redirect()->back();
         }
-        return redirect()->back();
     }
 
 
@@ -185,10 +211,18 @@ EmployeeController extends Controller
             : Carbon::now(config('app.timezone'));
 
         $salaryService = new SalaryService();
-        $salary = (float) $salaryService->reduceSalaryBasedOnAbsentDays($employee, $salaryService->thisMonthSalary($employee, $paymentDate), $paymentDate);
+        $remainingSalary = (float) $salaryService->remainingSalary($employee, $paymentDate);
+
+        if ($remainingSalary <= 0) {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'معاش این ماه قبلاً کامل پرداخت شده است.',
+            ]);
+            return redirect()->back();
+        }
 
         $request->validate([
-            'amount' => ['required', 'numeric', 'gte:10', 'lte:' . $salary],
+            'amount' => ['required', 'numeric', 'gte:10', 'lte:' . $remainingSalary],
         ]);
 
         $amount = (float) $request->amount;
@@ -200,9 +234,9 @@ EmployeeController extends Controller
         try {
             $shopAccount = ShopAccount::query()->firstOrFail();
 
-            $paidThisMonth = (float) $employee->salaries()
-                ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
-                ->sum('amount');
+            // $paidThisMonth = (float) $employee->salaries()
+            //     ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
+            //     ->sum('amount');
 
             if ($shopAccount->amount < $amount) {
                 DB::rollBack();
@@ -218,21 +252,21 @@ EmployeeController extends Controller
                 return redirect()->back();
             }
 
-            if ($paidThisMonth + $amount > $salary) {
+            if ($amount > $remainingSalary) {
                 DB::rollBack();
 
                 Inertia::flash('toast', [
                     'type' => 'error',
-                    'message' => "معاش {$employee->name} از حد مجاز بیشتر می‌شود",
+                    'message' => "مبلغ وارد شده از باقی‌مانده معاش قابل پرداخت بیشتر است",
                 ]);
 
                 $log = new Log();
-                $log->create('insert', "می خواست برای {$employee->name} معاش پرداخت کند اما مجموع معاش این ماه از مبلغ قرارداد بیشتر شده بود");
+                $log->create('insert', "می خواست برای {$employee->name} معاش پرداخت کند اما مبلغ بیشتر از باقی‌مانده ماه بود");
 
                 return redirect()->back();
             }
 
-            $employee->salaries()->create([
+            $salary = $employee->salaries()->create([
                 'amount' => $amount,
                 'payment_date' => $paymentDate->toDateString(),
             ]);
@@ -240,15 +274,12 @@ EmployeeController extends Controller
             $shopAccount->amount -= $amount;
             $shopAccount->save();
 
-            // DB::commit();
-
-            Inertia::flash('toast', [
-                'type' => 'success',
-                'message' => "{$amount} معاش برای {$employee->name} موفقانه پرداخت شد",
-            ]);
+            DB::commit();
 
             $log = new Log();
             $log->create('insert', "معاش برای {$employee->name} پرداخت شد");
+
+            return redirect()->route('employees.salary.receipt', [$employee, $salary]);
         } catch (\Throwable $th) {
             DB::rollBack();
 
