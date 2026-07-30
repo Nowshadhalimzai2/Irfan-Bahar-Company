@@ -62,7 +62,7 @@ const SalaryRecrod = ({ salaryRecords, employee }: Props) => {
             ]}
         >
             <div className="px-4 max-w-4xl mx-auto w-full mt-5">
-                <SectionTitle title="لست ریکارد " />
+                <SectionTitle title="لیست ریکارد معاشات" />
                 <div className=" py-3">
                     <Field>
                         <Popover>
@@ -96,7 +96,7 @@ const SalaryRecrod = ({ salaryRecords, employee }: Props) => {
                     </div>
                 </div>
 
-                <div className="text-center font-medium text-lg mt-10 "> {new Date(dateRange?.to ?? '').toDateString()} از تاریخ  {new Date(dateRange?.from ?? '').toDateString()}  الی </div>
+                <div className="text-center font-medium text-lg mt-10 text-accent"> {new Date(dateRange?.to ?? '').toDateString()} از تاریخ  {new Date(dateRange?.from ?? '').toDateString()}  الی </div>
                 <Table className=" ">
                     <TableCaption> اخذ نموده {employee.name} رکورد معاشات</TableCaption>
                     <TableHeader>

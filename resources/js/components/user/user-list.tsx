@@ -32,8 +32,6 @@ interface Props {
 }
 function UserList({ users, roles }: Props) {
     const { auth } = usePage().props;
-const { role } = (auth.user as unknown as { role: { name: string } });
-
     return (
         <section className="section">
             <div>
@@ -47,7 +45,7 @@ const { role } = (auth.user as unknown as { role: { name: string } });
                             <TableHead>Email</TableHead>
                             <TableHead >Status</TableHead>
                             <TableHead >Role</TableHead>
-                            {role.name === "super_admin" && <TableHead >Action</TableHead>}
+                            {(auth.user.id === 1 || auth.user.id ===2) && <TableHead >Action</TableHead>}
 
                         </TableRow>
                     </TableHeader>
@@ -60,7 +58,7 @@ const { role } = (auth.user as unknown as { role: { name: string } });
                                 <TableCell className={` rounded-md ${user.status ? "text-green-500  border-primary/30" : "text-destructive  border-destructive/30"}`}>{user.status ? "Activted" : "Deactiveted"}</TableCell>
 
                                 <TableCell>{user.role.name.replace("_", " ")}</TableCell>
-                                {role.name ==="super_admin" && <TableCell>
+                                  {(auth.user.id === 1 || auth.user.id ===2) && <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger>
                                             <Button variant="ghost" size="icon" className="size-8"><MoreHorizontalIcon /><span className="sr-only">Open menu</span></Button>
@@ -71,7 +69,7 @@ const { role } = (auth.user as unknown as { role: { name: string } });
                                                 roles.map((role) => (
                                                     <DropdownMenuItem key={role.id} onClick={async () => {
                                                         try {
-                                                            const res = await axios.post(`/users/${user.id}/role`, { role: role.name });
+                                                            const res = await axios.put(`/users/${user.id}/role`, { role: role.name });
                                                             console.log('success response: ', res.data);
 
                                                             router.reload();

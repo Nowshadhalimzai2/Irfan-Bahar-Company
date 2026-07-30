@@ -15,12 +15,14 @@ import {
 import UserList from "@/components/user/user-list";
 import AppLayout from "@/layouts/app-layout";
 import { Employee, Role, User } from "@/types";
+import { usePage } from "@inertiajs/react";
 interface Props {
     users: User[];
     roles: Role[];
     employees: Employee[];
 }
 export default function Index({ users, roles, employees }: Props) {
+    const { auth } = usePage().props;
     return (
         <AppLayout breadcrumbs={[
             {
@@ -36,9 +38,9 @@ export default function Index({ users, roles, employees }: Props) {
                         <Tabs defaultValue="overview" className="w-full px-2 md:px-8">
                             <TabsList className="flex justify-between items-center w-full">
                                 <TabsTrigger value="employees">کاریګر ها</TabsTrigger>
-                                <TabsTrigger value="users">استفاده کنندګان سیستم</TabsTrigger>
-                                <TabsTrigger value="tellers">Tellers</TabsTrigger>
-                                <TabsTrigger value="vendors">Vendor</TabsTrigger>
+                                {(auth.user.role_id === 1 || auth.user.role_id === 2) && <TabsTrigger value="users">استفاده کنندګان سیستم</TabsTrigger>}
+                                <TabsTrigger value="tellers">مشتریان</TabsTrigger>
+                                <TabsTrigger value="vendors">فرشنده ګان</TabsTrigger>
                             </TabsList>
                             <TabsContent value="employees">
                                 <EmployeeList employees={employees} />

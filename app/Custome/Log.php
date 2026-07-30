@@ -2,6 +2,7 @@
 namespace App\Custome;
 
 use App\Models\Log as ModelsLog;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 class Log
@@ -25,12 +26,13 @@ class Log
         } else {
             $template = $suffix;
         }
+        $now = Carbond::now(config('app.timezone'));
 
         ModelsLog::create([
             'user_id' => Auth::id(),
             'activity_type' => $actType,
             'description' => $template,
-            'activity_date' => now(),
+            'activity_date' => $now,
             'link' => $link,
         ]);
     }

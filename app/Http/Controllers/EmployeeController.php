@@ -13,6 +13,7 @@ use Carbon\Carbon;
 use App\Services\SalaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 
@@ -50,7 +51,7 @@ EmployeeController extends Controller
      */
     public function create()
     {
-
+        Gate::authorize('manage-users');
         return Inertia::render('employee/create');
     }
 
@@ -59,6 +60,8 @@ EmployeeController extends Controller
      */
     public function store(Request $request)
     {
+        Gate::authorize('manage-users');
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'f_name' => 'required|string|max:255',
@@ -143,43 +146,56 @@ EmployeeController extends Controller
     /**
      * Show the form for editing the specified resource.
      */
-    public function edit(string $id)
+    public function edit(Employee $employee)
     {
-        //
+        Gate::authorize('manage-users');
+
+        return Inertia::render('employee/edit', compact('employee'));
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, User $user)
+    public function update(Request $request, Employee $employee)
     {
+        Gate::authorize('manage-users');
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'f_name' => 'required|string|max:255',
+            'phone' => 'required|string|max:10|starts_with:07',
+            'address' => 'required|string|max:255',
+            'position' => 'required|string',
+            'salary' => 'required|numeric',
+            'shift' => 'required|string',
+
+        ]);
         DB::beginTransaction();
         try {
-            $preRole = $user->role->name;
-            $data = $request->validate([
-                'role' => 'required|string|exists:roles,name',
+            $emp = $employee->update([
+                ...$validated,
             ]);
-            $role = Role::where('name', $data['role'])->first();
-            $user->role_id = $role->id;
-            $user->save();
-            //          Create new log for role updatation
             $log = new Log();
-            $log->create('update',  $request->role . ' به ' . $preRole . ' از ' . ' نقش', $user->name, URL::previous());
-            Inertia::flash('toast', ['type' => 'success', 'message' => 'نقش یوزر را موفقانه به روز شد']);
+            $log->create('update', "", $employee->name);
             DB::commit();
-            return response()->json(['user' => $user->load('role:id,name'), 'role' => $request->role]);
+            Inertia::flash('toast', ['type' => 'success', 'message' => ' را موفقانه در سیستم به روز رسانی شد ' . $employee->name]);
+            return redirect()->to(route('employees.index'));
         } catch (\Throwable $th) {
             DB::rollBack();
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'role not  updated']);
-            return response()->json(['error' => $th->getMessage()]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'به روز رسانی نشد  ' . $th->getMessage() . ' مصخصات کارمند ']);
+            return redirect()->back();
         }
     }
+
+
 
     /**
      * Remove the specified resource from storage.
      */
     public function destroy(Employee $employee)
     {
+        Gate::authorize('manage-users');
+
         DB::beginTransaction();
         try {
             $log = new Log();

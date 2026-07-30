@@ -4,8 +4,9 @@ import { SalaryPaymentDialog } from '@/components/employee/salary-payment_dialog
 import { SectionTitle } from '@/components/section-title';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import userPassword from '@/routes/user-password';
 import { Employee, Salary } from '@/types';
-import { router } from '@inertiajs/react';
+import { router, usePage } from '@inertiajs/react';
 import globals from 'globals';
 import { Briefcase, DollarSign, Dot, LucideTrendingUp, Phone, User, UserCheck2Icon, UserX } from 'lucide-react';
 
@@ -20,34 +21,34 @@ interface Props {
     paidThisMonth: number;
     remainingSalary: number;
 }
-var globEmployee: {id:number;name:string;} ={id:0,name:'کارمند'};
-const Show = ({ employee, currentMonthSalaries, previousMonthSalaries, thisMonthSalary, grossMonthSalary, absentDays, perDay, paidThisMonth, remainingSalary }: Props) => {
-
-    globEmployee = {id:employee.id,name:employee.name};
+const Show = ({ employee,  thisMonthSalary, grossMonthSalary, absentDays, perDay, paidThisMonth, remainingSalary }: Props) => {
     const toggleAttendance = async (employee: Employee) => {
 
         router.post('/employees/' + employee.id + '/attendance-toggle', { employee: employee.id });
     };
+    const {user} = usePage().props.auth;
     const moreList = [
         { name: 'رکورد معاشات پرداخت شده', url: '/employees/' + employee.id + '/salary-record' },
         { name: 'رکورد حاضری', url: `/employees/${employee.id}/attendance-record` },
+        { name: 'ویرایش کنین', url: `/employees/${employee.id}/edit` },
+
 
     ];
     return (
-        <AppLayout  breadcrumbs= {[
-        {
-            title: 'کارکنند ګان',
-            href: '/stackholders',
-        },
-        {
-            title: globEmployee.name,
-            href: `/employees/${globEmployee?.id}`,
-        },
-    ]}>
+        <AppLayout breadcrumbs={[
+            {
+                title: 'کارکنند ګان',
+                href: '/stackholders',
+            },
+            {
+                title: employee.name,
+                href: `/employees/${employee.id}`,
+            },
+        ]}>
             <section>
-                <div className="flex justify-end items-end">
+                {(user.role_id === 1  || user.role_id ===2 ) && <div className="flex justify-end items-end mt-5 px-5">
                     <CustomeDropDownMenu items={moreList} deletion={{ id: employee.id, url: '/employees/' + employee.id }} />
-                </div>
+                </div>}
                 <div className="section">
                     <SectionTitle title={`توضیحات ${employee.name}`} />
                     ‍‍<div className="mx-auto max-w-3xl px-2 md:px-8">
@@ -123,7 +124,7 @@ const Show = ({ employee, currentMonthSalaries, previousMonthSalaries, thisMonth
                                 <span>{employee.shift === "day" ? "روز" : "شب"}</span>
                             </div>
                         </div>
-                       
+
                     </div>
                 </div>
             </section>

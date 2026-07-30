@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { SectionTitle } from "../section-title";
 import { Employee } from "@/types";
-import { Link, router } from "@inertiajs/react";
+import { Link, router, usePage } from "@inertiajs/react";
 import { buttonVariants } from "../ui/button";
 import { UserCheck2Icon, UserX } from "lucide-react";
 import { route } from 'ziggy-js';
@@ -21,6 +21,7 @@ interface Props {
 }
 
 function EmployeeList({ employees }: Props) {
+    const { auth } = usePage().props;
 
   const toggleAttendance = async (employee: Employee) => {
     console.log(employee.today_attendance?.is_present);
@@ -30,13 +31,12 @@ function EmployeeList({ employees }: Props) {
   console.log(employees);
 
   return (
-   
       <section className="section">
-        <div className="flex flex-col justify-end items-end">
+        {(auth.user.role_id === 1 || auth.user.role_id === 2) && <div className="flex flex-col justify-end items-end">
           <Link href={"/employees/create"} className={buttonVariants({ variant: "default" })}>
             کاریګر اضافه کنین
           </Link>
-        </div>
+        </div>}
         <div>
           <SectionTitle title="Employee List" description="Here you can see the list of all employees" />
           <Table>
