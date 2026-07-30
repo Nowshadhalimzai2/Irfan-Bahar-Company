@@ -16,7 +16,7 @@ class Log
             'update' => 'به‌روزرسانی شد',
             'delete' => 'از سیستم حذف شد',
         ];
-        $suffix = $suffixMap[$actType] ?? "فعالیتی انجام داد: {$actType}";
+        $suffix = $suffixMap[$actType] ?? "";
 
         if ($desc !== '') {
             $template = $targetedUser ? "{$desc} {$suffix} - {$targetedUser}" : "{$desc} {$suffix}";

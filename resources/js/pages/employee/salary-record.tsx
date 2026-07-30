@@ -2,15 +2,16 @@ import { SectionTitle } from '@/components/section-title';
 import {
     Popover,
     PopoverContent,
+    PopoverDescription,
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { Employee, Salary } from '@/types';
-import { useEffect, useMemo, useState } from 'react'
-import { format } from "date-fns"
+import React, { useEffect, useMemo, useState } from 'react'
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Field } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
 import { Calendar } from '@/components/ui/calendar';
+import { addDays } from "date-fns"
 
 import {
     Table,
@@ -23,9 +24,9 @@ import {
     TableRow,
 } from "@/components/ui/table";
 import axios from 'axios';
-import { route } from 'ziggy-js';
 import { Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
+import { DateRange } from 'react-day-picker';
 
 interface Props {
     salaryRecords: Salary[];
@@ -33,28 +34,24 @@ interface Props {
 }
 
 const SalaryRecrod = ({ salaryRecords, employee }: Props) => {
-    type DateRangeType = { startOfMonth: Date | string, endOfMonth: Date | string };
-    const [date, setDate] = useState<Date>(new Date());
+    const [dateRange, setDateRange] = React.useState<DateRange | undefined>({
+        from: new Date(new Date().getFullYear(), 0, 12),
+        to: addDays(new Date(new Date().getFullYear(), 0, 12), 30),
+    });
     const [salaries, setSalaries] = useState<Salary[]>(salaryRecords);
-    const [dateRange, setDateRange] = useState<DateRangeType>({ startOfMonth: 'جریان ', endOfMonth: 'جریان' });
 
     // Fetch salary records when the selected date or employee changes
     useEffect(() => {
         axios
-            .post(`/employees/${employee.id}/salary-range`, { date })
+            .post(`/employees/${employee.id}/salary-range`, { from: dateRange?.from, to: dateRange?.to })
             .then((res) => {
                 setSalaries(res.data['salaries']);
-                setDateRange({ startOfMonth: res.data['startOfMonth'], endOfMonth: res.data['endOfMonth'] });
-
-
             })
 
             .catch((err) => console.error(err));
-    }, [employee.id, date]);
+    }, [employee.id, dateRange]);
     const paidAmount: number = useMemo(() => salaries.reduce((acc, salary) => acc += salary.amount, 0), [salaries])
-    useEffect(() => {
-        console.log("records", salaries);
-    }, [salaries]);
+
 
     return (
         <AppLayout
@@ -64,9 +61,32 @@ const SalaryRecrod = ({ salaryRecords, employee }: Props) => {
                 { title: `${employee.name} رکورد معاشات`, href: `/employees/${employee.id}/-salary-record` },
             ]}
         >
-            <div className="px-4 max-w-4xl mx-auto w-full">
+            <div className="px-4 max-w-4xl mx-auto w-full mt-5">
                 <SectionTitle title="لست ریکارد " />
-                <div className="flex flex-row-reverse justify-between items-center bg-white rounded-md shadow mb-5">
+                <div className=" py-3">
+                    <Field>
+                        <Popover>
+                            <Label htmlFor="date-picker-simple" className="text-end">تاریخ را انتخاب کنین</Label>
+                            <PopoverTrigger>
+                                <Button type="button" variant="outline" id="date-picker-simple" className="justify-start w-full font-normal">
+                                    <span>{new Date(dateRange?.to ?? '')
+                                        .toDateString()}  : الی </span> <span>{new Date(dateRange?.from ?? '').toDateString()}  : از تاریخ</span>                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                                <PopoverDescription> لطف نموده ماه که میخواهین معاشات را بیبینین انتخاب کنبن</PopoverDescription>
+                                <Calendar
+                                    mode="range"
+                                    defaultMonth={dateRange?.from}
+                                    selected={dateRange}
+                                    onSelect={setDateRange}
+                                    numberOfMonths={2}
+                                    className="rounded-lg border"
+                                />
+                            </PopoverContent>
+                        </Popover>
+                    </Field>
+                </div>
+                <div className="flex flex-row-reverse justify-between items-center bg-muted rounded-md shadow mb-5">
                     <div className="text-end font-medium p-8">
                         <div className="y-1 ">نام : {employee.name}</div>
                         <div className="">معاش ماهانه : {employee.salary}</div>
@@ -75,31 +95,8 @@ const SalaryRecrod = ({ salaryRecords, employee }: Props) => {
                         <h2 className="text-red-500 text-xl font-bold">{employee.salary - paidAmount === 0 && 'وصول شده'}</h2>
                     </div>
                 </div>
-                <div className=" ">
-                    <Field>
-                        <Popover>
-                            <Label htmlFor="date-picker-simple" className="text-end">ماه را انتخا کنین</Label>
-                            <PopoverTrigger>
-                                <Button type="button" variant="outline" id="date-picker-simple" className="justify-start w-full font-normal">
-                                    {date ? format(date, "PPP") : <span>تاریخ را انتخاب کنید</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                                <Calendar
-                                    mode="single"
-                                    required
-                                    selected={date}
-                                    onSelect={(selected) => {
-                                        setDate(selected as Date);
-                                        // setData('payment_date', selected as Date);
-                                    }}
-                                    defaultMonth={date}
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </Field>
-                </div>
-                <div className="text-center font-medium text-lg mt-10 "> {dateRange.endOfMonth.toString()} از تاریخ  {dateRange.startOfMonth.toString()}  الی </div>
+
+                <div className="text-center font-medium text-lg mt-10 "> {new Date(dateRange?.to ?? '').toDateString()} از تاریخ  {new Date(dateRange?.from ?? '').toDateString()}  الی </div>
                 <Table className=" ">
                     <TableCaption> اخذ نموده {employee.name} رکورد معاشات</TableCaption>
                     <TableHeader>

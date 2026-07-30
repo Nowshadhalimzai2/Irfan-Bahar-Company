@@ -87,7 +87,7 @@ Route::middleware(['auth', 'can:manage-users'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/employees/{employee}/salary-record', [SalaryController::class, 'salaryRecord'])->name('emplyee-salary-record');
     Route::get('/employees/{employee}/attendance-record', [AttendanceController::class, 'attendanceRecord'])->name('emplyee-attendance-record');
-    Route::post('/employees/{employee}/salary-range', [SalaryController::class, 'getSalryBasedOnMonth'])->name('emplyee-salary-range');
+    
 });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/axios-routes.php';

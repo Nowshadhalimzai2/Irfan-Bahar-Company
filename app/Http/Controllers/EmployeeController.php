@@ -203,6 +203,7 @@ EmployeeController extends Controller
             'employee_id' => 'required|integer|exists:employees,id',
             'payment_date' => ['nullable', 'date'],
         ]);
+        $log = new Log();
 
         $employee = Employee::findOrFail($request->employee_id);
 
@@ -213,21 +214,15 @@ EmployeeController extends Controller
         $salaryService = new SalaryService();
         $remainingSalary = (float) $salaryService->remainingSalary($employee, $paymentDate);
 
-        if ($remainingSalary <= 0) {
-            Inertia::flash('toast', [
-                'type' => 'error',
-                'message' => 'معاش این ماه قبلاً کامل پرداخت شده است.',
-            ]);
-            return redirect()->back();
-        }
+
 
         $request->validate([
             'amount' => ['required', 'numeric', 'gte:10', 'lte:' . $remainingSalary],
         ]);
 
         $amount = (float) $request->amount;
-        $startOfMonth = $paymentDate->copy()->startOfMonth()->toDateString();
-        $endOfMonth = $paymentDate->copy()->endOfMonth()->toDateString();
+        // $startOfMonth = $paymentDate->copy()->startOfMonth()->toDateString();
+        // $endOfMonth = $paymentDate->copy()->endOfMonth()->toDateString();
 
         DB::beginTransaction();
 
@@ -237,7 +232,23 @@ EmployeeController extends Controller
             // $paidThisMonth = (float) $employee->salaries()
             //     ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
             //     ->sum('amount');
+            if ($employee->recruitment_date > $request->payment_date) {
+                $log->create('other', "می خواست برای {$employee->name} معاش پرداخت کند اما توسظ یوزر تاریخ پیش از استخدام انتخاب شده بود");
+                Inertia::flash('toast', [
+                    'type' => 'error',
+                    'message' => 'شما نمی توانین که معاش قبل از استخدام پرداخت کنین. لطف نماین در وقت پرداخت تاریخ را درست انتخاب کنین',
+                ]);
+                return redirect()->back();
+            }
+            if ($remainingSalary <= 0) {
+                $log->create('other', "می خواست برای {$employee->name} معاش پرداخت کند اما کارمند در این ماه معاش خوده کامل ګرفته بود ");
 
+                Inertia::flash('toast', [
+                    'type' => 'error',
+                    'message' => 'معاش این ماه قبلاً کامل پرداخت شده است.',
+                ]);
+                return redirect()->back();
+            }
             if ($shopAccount->amount < $amount) {
                 DB::rollBack();
 
@@ -246,7 +257,6 @@ EmployeeController extends Controller
                     'message' => 'متاسفانه در دوکان پول کافی ندارم!',
                 ]);
 
-                $log = new Log();
                 $log->create('insert', "می خواست برای {$employee->name} معاش پرداخت کند اما پول در حساب دوکان کافی نبود");
 
                 return redirect()->back();
@@ -260,7 +270,6 @@ EmployeeController extends Controller
                     'message' => "مبلغ وارد شده از باقی‌مانده معاش قابل پرداخت بیشتر است",
                 ]);
 
-                $log = new Log();
                 $log->create('insert', "می خواست برای {$employee->name} معاش پرداخت کند اما مبلغ بیشتر از باقی‌مانده ماه بود");
 
                 return redirect()->back();

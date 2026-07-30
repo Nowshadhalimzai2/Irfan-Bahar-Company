@@ -30,7 +30,7 @@ const Show = ({ employee, currentMonthSalaries, previousMonthSalaries, thisMonth
     };
     const moreList = [
         { name: 'رکورد معاشات پرداخت شده', url: '/employees/' + employee.id + '/salary-record' },
-        { name: 'رکورد حاضری', url: '/attendance-record' },
+        { name: 'رکورد حاضری', url: `/employees/${employee.id}/attendance-record` },
 
     ];
     return (
@@ -123,9 +123,7 @@ const Show = ({ employee, currentMonthSalaries, previousMonthSalaries, thisMonth
                                 <span>{employee.shift === "day" ? "روز" : "شب"}</span>
                             </div>
                         </div>
-                        <div className="">
-                            <EmployeeHistory employeeId={employee.id} currentMonthSalary={currentMonthSalaries} previousMonthSalary={previousMonthSalaries} salaryPerMonth={employee.salary} />
-                        </div>
+                       
                     </div>
                 </div>
             </section>
