@@ -60,3 +60,11 @@ export interface Account{
     amount:number;
     currency:Currency;
 }
+
+export interface Expense{
+    id:number;
+    amount:number;
+    description:string;
+    currency:Currency;
+    date:Date;
+}

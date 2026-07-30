@@ -3,6 +3,8 @@
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\onlyshopclerk;
+use App\Http\Middleware\shopclerk;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -17,7 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->encryptCookies(except: ['appearance', 'sidebar_state']);
-        $middleware->alias(['superadmin' => EnsureUserIsSuperAdmin::class]);
+        $middleware->alias(['superadmin' => EnsureUserIsSuperAdmin::class,'allowOnlyShopClerk' => onlyshopclerk::class, 'refuseFactoryClerk'=>shopclerk::class]);
         $middleware->web(append: [
             HandleAppearance::class,
             HandleInertiaRequests::class,

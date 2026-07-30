@@ -26,7 +26,7 @@ class Log
         } else {
             $template = $suffix;
         }
-        $now = Carbond::now(config('app.timezone'));
+        $now = Carbon::now(config('app.timezone'));
 
         ModelsLog::create([
             'user_id' => Auth::id(),

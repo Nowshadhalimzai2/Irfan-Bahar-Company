@@ -1,5 +1,5 @@
 import { Link } from '@inertiajs/react';
-import { BookOpen, FolderGit2, Group, GroupIcon, LayoutGrid, UserCogIcon, UserSquare, UserX } from 'lucide-react';
+import { BadgeMinus, BookOpen, FolderGit2, Group, GroupIcon, LayoutGrid, UserCogIcon, UserSquare, UserX } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -21,6 +21,11 @@ const mainNavItems: NavItem[] = [
         title: 'دشبورد',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'مصارف',
+        href: '/expenses/create',
+        icon: BadgeMinus,
     },
     {
         title: 'کار کننده ګان',

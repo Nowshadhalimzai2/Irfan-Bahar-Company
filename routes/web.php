@@ -4,6 +4,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Custome\Log;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\SalaryController;
 use App\Models\Role;
@@ -88,6 +89,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/employees/{employee}/salary-record', [SalaryController::class, 'salaryRecord'])->name('emplyee-salary-record');
     Route::get('/employees/{employee}/attendance-record', [AttendanceController::class, 'attendanceRecord'])->name('emplyee-attendance-record');
     
+});
+
+Route::middleware(['auth','allowOnlyShopClerk'])->group(function(){
+    Route::resource('expenses',ExpenseController::class)->names('expenses');
 });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/axios-routes.php';
