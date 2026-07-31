@@ -30,14 +30,18 @@ interface Props {
     currencies: Currency[]
 }
 const Create = ({ currencies, todaysExpenses }: Props) => {
-    const { data, setData, post, processing, errors } = useForm<ExpenseType>({
+    
+
+    const { data, setData, post,reset, processing, errors } = useForm<ExpenseType>({
         'amount': 10,
         'description': '',
         'currency_id': 1,
     });
     const handleExpense = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        post('/expenses');
+        post('/expenses',{
+            onFinish:()=>reset('amount','description','currency_id')
+        });
     }
     return (
         <AppLayout breadcrumbs={[
@@ -73,7 +77,6 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                     <textarea
                                         id="description"
                                         required
-                                        autoFocus
                                         tabIndex={2}
                                         autoComplete="description"
                                         name="description"
@@ -120,29 +123,29 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                             </div>
                         </form>
                     </div>
-                    <div className="border p-3 rounded-md bg-muted">
+                    <div className="border p-3 rounded-md bg-muted overflow-y-auto">
                         <div>
-                            <h1 className="text-center w-full text-accent font-semibold text-xl">ریکورد امروز</h1>
+                            <h1 className="text-center w-full text-accent font-semibold text-xl">ریکورد مصارف امروز</h1>
                             <Table>
                                 <TableCaption>مصارف امروزی را اینجا دیده میتانی</TableCaption>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>تاریخ </TableHead>
+                                        {/* <TableHead>تاریخ </TableHead> */}
                                         <TableHead>واحد بول</TableHead>
                                         <TableHead>مقدار پول</TableHead>
                                         <TableHead>توضیحات</TableHead>
-                                        <TableHead className="w-15">شماره</TableHead>
+                                        <TableHead className="">شماره</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {todaysExpenses.map((expense, ind) => {
                                         return (
                                             <TableRow key={ind} className="hover:bg-secondary hover:border">
-                                                <TableCell>{new Date(expense.date).toDateString()}</TableCell>
+                                                {/* <TableCell>{new Date(expense.date).toDateString()}</TableCell> */}
                                                 <TableCell>{expense.currency.name}</TableCell>
                                                 <TableCell>{expense.amount}</TableCell>
-                                                <TableCell className="font-medium">{expense.description}</TableCell>
-                                                <TableCell>{ind + 1}</TableCell>
+                                                <TableCell className="font-medium flex-1">{expense.description}</TableCell>
+                                                <TableCell className="text-center">{ind + 1}</TableCell>
                                             </TableRow>
                                         );
                                     })}
