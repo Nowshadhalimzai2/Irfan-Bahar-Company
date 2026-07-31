@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 import AppLayout from "@/layouts/app-layout";
 import { Currency, Expense } from "@/types";
 import { useForm } from "@inertiajs/react";
-import { FormEvent } from "react";
+import { FormEvent, useMemo } from "react";
 import {
     Table,
     TableBody,
@@ -30,26 +30,33 @@ interface Props {
     currencies: Currency[]
 }
 const Create = ({ currencies, todaysExpenses }: Props) => {
-    
 
-    const { data, setData, post,reset, processing, errors } = useForm<ExpenseType>({
+
+    const { data, setData, post, reset, processing, errors } = useForm<ExpenseType>({
         'amount': 10,
         'description': '',
         'currency_id': 1,
     });
     const handleExpense = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        post('/expenses',{
-            onFinish:()=>reset('amount','description','currency_id')
+        post('/expenses', {
+            onFinish: () => reset('amount', 'description', 'currency_id')
         });
     }
+    const totalExpenses = useMemo(() => {
+        const totalAfg = todaysExpenses.filter(exp => exp.currency.name === 'AFG').reduce((acc, exp) => acc += exp.amount, 0);
+        const totalUSD = todaysExpenses.filter(exp => exp.currency.name === 'USD').reduce((acc, exp) => acc += exp.amount, 0);
+        const totalPKR = todaysExpenses.filter(exp => exp.currency.name === 'PKR').reduce((acc, exp) => acc += exp.amount, 0);
+
+        return { 'totalAfg': totalAfg, 'totalUSD': totalUSD, 'totalPKR': totalPKR }
+    }, [])
     return (
         <AppLayout breadcrumbs={[
             { title: 'فورم مصرف', href: '/expenses/create' }
         ]}>
             <div className="section w-full px-5 ">
                 <SectionTitle title="فورم مصرف روزمره" description="مصرف رزومره اینجا ثبت کنید" />
-                <div className="grid grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
                         <form onSubmit={handleExpense}>
                             <div className="grid gap-6">
@@ -72,25 +79,8 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                         className="mt-2"
                                     />
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="description">توضیحات</Label>
-                                    <textarea
-                                        id="description"
-                                        required
-                                        tabIndex={2}
-                                        autoComplete="description"
-                                        name="description"
-                                        value={data.description}
-                                        onChange={(e) => setData('description', e.target.value)}
-                                        className="border rounded-md p-5"
-                                        placeholder="لطفا توضیحات را واضح نماید"
-                                    />
-                                    <InputError
-                                        message={errors.description}
-                                        className="mt-2"
-                                    />
-                                </div>
-                                <div className="grid gap-2">
+
+                                  <div className="grid gap-2">
                                     <Label htmlFor="currencies">واحد پول</Label>
                                     <select
                                         id="currencies"
@@ -110,6 +100,26 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                     </select>
                                     <InputError message={errors.currency_id} />
                                 </div>
+                                
+                                <div className="grid gap-2">
+                                    <Label htmlFor="description">توضیحات</Label>
+                                    <textarea
+                                        id="description"
+                                        required
+                                        tabIndex={2}
+                                        autoComplete="description"
+                                        name="description"
+                                        value={data.description}
+                                        onChange={(e) => setData('description', e.target.value)}
+                                        className="border rounded-md p-5"
+                                        placeholder="لطفا توضیحات را واضح نماید"
+                                    />
+                                    <InputError
+                                        message={errors.description}
+                                        className="mt-2"
+                                    />
+                                </div>
+                              
 
                                 <Button
                                     type="submit"
@@ -123,7 +133,7 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                             </div>
                         </form>
                     </div>
-                    <div className="border p-3 rounded-md bg-muted overflow-y-auto">
+                    <div className="border p-3 rounded-md bg-muted">
                         <div>
                             <h1 className="text-center w-full text-accent font-semibold text-xl">ریکورد مصارف امروز</h1>
                             <Table>
@@ -152,8 +162,14 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                 </TableBody>
                                 <TableFooter>
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center text-sm text-muted-foreground">
-                                            جمله مصارف {todaysExpenses.reduce((acc, exp) => acc + exp.amount, 0)}
+                                        <TableCell colSpan={1} className="text-center text-sm text-muted-foreground">
+                                            جمله مصارف کلداری {totalExpenses['totalPKR']}
+                                        </TableCell>
+                                        <TableCell colSpan={1} className="text-center text-sm text-muted-foreground">
+                                            جمله مصارف دالر {totalExpenses['totalUSD']}
+                                        </TableCell>
+                                        <TableCell colSpan={2} className="text-center text-sm text-muted-foreground">
+                                            جمله مصارف افغانی {totalExpenses['totalAfg']}
                                         </TableCell>
                                     </TableRow>
                                 </TableFooter>
