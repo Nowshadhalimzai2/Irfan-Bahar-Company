@@ -18,7 +18,7 @@ class ExpenseController extends Controller
 {
     public function index(): Response
     {
-        $expenses = Expense::all();
+        $expenses = Expense::with('currency:id,name')->get();
         return Inertia::render('expenses/index', compact('expenses'));
     }
 
@@ -58,5 +58,24 @@ class ExpenseController extends Controller
             DB::rollBack();
         }
         return redirect()->back();
+    }
+
+    public function expensesRange(Request $request)
+    {
+        $data = $request->validate([
+            'from' => 'required|date',
+            'to' => 'required|date',
+        ]);
+
+        $from = Carbon::parse($data['from'], config('app.timezone'))->startOfDay();
+        $to = Carbon::parse($data['to'], config('app.timezone'))->endOfDay();
+
+        $expenses = Expense::with('currency:id,name')
+            ->select('id', 'amount', 'description', 'date', 'currency_id')
+            ->whereBetween('date', [$from, $to])
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return response()->json(['expenses' => $expenses]);
     }
 }

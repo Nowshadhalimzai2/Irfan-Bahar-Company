@@ -14,8 +14,7 @@ import { Link, router, usePage } from "@inertiajs/react";
 import { buttonVariants } from "../ui/button";
 import { UserCheck2Icon, UserX } from "lucide-react";
 import { route } from 'ziggy-js';
-import axios from "axios";
-import AppLayout from "@/layouts/app-layout";
+
 interface Props {
   employees: Employee[];
 }
@@ -24,11 +23,9 @@ function EmployeeList({ employees }: Props) {
     const { auth } = usePage().props;
 
   const toggleAttendance = async (employee: Employee) => {
-    console.log(employee.today_attendance?.is_present);
 
     router.post('/employees/' + employee.id + '/attendance-toggle', { employee: employee.id });
   };
-  console.log(employees);
 
   return (
       <section className="section">

@@ -12,20 +12,15 @@ import { SectionTitle } from "../section-title";
 import { Role, User } from "@/types";
 import {
     DropdownMenu,
-    DropdownMenuCheckboxItem,
     DropdownMenuContent,
     DropdownMenuItem,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button, buttonVariants } from "../ui/button";
 import { MoreHorizontalIcon } from "lucide-react";
 import { Link, router, usePage } from "@inertiajs/react";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
 import axios from "axios";
 import { register } from "@/routes";
-import { useEffect } from "react";
 interface Props {
     users: User[];
     roles: Role[]

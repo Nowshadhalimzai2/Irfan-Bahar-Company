@@ -92,6 +92,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 Route::middleware(['auth','refuseFactoryClerk'])->group(function(){
+    Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
     Route::resource('expenses',ExpenseController::class)->names('expenses');
 });
 require __DIR__ . '/settings.php';

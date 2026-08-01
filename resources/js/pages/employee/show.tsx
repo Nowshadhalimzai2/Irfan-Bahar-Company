@@ -26,7 +26,7 @@ const Show = ({ employee,  thisMonthSalary, grossMonthSalary, absentDays, perDay
 
         router.post('/employees/' + employee.id + '/attendance-toggle', { employee: employee.id });
     };
-    const {user} = usePage().props.auth;
+    const {user} = usePage().props.auth as unknown as {user: {role_id: number}};
     const moreList = [
         { name: 'رکورد معاشات پرداخت شده', url: '/employees/' + employee.id + '/salary-record' },
         { name: 'رکورد حاضری', url: `/employees/${employee.id}/attendance-record` },

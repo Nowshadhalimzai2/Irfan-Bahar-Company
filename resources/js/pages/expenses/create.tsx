@@ -18,6 +18,8 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
+import { Menu } from "lucide-react";
+import { CustomeDropDownMenu } from "@/components/customer-dropdwon";
 
 
 type ExpenseType = {
@@ -31,7 +33,7 @@ interface Props {
 }
 const Create = ({ currencies, todaysExpenses }: Props) => {
 
-    const {role} = usePage().props.auth.user;
+    const {role} = usePage().props.auth.user as unknown as {role: {name: string}};
     const { data, setData, post, reset, processing, errors } = useForm<ExpenseType>({
         'amount': 10,
         'description': '',
@@ -49,12 +51,15 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
         const totalPKR = todaysExpenses.filter(exp => exp.currency.name === 'PKR').reduce((acc, exp) => acc += exp.amount, 0);
 
         return { 'totalAfg': totalAfg, 'totalUSD': totalUSD, 'totalPKR': totalPKR }
-    }, [])
+    }, []);
     return (
         <AppLayout breadcrumbs={[
             { title: 'فورم مصرف', href: '/expenses/create' }
         ]}>
             <div className="section w-full px-5 ">
+                <div className="flex justify-end items-end w-full p-5">
+                    <CustomeDropDownMenu items={[{ name: 'ریکورد مصارف', url: '/expenses' }]} />
+                </div>
                 <SectionTitle title="فورم مصرف روزمره" description="مصرف رزومره اینجا ثبت کنید" />
                 <div className={`grid grid-cols-1 ${role.name === 'shop_clerk' && "md:grid-cols-2"} gap-5`}>
                     {role.name === "shop_clerk" && <div>
