@@ -51,7 +51,7 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
         const totalPKR = todaysExpenses.filter(exp => exp.currency.name === 'PKR').reduce((acc, exp) => acc += exp.amount, 0);
 
         return { 'totalAfg': totalAfg, 'totalUSD': totalUSD, 'totalPKR': totalPKR }
-    }, []);
+    }, [todaysExpenses]);
     return (
         <AppLayout breadcrumbs={[
             { title: 'فورم مصرف', href: '/expenses/create' }

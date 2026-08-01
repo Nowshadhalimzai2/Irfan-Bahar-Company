@@ -1,9 +1,17 @@
 import { Head } from '@inertiajs/react';
-
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover"
 import { dashboard } from '@/routes';
 import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
 import { Account } from '@/types';
 import AppLayout from '@/layouts/app-layout';
+import { Calendar } from '@/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { format } from 'date-fns';
 
 interface Props {
     sa: Account[];
@@ -11,6 +19,9 @@ interface Props {
 }
 
 export default function Dashboard({ sa, totalExpensesBasedOnCurrency }: Props) {
+
+    const [date, setDate] = useState<Date>(new Date());
+
     return (
         <AppLayout breadcrumbs={[
             {
@@ -22,6 +33,24 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency }: Props) {
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex justify-end items-end">
                     <CustomeDropDownMenu items={[{ name: 'Logs', url: '/logs' }]} />
+                </div>
+                <div>
+                    <Popover>
+                        <PopoverTrigger>
+                            <Button type="button" variant="ghost" id="date-picker-simple" className="justify-start w-full font-normal">
+                                {date ? format(date, "PPP") : <span>تاریخ را انتخاب کنید</span>}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                mode="single"
+                                required
+                                selected={date}
+                               
+                                defaultMonth={date}
+                            />
+                        </PopoverContent>
+                    </Popover>
                 </div>
                 <div className="border rounded-sm p-2 md:p-5 text-secondary-foregroun dark:bg-white">
                     <h4 className="text-center text-accent font-semibold p-5 drop-shadow-accent text-lg">حساب دوکان</h4>
