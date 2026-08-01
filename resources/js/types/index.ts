@@ -67,4 +67,5 @@ export interface Expense{
     description:string;
     currency:Currency;
     date:Date;
+    is_editable:boolean;
 }

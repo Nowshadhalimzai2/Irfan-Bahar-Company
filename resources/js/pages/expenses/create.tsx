@@ -7,7 +7,7 @@ import { Spinner } from "@/components/ui/spinner";
 import AppLayout from "@/layouts/app-layout";
 import { Currency, Expense } from "@/types";
 import { useForm, usePage } from "@inertiajs/react";
-import { FormEvent, useMemo } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
     Table,
     TableBody,
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/table";
 import { Menu } from "lucide-react";
 import { CustomeDropDownMenu } from "@/components/customer-dropdwon";
+import axios from "axios";
 
 
 type ExpenseType = {
@@ -32,8 +33,7 @@ interface Props {
     currencies: Currency[]
 }
 const Create = ({ currencies, todaysExpenses }: Props) => {
-
-    const {role} = usePage().props.auth.user as unknown as {role: {name: string}};
+    const { role } = usePage().props.auth.user as unknown as { role: { name: string } };
     const { data, setData, post, reset, processing, errors } = useForm<ExpenseType>({
         'amount': 10,
         'description': '',
@@ -45,13 +45,87 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
             onFinish: () => reset('amount', 'description', 'currency_id')
         });
     }
+    const [expenses, setExpenses] = useState<Expense[]>(todaysExpenses);
+    const [togglingExpenseId, setTogglingExpenseId] = useState<number | null>(null);
+    const [updatingExpenseId, setUpdatingExpenseId] = useState<number | null>(null);
+    const [editingAmounts, setEditingAmounts] = useState<Record<number, string>>({});
+
+    useEffect(() => {
+        setExpenses(todaysExpenses);
+    }, [todaysExpenses]);
+
     const totalExpenses = useMemo(() => {
-        const totalAfg = todaysExpenses.filter(exp => exp.currency.name === 'AFG').reduce((acc, exp) => acc += exp.amount, 0);
-        const totalUSD = todaysExpenses.filter(exp => exp.currency.name === 'USD').reduce((acc, exp) => acc += exp.amount, 0);
-        const totalPKR = todaysExpenses.filter(exp => exp.currency.name === 'PKR').reduce((acc, exp) => acc += exp.amount, 0);
+        const totalAfg = expenses.filter(exp => exp.currency.name === 'AFG').reduce((acc, exp) => acc += exp.amount, 0);
+        const totalUSD = expenses.filter(exp => exp.currency.name === 'USD').reduce((acc, exp) => acc += exp.amount, 0);
+        const totalPKR = expenses.filter(exp => exp.currency.name === 'PKR').reduce((acc, exp) => acc += exp.amount, 0);
 
         return { 'totalAfg': totalAfg, 'totalUSD': totalUSD, 'totalPKR': totalPKR }
-    }, [todaysExpenses]);
+    }, [expenses]);
+
+    const toggleExpenseEditable = async (expense: Expense) => {
+        if (role.name !== "shop_clerk") {
+            return;
+        }
+
+        if (!confirm("آیا میخواهید این ریکورد قابل ویرایش باشد؟")) {
+            return;
+        }
+
+        setTogglingExpenseId(expense.id);
+
+        try {
+            const response = await axios.put(`/expenses/${expense.id}/toggle-editable`, { is_editable: expense.is_editable });
+
+            if (response.status === 200) {
+                const updatedExpense = response.data as Expense;
+                setExpenses((prev) => prev.map((item) =>
+                    item.id === expense.id
+                        ? { ...item, is_editable: updatedExpense.is_editable ?? !expense.is_editable }
+                        : item
+                ));
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setTogglingExpenseId(null);
+        }
+    }
+
+    const canBeEditedBySuperAdmin = (expense: Expense) => {
+        return role.name === "super_admin" && expense.is_editable;
+    };
+
+    const handleAmountChange = async (expense: Expense, value: string) => {
+        if (!canBeEditedBySuperAdmin(expense)) {
+            return;
+        }
+
+        const nextAmount = Number(value);
+        if (Number.isNaN(nextAmount) || nextAmount === expense.amount) {
+            setEditingAmounts((prev) => ({ ...prev, [expense.id]: String(expense.amount) }));
+            return;
+        }
+
+        setUpdatingExpenseId(expense.id);
+
+        try {
+            const response = await axios.put(`/expenses/${expense.id}`, { amount: nextAmount });
+
+            if (response.status === 200) {
+                setExpenses((prev) => prev.map((item) =>
+                    item.id === expense.id
+                        ? { ...item, amount: response.data.amount, is_editable: false }
+                        : item
+                ));
+                setEditingAmounts((prev) => ({ ...prev, [expense.id]: String(response.data.amount) }));
+            }
+        } catch (error) {
+            console.error(error);
+            setEditingAmounts((prev) => ({ ...prev, [expense.id]: String(expense.amount) }));
+        } finally {
+            setUpdatingExpenseId(null);
+        }
+    };
     return (
         <AppLayout breadcrumbs={[
             { title: 'فورم مصرف', href: '/expenses/create' }
@@ -85,7 +159,7 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                     />
                                 </div>
 
-                                  <div className="grid gap-2">
+                                <div className="grid gap-2">
                                     <Label htmlFor="currencies">واحد پول</Label>
                                     <select
                                         id="currencies"
@@ -124,7 +198,7 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                         className="mt-2"
                                     />
                                 </div>
-                              
+
 
                                 <Button
                                     type="submit"
@@ -145,7 +219,7 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                 <TableCaption> مصارف تاریخ {new Date().toLocaleDateString()} را اینجا دیده میتانی</TableCaption>
                                 <TableHeader>
                                     <TableRow>
-                                        {/* <TableHead>تاریخ </TableHead> */}
+                                        {role.name === "shop_clerk" && <TableHead>قابل ویرایش است؟ </TableHead>}
                                         <TableHead>واحد پول</TableHead>
                                         <TableHead>مقدار پول</TableHead>
                                         <TableHead>توضیحات</TableHead>
@@ -153,12 +227,20 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {todaysExpenses.map((expense, ind) => {
+                                    {expenses.map((expense, ind) => {
                                         return (
-                                            <TableRow key={ind} className="hover:bg-secondary hover:border">
-                                                {/* <TableCell>{new Date(expense.date).toDateString()}</TableCell> */}
+                                            <TableRow key={expense.id} className="hover:bg-secondary hover:border">
+                                                {role.name === "shop_clerk" && <TableCell><Button onClick={() => toggleExpenseEditable(expense)}>{expense.is_editable ? 'بلی' : 'نخیر'}</Button></TableCell>}
                                                 <TableCell>{expense.currency.name}</TableCell>
-                                                <TableCell>{expense.amount}</TableCell>
+                                                <TableCell>
+                                                    <Input
+                                                        value={editingAmounts[expense.id] ?? String(expense.amount)}
+                                                        readOnly={!canBeEditedBySuperAdmin(expense)}
+                                                        onChange={(e) => setEditingAmounts((prev) => ({ ...prev, [expense.id]: e.target.value }))}
+                                                        onBlur={(e) => handleAmountChange(expense, e.target.value)}
+                                                        disabled={updatingExpenseId === expense.id}
+                                                    />
+                                                </TableCell>
                                                 <TableCell className="font-medium flex-1">{expense.description}</TableCell>
                                                 <TableCell className="text-center">{ind + 1}</TableCell>
                                             </TableRow>

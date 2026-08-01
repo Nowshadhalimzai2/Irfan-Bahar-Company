@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignIdFor(Currency::class)->default(1)->constrained()->cascadeOnUpdate()->noActionOnDelete();
             $table->text('description');
             $table->date('date');
+            $table->boolean('is_editable')->default(false);
             $table->timestamps();
         });
     }

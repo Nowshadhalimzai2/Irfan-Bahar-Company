@@ -18,9 +18,11 @@ class onlyshopclerk
     public function handle(Request $request, Closure $next): Response
     {
         $user = Auth::user();
-        if (($user instanceof User) && !$user->hasRole('shopclerk')) {
+
+        if (! ($user instanceof User) || ! $user->hasRole('shop_clerk')) {
             abort(403);
         }
+
         return $next($request);
     }
 }

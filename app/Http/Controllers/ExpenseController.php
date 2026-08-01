@@ -6,9 +6,11 @@ use App\Custome\Log;
 use App\Custome\SHA;
 use App\Models\Currency;
 use App\Models\Expense;
+use App\Models\User;
 use Carbon\Carbon;
 use Error;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -25,7 +27,7 @@ class ExpenseController extends Controller
     public function create(): Response
     {
         $todaysExpenses = Expense::with('currency:id,name')
-            ->select('id', 'amount', 'description', 'date', 'currency_id')
+            ->select('id', 'amount', 'description', 'date', 'currency_id', 'is_editable')
             ->whereDate('date', Carbon::today(config('app.timezone')))
             ->orderBy('id', 'desc')
             ->get();
@@ -60,6 +62,34 @@ class ExpenseController extends Controller
         return redirect()->back();
     }
 
+    public function update(Request $request, Expense $expense)
+    {
+        $user = Auth::user();
+
+        if (! ($user instanceof User) || ! $user->hasRole('super_admin')) {
+            abort(403);
+        }
+
+        if (! $expense->is_editable) {
+            return response()->json(['message' => 'This expense is not editable.'], 403);
+        }
+
+        $data = $request->validate([
+            'amount' => 'required|numeric|min:1',
+        ]);
+
+        $expense->forceFill([
+            'amount' => $data['amount'],
+            'is_editable' => false,
+        ])->save();
+
+        return response()->json([
+            'id' => $expense->id,
+            'amount' => $expense->amount,
+            'is_editable' => $expense->is_editable,
+        ]);
+    }
+
     public function expensesRange(Request $request)
     {
         $data = $request->validate([
@@ -71,11 +101,26 @@ class ExpenseController extends Controller
         $to = Carbon::parse($data['to'], config('app.timezone'))->endOfDay();
 
         $expenses = Expense::with('currency:id,name')
-            ->select('id', 'amount', 'description', 'date', 'currency_id')
+            ->select('id', 'amount', 'description', 'date', 'currency_id', 'is_editable')
             ->whereBetween('date', [$from, $to])
             ->orderBy('id', 'desc')
             ->get();
 
         return response()->json(['expenses' => $expenses]);
+    }
+
+    public function toggleEditable(Request $request, Expense $expense)
+    {
+        
+        Gate::authorize('allow-shop-clerk');
+
+        $data = $request->validate([
+            'is_editable' => 'required|boolean',
+        ]);
+
+        $expense->is_editable = !$data['is_editable'];
+        $expense->save();
+
+        return response()->json(['is_editable' => $expense->is_editable]);
     }
 }
