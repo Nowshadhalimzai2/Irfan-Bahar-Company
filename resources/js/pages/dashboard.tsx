@@ -7,10 +7,10 @@ import AppLayout from '@/layouts/app-layout';
 
 interface Props {
     sa: Account[];
+    totalExpensesBasedOnCurrency: Record<string, number>;
 }
 
-export default function Dashboard({ sa }: Props) {
-
+export default function Dashboard({ sa, totalExpensesBasedOnCurrency }: Props) {
     return (
         <AppLayout breadcrumbs={[
             {
@@ -31,7 +31,7 @@ export default function Dashboard({ sa }: Props) {
                                 <span className="text-secondary-foreground">{s.currency.name}</span>
                                 <span className="text-primary font-semibold text-2xl">{s.amount}</span>
                                 <p className="text-sm text-muted-foreground text-center mt-3">
-                                    <span>رفت پول امروز: 88500 </span><span>امد بول امروز: 120030</span>
+                                    <span>رفت پول امروز: {totalExpensesBasedOnCurrency[s.currency.id]?.toLocaleString() || 0} </span><span>امد پول امروز: 120030</span>
                                 </p>
                             </div>
                         )}

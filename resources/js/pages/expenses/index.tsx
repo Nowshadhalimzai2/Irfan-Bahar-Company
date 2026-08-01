@@ -64,7 +64,7 @@ const Index = ({ expenses }: Props) => {
     return (
         <AppLayout breadcrumbs={
             [
-                { title: 'ریکورد مصارف', href: '/expenses/create' },
+                { title: 'فورم مصارف', href: '/expenses/create' },
                 { title: 'ریکوردمصارف ', href: "/expesnes" }
             ]
         }>

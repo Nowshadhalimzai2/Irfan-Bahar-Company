@@ -7,9 +7,11 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\SalaryController;
+use App\Models\Expense;
 use App\Models\Role;
 use App\Models\ShopAccount;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -27,8 +29,15 @@ Route::inertia('/about-us', 'about-us')->name('about-us');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
         $sa = ShopAccount::with('currency:id,name')->select('id', 'amount', 'currency_id')->get();
-        // dd($sa);
-        return Inertia::render('dashboard', compact('sa'));
+        $todaysExpenses = Expense::with('currency:id,name')
+            ->select('id', 'amount', 'description', 'date', 'currency_id')
+            ->whereDate('date', Carbon::today(config('app.timezone')))
+            ->orderBy('id', 'desc')
+            ->get();
+        $totalExpensesBasedOnCurrency = $todaysExpenses->groupBy('currency_id')->map(function ($expesnes){
+            return $expesnes->sum('amount');
+        });
+        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency'));
     })->name('dashboard');
 });
 
@@ -88,12 +97,11 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::get('/employees/{employee}/salary-record', [SalaryController::class, 'salaryRecord'])->name('emplyee-salary-record');
     Route::get('/employees/{employee}/attendance-record', [AttendanceController::class, 'attendanceRecord'])->name('emplyee-attendance-record');
-    
 });
 
-Route::middleware(['auth','refuseFactoryClerk'])->group(function(){
+Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
     Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
-    Route::resource('expenses',ExpenseController::class)->names('expenses');
+    Route::resource('expenses', ExpenseController::class)->names('expenses');
 });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/axios-routes.php';
