@@ -91,7 +91,7 @@ Route::middleware(['auth'])->group(function () {
     
 });
 
-Route::middleware(['auth','allowOnlyShopClerk'])->group(function(){
+Route::middleware(['auth','refuseFactoryClerk'])->group(function(){
     Route::resource('expenses',ExpenseController::class)->names('expenses');
 });
 require __DIR__ . '/settings.php';

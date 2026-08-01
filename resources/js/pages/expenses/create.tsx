@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import AppLayout from "@/layouts/app-layout";
 import { Currency, Expense } from "@/types";
-import { useForm } from "@inertiajs/react";
+import { useForm, usePage } from "@inertiajs/react";
 import { FormEvent, useMemo } from "react";
 import {
     Table,
@@ -31,7 +31,7 @@ interface Props {
 }
 const Create = ({ currencies, todaysExpenses }: Props) => {
 
-
+    const {role} = usePage().props.auth.user;
     const { data, setData, post, reset, processing, errors } = useForm<ExpenseType>({
         'amount': 10,
         'description': '',
@@ -56,8 +56,8 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
         ]}>
             <div className="section w-full px-5 ">
                 <SectionTitle title="فورم مصرف روزمره" description="مصرف رزومره اینجا ثبت کنید" />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div>
+                <div className={`grid grid-cols-1 ${role.name === 'shop_clerk' && "md:grid-cols-2"} gap-5`}>
+                    {role.name === "shop_clerk" && <div>
                         <form onSubmit={handleExpense}>
                             <div className="grid gap-6">
                                 <div className="grid gap-2">
@@ -100,7 +100,7 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                     </select>
                                     <InputError message={errors.currency_id} />
                                 </div>
-                                
+
                                 <div className="grid gap-2">
                                     <Label htmlFor="description">توضیحات</Label>
                                     <textarea
@@ -132,16 +132,16 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                 </Button>
                             </div>
                         </form>
-                    </div>
+                    </div>}
                     <div className="border p-3 rounded-md bg-muted">
                         <div>
-                            <h1 className="text-center w-full text-accent font-semibold text-xl">ریکورد مصارف امروز</h1>
+                            <h1 className="text-center w-full text-accent font-semibold text-xl py-5">ریکورد مصارف امروز</h1>
                             <Table>
-                                <TableCaption>مصارف امروزی را اینجا دیده میتانی</TableCaption>
+                                <TableCaption> مصارف تاریخ {new Date().toLocaleDateString()} را اینجا دیده میتانی</TableCaption>
                                 <TableHeader>
                                     <TableRow>
                                         {/* <TableHead>تاریخ </TableHead> */}
-                                        <TableHead>واحد بول</TableHead>
+                                        <TableHead>واحد پول</TableHead>
                                         <TableHead>مقدار پول</TableHead>
                                         <TableHead>توضیحات</TableHead>
                                         <TableHead className="">شماره</TableHead>

@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Error;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,7 +27,7 @@ class ExpenseController extends Controller
         $todaysExpenses = Expense::with('currency:id,name')
             ->select('id', 'amount', 'description', 'date', 'currency_id')
             ->whereDate('date', Carbon::today(config('app.timezone')))
-            ->orderBy('id','desc')
+            ->orderBy('id', 'desc')
             ->get();
         // dd(Carbon::today(config('app.timezone')));
         $currencies = Currency::select('id', 'name')->get();
@@ -35,6 +36,7 @@ class ExpenseController extends Controller
 
     public function store(Request $request)
     {
+        Gate::authorize('allow-shop-clerk');
 
         $data = $request->validate([
             'amount' => 'required|min:10|numeric',
@@ -49,7 +51,7 @@ class ExpenseController extends Controller
             Expense::create([...$data, 'date' => Carbon::now(config('app.timezone'))]);
             $log = new Log();
             $log->create('insert', $data['description']);
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'موفقانه داخل شد : '.$data["description"]]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'موفقانه داخل شد : ' . $data["description"]]);
             DB::commit();
         } catch (\Throwable $th) {
             Inertia::flash('toast', ['type' => 'error', 'message' => 'ریکورد مصرف اضافه نشد. لامل  شاید بول کافی نه بودن باشه ' . $th->getMessage()]);
