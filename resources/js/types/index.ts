@@ -81,3 +81,11 @@ export interface Supplier{
     status:boolean;
 }
 
+export interface Location{
+    id:number;
+    name:string;
+    address:string;
+    type: 'warehouse' | 'shop' | 'factory' | 'office' | 'other';
+    is_active:boolean;
+}
+

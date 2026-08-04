@@ -21,7 +21,10 @@ interface Props {
 export default function Dashboard({ sa, totalExpensesBasedOnCurrency }: Props) {
 
     const [date, setDate] = useState<Date>(new Date());
-
+    const moreOptions : { name:string; url:string}[] = [
+        { name: 'Locations', url: '/locations' },
+        { name: 'Logs', url: '/logs' },
+    ]
     return (
         <AppLayout breadcrumbs={[
             {
@@ -32,7 +35,7 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency }: Props) {
             <Head title="Dashboard" />
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex justify-end items-end">
-                    <CustomeDropDownMenu items={[{ name: 'Logs', url: '/logs' }]} />
+                    <CustomeDropDownMenu items={moreOptions} />
                 </div>
                 <div>
                     <Popover>

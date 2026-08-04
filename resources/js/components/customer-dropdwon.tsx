@@ -15,14 +15,26 @@ interface Props {
         id: number;
         url: string;
     }
+    method?: 'get' | 'put';
 }
-export const CustomeDropDownMenu = ({ items, deletion }: Props) => {
+export const CustomeDropDownMenu = ({ items, deletion, method = 'get' }: Props) => {
+    console.log(items);
+
+    const handleToggle = (url: string) => {
+        if (method === 'put') {
+            if (confirm('مطمئن هستین تا اجرآات کند؟'))
+                router.put(url)
+        }
+        else if (method === "get")
+            router.get(url)
+    }
+
     return (
         <div>
             <DropdownMenu>
                 <DropdownMenuTrigger ><Button variant="ghost" size="icon" className="size-8"><Menu /><span className="sr-only">Open menu</span></Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    {items.map((item, ind) => <DropdownMenuItem key={ind} onClick={() => router.get(item.url)}>{item.name}</DropdownMenuItem>)}
+                    {items.map((item, ind) => <DropdownMenuItem key={ind} onClick={() => handleToggle(item.url)}>{item.name}</DropdownMenuItem>)}
                     {deletion?.id && <DropdownMenuItem variant="destructive">
                         <DropdownMenuSeparator />
                         <Link className="text-red-500  p-0 w-full h-full" onClick={() => {
