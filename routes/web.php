@@ -7,6 +7,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\SalaryController;
+use App\Http\Controllers\SupplierController;
 use App\Models\Expense;
 use App\Models\Role;
 use App\Models\ShopAccount;
@@ -102,6 +103,10 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
     Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
     Route::resource('expenses', ExpenseController::class)->names('expenses');
+});
+
+Route::middleware(['auth'])->group(function(){
+    Route::resource('suppliers',SupplierController::class)->names('suppliers');
 });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/axios-routes.php';

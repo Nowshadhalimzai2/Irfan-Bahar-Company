@@ -31,7 +31,6 @@ class ExpenseController extends Controller
             ->whereDate('date', Carbon::today(config('app.timezone')))
             ->orderBy('id', 'desc')
             ->get();
-        // dd(Carbon::today(config('app.timezone')));
         $currencies = Currency::select('id', 'name')->get();
         return Inertia::render('expenses/create', compact('currencies', 'todaysExpenses'));
     }

@@ -69,3 +69,15 @@ export interface Expense{
     date:Date;
     is_editable:boolean;
 }
+
+//  ======================  ONE GROUP =======================
+
+export interface Supplier{
+    id:number;
+    name:string;
+    phone?:string;
+    email?:string;
+    address:string;
+    status:boolean;
+}
+

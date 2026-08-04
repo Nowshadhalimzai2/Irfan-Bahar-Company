@@ -130,7 +130,7 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
         <AppLayout breadcrumbs={[
             { title: 'فورم مصرف', href: '/expenses/create' }
         ]}>
-            <div className="section w-full px-5 ">
+            <div className="pb-5 mb-12 w-full px-5 ">
                 <div className="flex justify-end items-end w-full p-5">
                     <CustomeDropDownMenu items={[{ name: 'ریکورد مصارف', url: '/expenses' }]} />
                 </div>
@@ -239,6 +239,7 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                                         onChange={(e) => setEditingAmounts((prev) => ({ ...prev, [expense.id]: e.target.value }))}
                                                         onBlur={(e) => handleAmountChange(expense, e.target.value)}
                                                         disabled={updatingExpenseId === expense.id}
+                                                        className={`w-full ${canBeEditedBySuperAdmin(expense) ? 'border' : 'bg-transparent border-none'} ${updatingExpenseId === expense.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                     />
                                                 </TableCell>
                                                 <TableCell className="font-medium flex-1">{expense.description}</TableCell>

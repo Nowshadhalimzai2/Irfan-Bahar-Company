@@ -1,4 +1,5 @@
 import EmployeeList from "@/components/employee/employee-list";
+import SupplierList from "@/components/supplier/supplier-list";
 import {
     Card,
     CardContent,
@@ -14,14 +15,15 @@ import {
 } from "@/components/ui/tabs";
 import UserList from "@/components/user/user-list";
 import AppLayout from "@/layouts/app-layout";
-import { Employee, Role, User } from "@/types";
+import { Employee, Role, Supplier, User } from "@/types";
 import { usePage } from "@inertiajs/react";
 interface Props {
     users: User[];
     roles: Role[];
     employees: Employee[];
+    suppliers: Supplier[];
 }
-export default function Index({ users, roles, employees }: Props) {
+export default function Index({ users, roles, employees, suppliers }: Props) {
     const { auth } = usePage().props;
     return (
         <AppLayout breadcrumbs={[
@@ -37,10 +39,10 @@ export default function Index({ users, roles, employees }: Props) {
                     <div className="mt-2">
                         <Tabs defaultValue="overview" className="w-full px-2 md:px-8">
                             <TabsList className="flex justify-between items-center w-full">
+                                <TabsTrigger value="tellers">مشتریان</TabsTrigger>
                                 <TabsTrigger value="employees">کاریګر ها</TabsTrigger>
                                 {(auth.user.role_id === 1 || auth.user.role_id === 2) && <TabsTrigger value="users">استفاده کنندګان سیستم</TabsTrigger>}
-                                <TabsTrigger value="tellers">مشتریان</TabsTrigger>
-                                <TabsTrigger value="vendors">فرشنده ګان</TabsTrigger>
+                                <TabsTrigger value="suppliers">تامین کنندگان</TabsTrigger>
                             </TabsList>
                             <TabsContent value="employees">
                                 <EmployeeList employees={employees} />
@@ -62,19 +64,8 @@ export default function Index({ users, roles, employees }: Props) {
                                     </CardContent>
                                 </Card>
                             </TabsContent>
-                            <TabsContent value="vendors">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle>Settings</CardTitle>
-                                        <CardDescription>
-                                            Manage your account preferences and options. Customize your
-                                            experience to fit your needs.
-                                        </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="text-sm text-muted-foreground">
-                                        Configure notifications, security, and themes.
-                                    </CardContent>
-                                </Card>
+                            <TabsContent value="suppliers">
+                                <SupplierList suppliers={suppliers} />
                             </TabsContent>
                         </Tabs>
                     </div>

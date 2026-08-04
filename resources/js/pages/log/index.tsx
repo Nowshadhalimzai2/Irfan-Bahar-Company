@@ -35,15 +35,6 @@ interface Props {
     };
 }
 
-// const parseLogDate = (date: string | Date) => {
-//     if (date instanceof Date) return date;
-//     const value = date.trim();
-//     if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}$/.test(value)) {
-//         return new Date(value.replace(' ', 'T') + 'Z');
-//     }
-//     return new Date(value);
-// };
-
 const Index = ({ logs }: Props) => {
     return (
         <AppLayout breadcrumbs={[
@@ -52,57 +43,53 @@ const Index = ({ logs }: Props) => {
 
         ]}>
             <SectionTitle title="Logs" description="This is a protected area. only authorized should see this area." />
-            <Table className="max-w-3xl mx-auto bg-white p-5 rounded-sm shadow">
-                <TableCaption>You can manage the users.</TableCaption>
-                <TableHeader>
-                    <TableRow>
-                        <TableHead className="w-25">No</TableHead>
-                        <TableHead>User Name</TableHead>
-                        <TableHead>Activity Type</TableHead>
-                        <TableHead >Description</TableHead>
-                        <TableHead >Date</TableHead>
-
-                    </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {logs.data.length > 0 ? logs.data.map((log, ind) => (
-                        <TableRow key={log.id}>
-                            <TableCell>{ind + 1}</TableCell>
-                            <TableCell>{log.user.name}</TableCell>
-                            <TableCell className="font-medium">{log.activity_type}</TableCell>
-                            <TableCell>{log.description.length > 50 ? `${log.description.slice(0, 50)}...` : log.description}</TableCell>
-                            <TableCell>{new Date(log.activity_date).toLocaleString()}</TableCell>
+            <div className="overflow-x-auto w-full px-8">
+                <Table>
+                    <TableCaption>Logs</TableCaption>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-25">ID</TableHead>
+                            <TableHead>Activity Type</TableHead>
+                            <TableHead>Description</TableHead>
+                            <TableHead>Activity Date</TableHead>
+                            <TableHead>User</TableHead>
+                            <TableHead>Link</TableHead>
                         </TableRow>
-                    )) : <>
-                        <TableCell colSpan={5} className="text-center text-yellow-500 py-6">
-                            <div className="inline-flex items-center gap-2 py-5">No logs available yet! <SearchX /> </div>
-                        </TableCell>
-
-                    </>}
-                </TableBody>
-                <TableFooter>
-                    <TableRow>
-                        <TableCell colSpan={3}>Total logs</TableCell>
-                        <TableCell className="text-right" colSpan={2}>{logs.links ? logs.from + ' - ' + logs.current_page : logs.data.length}</TableCell>
-                    </TableRow>
-                    <TableRow>
-                        <TableCell colSpan={5}>
-                            <nav className="mt-2 flex justify-center items-center space-x-2">
-                                {logs.links && logs.links.map((link, idx) => (
-                                    <a
-                                        key={idx}
-                                        href={link.url ?? '#'}
-                                        className={`px-3 py-1 rounded border ${link.active ? 'bg-primary/80 text-white' : 'bg-white text-slate-700'}`}
-                                        dangerouslySetInnerHTML={{ __html: link.label }}
-                                    />
-                                ))}
-                            </nav>
-                        </TableCell>
-                    </TableRow>
-                </TableFooter>
-            </Table>
+                    </TableHeader>
+                    <TableBody>
+                        {logs.data.map((log) => (
+                            <TableRow key={log.id}>
+                                <TableCell>{log.id}</TableCell>
+                                <TableCell>{log.activity_type}</TableCell>
+                                <TableCell>{log.description}</TableCell>
+                                <TableCell>{new Date(log.activity_date).toLocaleString()}</TableCell>
+                                <TableCell>{log.user.name}</TableCell>
+                                <TableCell><a href={log
+                                    .link} className="text-blue-500 hover:underline">View</a></TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                    <TableFooter>
+                        <TableRow>
+                            <TableCell colSpan={6}>
+                                <div className="flex justify-center items-center space-x-2">
+                                    {logs.links.map((link, index) => (
+                                        <a
+                                            key={index}
+                                            href={link.url ?? '#'}
+                                            className={`px-3 py-1.5 border rounded ${link.active ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
+                                        >
+                                            {link.label}
+                                        </a>
+                                    ))}
+                                </div>
+                            </TableCell>
+                        </TableRow>
+                    </TableFooter>
+                </Table>
+            </div>
         </AppLayout>
-    )
-}
+    );
+};
 
-export default Index
+export default Index;

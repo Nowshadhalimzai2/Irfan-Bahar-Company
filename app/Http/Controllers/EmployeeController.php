@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Custome\Log;
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Models\Expense;
 use App\Models\Role;
 use App\Models\Salary;
 use App\Models\ShopAccount;
@@ -244,7 +245,7 @@ EmployeeController extends Controller
 
         try {
             $shopAccount = ShopAccount::query()->firstOrFail();
-
+        
             // $paidThisMonth = (float) $employee->salaries()
             //     ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
             //     ->sum('amount');
@@ -299,6 +300,13 @@ EmployeeController extends Controller
             $shopAccount->amount -= $amount;
             $shopAccount->save();
 
+            // Add the transaction to the expesnes list.
+            Expense::create([
+                'amount' => $amount,
+                'description' => "پرداخت شد {$employee->name} معاش برای",
+                'date' => $paymentDate->toDateString(),
+                'currency_id' => 1, // Assuming currency_id is 1 for the default currency
+            ]);
             DB::commit();
 
             $log = new Log();
