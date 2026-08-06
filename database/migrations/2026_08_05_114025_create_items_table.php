@@ -3,6 +3,7 @@
 use App\Models\Category;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -15,6 +16,7 @@ return new class extends Migration
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
             $table->string('name', 255);
+            $table->timestamps();
         });
 
         Schema::create('items', function (Blueprint $table) {
@@ -28,7 +30,14 @@ return new class extends Migration
             $table->foreignIdFor(Category::class)->constrained('categories')->cascadeOnUpdate();
             $table->timestamps();
         });
+
+        if (DB::table('categories')->count() === 0) {
+            foreach (['soap', 'powder', 'vaseline', 'shampoo', 'packing', 'raw_materail', 'asid'] as $categoryName) {
+                Category::firstOrCreate(['name' => $categoryName]);
+            }
+        }
     }
+
 
     /**
      * Reverse the migrations.
