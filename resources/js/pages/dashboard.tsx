@@ -29,7 +29,7 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency }: Props) {
         <AppLayout breadcrumbs={[
             {
                 title: 'دشبورد',
-                href: dashboard(),
+                href: '/dashbaord',
             },
         ]}>
             <Head title="Dashboard" />

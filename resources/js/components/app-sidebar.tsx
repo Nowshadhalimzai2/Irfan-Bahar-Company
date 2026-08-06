@@ -1,5 +1,4 @@
 import { Link } from '@inertiajs/react';
-import { BadgeMinus, BookOpen, FolderGit2, Group, GroupIcon, LayoutGrid, UserCogIcon, UserSquare, UserX } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -15,37 +14,8 @@ import {
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
+import { footerNavItems, mainNavItems } from './main-nav-items';
 
-const mainNavItems: NavItem[] = [
-    {
-        title: 'دشبورد',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'مصارف',
-        href: '/expenses/create',
-        icon: BadgeMinus,
-    },
-    {
-        title: 'کار کننده ګان',
-        href: "/stackholders",
-        icon: GroupIcon,
-    },
-];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Repository',
-        href: 'https://github.com/laravel/react-starter-kit',
-        icon: FolderGit2,
-    },
-    {
-        title: 'Documentation',
-        href: 'https://laravel.com/docs/starter-kits#react',
-        icon: BookOpen,
-    },
-];
 
 export function AppSidebar() {
     return (

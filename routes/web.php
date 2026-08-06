@@ -5,6 +5,8 @@ use App\Custome\Log;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\GoodsReceiptController;
+use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\SalaryController;
@@ -111,6 +113,13 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/locations', [LocationController::class, 'index'])->name('locations.index');
     Route::post('/locations', [LocationController::class, 'store'])->name('locations.index');
     Route::put('/locations/{location}/toggle-is-active/{is_active}', [LocationController::class, 'update'])->name('locations.index');
+});
+
+
+// ============================  Goods Receipt or Transfers Section =====================
+Route::middleware('auth')->group(function () {
+    Route::resource('receipts', GoodsReceiptController::class);
+    Route::resource('items', ItemController::class);
 });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/axios-routes.php';
