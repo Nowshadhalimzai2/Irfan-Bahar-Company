@@ -19,8 +19,8 @@ export const mainNavItems: NavItem[] = [
         icon: GroupIcon,
     },
     {
-        title: 'اموال',
-        href: "/inventories",
+        title: 'اجناس',
+        href: "/items",
         icon: PackageOpen,
     },
      {

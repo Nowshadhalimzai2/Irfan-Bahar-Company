@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Product extends Model
 {
-    protected $fillable = ['item_id','weight','contains','description'];
+    protected $fillable = ['item_id','weight','contains','description','barcode'];
 
     public function item(): HasOne{
 

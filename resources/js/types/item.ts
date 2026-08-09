@@ -21,7 +21,7 @@ export interface GoodsReceiptLine{
 export interface Item{
     id:number;
     name:string;
-    type: 'product' | 'raw_material' | 'packing';
+    item_type: 'product' | 'raw_material' | 'packing';
     code:string;
     unit: 'kg' | 'gr' | 'ltr';
     sku:string;
