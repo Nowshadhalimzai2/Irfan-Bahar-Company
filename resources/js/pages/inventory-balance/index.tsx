@@ -1,28 +1,35 @@
 import { SectionTitle } from '@/components/section-title';
 import AppLayout from '@/layouts/app-layout';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { InventoryBalance, Location } from '@/types';
-import LocationTranslator, { getDariCurrency, getDariItemType, getDariItemUnit, locationColor } from '@/components/location-translator';
-import { useEffect, useMemo, useState } from 'react';
+import { InventoryBalance } from '@/types';
+import LocationTranslator, { getDariItemType, getDariItemUnit, locationColor } from '@/components/location-translator';
+import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Search, SearchX, } from 'lucide-react';
-import { GoodsReceiptLine, Item } from '@/types/item';
-import logs from '@/routes/logs';
+import { Item } from '@/types/item';
+import PageLinks from '@/components/page-links';
 
 type ItemWithInventory = Item & {
     inventory_balances: InventoryBalance[];
 }
 interface Props {
     // inventoryBalances: InventoryBalance[];
-    items:{
+    items: {
         data: ItemWithInventory[];
+        current_page: number;
+        from: number;
+        last_page: number;
+        links: {
+            url: string | null;
+            label: string;
+            active: boolean;
+        }[];
     };
 }
 const Index = ({ items }: Props) => {
 
     const [searchTerm, setSearchTerm] = useState<string>('');
     const [allItems, setAllItems] = useState<ItemWithInventory[]>(items.data);
-    
+
     useEffect(() => {
         if (searchTerm === '')
             setAllItems(items.data);
@@ -53,7 +60,7 @@ const Index = ({ items }: Props) => {
                                 <Search className="absolute top-2 left-2 text-gray-400" />
                                 {/* <Link href={'/items/create'} className={`${buttonVariants({ variant: 'secondary' })} `}>جنس جدید</Link> */}
                             </div>
-                            <div className={`grid grid-cols-1 ${allItems.length>0 ? 'lg:grid-cols-3':' lg:grid-cols-1'} gap-5 md:gap-3 mt-5`}>
+                            <div className={`grid grid-cols-1 ${allItems.length > 0 ? 'lg:grid-cols-3' : ' lg:grid-cols-1'} gap-5 md:gap-3 mt-5`}>
                                 {allItems.length > 0 ? allItems.map((item, ind) =>
                                     <div className="Card space-y-3  flex flex-col  border rounded-md shadow-xl" key={ind}>
                                         <div className="relative bg-secondary rounded-sm overflow-hidden">
@@ -66,14 +73,16 @@ const Index = ({ items }: Props) => {
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{getDariItemType(item.item_type)}</p>
                                                     <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.sku}</p>
+                                                    {item.item_type === 'product' && <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.product?.weight}</p>}
+                                                    {item.item_type === 'product' && <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.product?.per_pack}</p>}
                                                     <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.default_sale_price}</p>
+                                                    <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.code}</p>
                                                 </div>
                                                 <div className="flex flex-col space-x-3 p-3 bg-secondary rounded-sm shadow">
-                                                    {item.inventory_balances.map((balance,ind) => <ul key={ind} className="flex justify-between items-center">
+                                                    {item.inventory_balances.map((balance, ind) => <ul key={ind} className="flex justify-between items-center">
                                                         <li className={`${locationColor(balance.location.name)}`}>{LocationTranslator(balance.location.name)}</li>
                                                         <li>{balance.quantity_on_hand} {getDariItemUnit(item.unit)}</li>
                                                         <li>{balance.reserved}</li>
-                                                        {/* <li>{balance.}</li> */}
                                                     </ul>)}
                                                 </div>
                                             </div>
@@ -84,6 +93,9 @@ const Index = ({ items }: Props) => {
                                         </div>
                                     </div>) : <p className='text-sm text-center text-muted-foreground p-3  w-full  flex justify-center items-center'> <SearchX></SearchX>ریکورد موجود نیست! </p>}
                             </div>
+
+                            {/*  ============================  PAGINATION SECTION ==================== */}
+                            <PageLinks links={items.links}/>
                         </div>
                     </div>
                 </section>

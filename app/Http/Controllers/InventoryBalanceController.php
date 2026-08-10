@@ -14,7 +14,7 @@ class InventoryBalanceController extends Controller
      */
     public function index()
     {
-        $items = Item::with('inventoryBalances','inventoryBalances.location:id,name')->paginate(10);
+        $items = Item::with('inventoryBalances','inventoryBalances.location:id,name','product:item_id,per_pack,weight')->paginate(10);
 
         return Inertia::render('inventory-balance/index',compact('items'));
         }
