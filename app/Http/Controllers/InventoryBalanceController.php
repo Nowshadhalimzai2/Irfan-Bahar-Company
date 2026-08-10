@@ -14,10 +14,9 @@ class InventoryBalanceController extends Controller
      */
     public function index()
     {
-        $inv = Item::with('inventoryBalance')->get();
-        $inventoryBalances = InventoryBalance::with('location:id,name','item:id,name,unit,sku,code,product_id','item.product:item_id,weight,per_pack')->get();
+        $items = Item::with('inventoryBalances','inventoryBalances.location:id,name')->paginate(10);
 
-        return Inertia::render('inventory-balance/index',compact('inventoryBalances'));
+        return Inertia::render('inventory-balance/index',compact('items'));
         }
 
     /**
