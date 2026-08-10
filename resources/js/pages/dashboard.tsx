@@ -21,9 +21,11 @@ interface Props {
 export default function Dashboard({ sa, totalExpensesBasedOnCurrency }: Props) {
 
     const [date, setDate] = useState<Date>(new Date());
-    const moreOptions : { name:string; url:string}[] = [
-        { name: 'Locations', url: '/locations' },
-        { name: 'Logs', url: '/logs' },
+    const moreOptions: { name: string; url: string }[] = [
+        { name: 'موقعیت ها', url: '/locations' },
+        { name: 'تاریخچه اجرآات', url: '/logs' },
+        { name: 'اجناس', url: '/items' },
+
     ]
     return (
         <AppLayout breadcrumbs={[
@@ -49,7 +51,7 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency }: Props) {
                                 mode="single"
                                 required
                                 selected={date}
-                               
+
                                 defaultMonth={date}
                             />
                         </PopoverContent>

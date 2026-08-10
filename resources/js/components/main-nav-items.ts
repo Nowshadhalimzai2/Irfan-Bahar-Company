@@ -1,6 +1,6 @@
 import { dashboard } from "@/routes";
 import { NavItem } from "@/types";
-import { BadgeMinus, BookOpen, FolderGit2, GroupIcon, LayoutGrid, PackageOpen, Truck } from "lucide-react";
+import { BadgeMinus, BookOpen, FolderGit2, GroupIcon, LayoutGrid, PackageOpen, Store, Truck } from "lucide-react";
 
 export const mainNavItems: NavItem[] = [
     {
@@ -19,9 +19,9 @@ export const mainNavItems: NavItem[] = [
         icon: GroupIcon,
     },
     {
-        title: 'اجناس',
-        href: "/items",
-        icon: PackageOpen,
+        title: 'ستاک',
+        href: "/inventory-balances",
+        icon: Store,
     },
      {
         title: ' انتقال اموال',

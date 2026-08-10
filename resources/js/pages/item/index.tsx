@@ -17,7 +17,7 @@ interface Props {
 const Index = ({ items }: Props) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [allItems, setAllItems] = useState<Item[]>(items.data);
-  
+
   useEffect(() => {
     if (searchTerm === '')
       setAllItems(items.data);
@@ -33,6 +33,7 @@ const Index = ({ items }: Props) => {
 
   return (
     <AppLayout breadcrumbs={[
+      { title: 'دشبورد', href: '/dashboard' },
       { title: 'اجناس', href: '/items' }
     ]}>
       <div className=" section">

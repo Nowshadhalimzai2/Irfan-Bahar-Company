@@ -16,7 +16,7 @@ type ItemType = {
     item_type: 'product' | 'raw_material' | 'packing';
     unit: 'kg' | 'ltr' | 'gr';
     price: number;
-    category_id:number;
+    category_id: number;
     // product type
     barcode: string;
     weight?: number;
@@ -24,10 +24,10 @@ type ItemType = {
     description?: string;
 }
 
-interface Props{
-    categories:Category[];
+interface Props {
+    categories: Category[];
 }
-const Create = ( {categories}:Props) => {
+const Create = ({ categories }: Props) => {
     const { data, setData, errors, reset, post, processing } = useForm<ItemType>({
         'name': '',
         'code': '',
@@ -49,6 +49,7 @@ const Create = ( {categories}:Props) => {
     }
     return (
         <AppLayout breadcrumbs={[
+            { title: 'دشبورد', href: '/dashboard' },
             { title: 'اجناس', href: '/items' },
             { title: 'جنس جدید', href: '/items/create' },
 
@@ -135,15 +136,15 @@ const Create = ( {categories}:Props) => {
                                         />
                                     </div>
 
-                                     <div className="grid gap-2">
+                                    <div className="grid gap-2">
                                         <Label htmlFor="category_id">کتګوری</Label>
                                         <select name="category_id" id="category_id"
-                                            onChange={(e) => setData('category_id',  Number(e.target.value))}
+                                            onChange={(e) => setData('category_id', Number(e.target.value))}
                                             className="border rounded-md py-2"
                                         >
                                             <option value="">کتګوری را انتخاب کنین</option>
-                                            {categories.map((category,ind)=><option key={ind} value={category.id}>{category.name}</option>)}
-                                            
+                                            {categories.map((category, ind) => <option key={ind} value={category.id}>{category.name}</option>)}
+
                                         </select>
                                         <InputError
                                             message={errors.category_id}
