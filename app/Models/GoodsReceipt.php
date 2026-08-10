@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GoodsReceipt extends Model
 {
@@ -12,5 +13,13 @@ class GoodsReceipt extends Model
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+    public function receiptLines():HasMany{
+         
+        return $this->hasMany(GoodsReceiptLine::class,'receipt_id');
+    }
+    public function location():BelongsTo{
+         
+        return $this->belongsTo(Location::class,'destination_location_id');
     }
 }

@@ -118,7 +118,7 @@ Route::middleware(['auth'])->group(function () {
 
 // ============================  Goods Receipt or Transfers Section =====================
 Route::middleware('auth')->group(function () {
-    Route::resource('receipts', GoodsReceiptController::class);
+    Route::resource('receipts', GoodsReceiptController::class)->names('receipts');
     Route::resource('items', ItemController::class);
 });
 require __DIR__ . '/settings.php';

@@ -4,7 +4,7 @@ export interface GoodsReceipt{
     id:number;
     supplier: Supplier;
     location:Location;
-    receiptLines:GoodsReceiptLine[];
+    receipt_lines:GoodsReceiptLine[];
     reference_no:string;
     received_at:Date;
     notes?:string;
