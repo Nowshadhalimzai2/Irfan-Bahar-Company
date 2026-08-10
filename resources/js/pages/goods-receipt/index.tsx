@@ -1,14 +1,26 @@
 import { SectionTitle } from '@/components/section-title';
 import { buttonVariants } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
+import { show } from '@/routes/employees';
 import { GoodsReceipt } from '@/types/item';
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 
 interface Props {
-    goodsReceipts: GoodsReceipt[];
+    goodsReceipts: {
+        data: GoodsReceipt[];
+        current_page: number;
+        from: number;
+        last_page: number;
+        links: {
+            url: string | null;
+            label: string;
+            active: boolean;
+        }[];
+    };
 }
 const Index = ({ goodsReceipts }: Props) => {
+
     return (
         <AppLayout breadcrumbs={[
             { title: 'اموال امده', href: '/receipts' }
@@ -34,20 +46,35 @@ const Index = ({ goodsReceipts }: Props) => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {goodsReceipts.length > 0 ? goodsReceipts.map((receipt, ind) =>
-                                    <TableRow key={ind}>
+                                {goodsReceipts.data.length > 0 ? goodsReceipts.data.map((receipt, ind) =>
+                                    <TableRow key={ind} onClick={()=>router.get('/receipts/'+receipt.id)}>
                                         <TableCell>{ind + 1}</TableCell>
                                         <TableCell>{receipt.supplier.name}</TableCell>
                                         <TableCell>{receipt.location.name}</TableCell>
                                         <TableCell>{receipt.reference_no}</TableCell>
-                                        <TableCell>{new Date(receipt.received_at).toLocaleDateString()}</TableCell>
-
-
+                                        <TableCell>{new Date(receipt.received_at).toLocaleString()}</TableCell>
                                     </TableRow>
                                 ) : <TableRow>
                                     <TableCell colSpan={5}><p className="text-muted-foreground text-center p-5 w-full"> No Receiptions </p></TableCell>
                                 </TableRow>}
                             </TableBody>
+                            <TableFooter>
+                                <TableRow>
+                                    <TableCell colSpan={6}>
+                                        <div className="flex justify-center items-center space-x-2">
+                                            {goodsReceipts.links.map((link, index) => (
+                                                <a
+                                                    key={index}
+                                                    href={link.url ?? '#'}
+                                                    className={`px-3 py-1.5 border rounded ${link.active ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
+                                                >
+                                                    {link.label.includes('Next') ? 'Next' : link.label.includes('Previous') ? 'Previous' : link.label}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            </TableFooter>
                         </Table>
                     </div>
                     <div>
