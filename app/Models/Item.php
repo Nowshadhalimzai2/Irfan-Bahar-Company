@@ -18,8 +18,12 @@ class Item extends Model
     public function category(): BelongsTo{
         return $this->belongsTo(Category::class);
     }
-     public function inventoryBalance(): HasMany{
+     public function inventoryBalances(): HasMany{
 
         return $this->hasMany(InventoryBalance::class);
+    }
+    public function receiptLines(): HasMany{
+
+        return $this->hasMany(GoodsReceiptLine::class);
     }
 }

@@ -1,32 +1,43 @@
 import { SectionTitle } from '@/components/section-title';
 import AppLayout from '@/layouts/app-layout';
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { InventoryBalance } from '@/types';
-import { router } from '@inertiajs/core';
-import LocationTranslator, { locationColor } from '@/components/location-translator';
-import { useEffect, useState } from 'react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { InventoryBalance, Location } from '@/types';
+import LocationTranslator, { getDariCurrency, getDariItemType, getDariItemUnit, locationColor } from '@/components/location-translator';
+import { useEffect, useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Search, SearchSlash } from 'lucide-react';
+import { Search, SearchX, } from 'lucide-react';
+import { GoodsReceiptLine, Item } from '@/types/item';
+import logs from '@/routes/logs';
 
-interface Props {
-    inventoryBalances: InventoryBalance[];
+type ItemWithInventory = Item & {
+    inventory_balances: InventoryBalance[];
 }
-const Index = ({ inventoryBalances }: Props) => {
-    const [searchTerm, setSearchTerm] = useState<string>('');
-    const [allBalances, setAllBalances] = useState<InventoryBalance[]>(inventoryBalances);
+interface Props {
+    // inventoryBalances: InventoryBalance[];
+    items:{
+        data: ItemWithInventory[];
+    };
+}
+const Index = ({ items }: Props) => {
 
+    const [searchTerm, setSearchTerm] = useState<string>('');
+    const [allItems, setAllItems] = useState<ItemWithInventory[]>(items.data);
+    
     useEffect(() => {
         if (searchTerm === '')
-            setAllBalances(inventoryBalances);
+            setAllItems(items.data);
         else {
-            const filteredData = inventoryBalances.filter((balance) => balance.item.name.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
-                balance.item.sku.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
-                balance.item.code.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
-                (balance.item.product?.barcode && balance.item.product.barcode.toLowerCase().includes(searchTerm.trim().toLowerCase()))
+            const filteredData = items.data.filter((item) => item.name.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
+                item.sku.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
+                item.code.toLowerCase().includes(searchTerm.trim().toLowerCase()) ||
+                (item.product?.barcode && item.product.barcode.toLowerCase().includes(searchTerm.trim().toLowerCase()))
             );
-            setAllBalances(filteredData);
+            setAllItems(filteredData);
         }
     }, [searchTerm]);
+    const totalStock = (item: ItemWithInventory) => {
+        return item.inventory_balances.reduce((acc, balance) => acc + (balance.quantity_on_hand - balance.reserved), 0);
+    }
     return (
         <AppLayout breadcrumbs={[
             { title: 'ستاک', href: '/inventory-balances' },
@@ -38,56 +49,41 @@ const Index = ({ inventoryBalances }: Props) => {
                         <SectionTitle title='ستاک اجناس' description='تمام اجناس که مربوط شرکت است' />
                         <div className="max-w-4xl space-y-5 mx-auto p-5">
                             <div className="flex gap-2 relative">
-                                <Input className="pl-10" placeholder='جستجوی اجناس به اساس نام، اسکی یو، بار کود  و کد نمبر' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+                                <Input autoFocus className="pl-10" placeholder='جستجوی اجناس به اساس نام، اسکی یو، بار کود  و کد نمبر' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
                                 <Search className="absolute top-2 left-2 text-gray-400" />
                                 {/* <Link href={'/items/create'} className={`${buttonVariants({ variant: 'secondary' })} `}>جنس جدید</Link> */}
                             </div>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="text-center">اسکی یو</TableHead>
-                                        <TableHead className="text-center">جنس</TableHead>
-                                        <TableHead className="text-center">وزن</TableHead>
-                                        <TableHead className="text-center">موقعیت</TableHead>
-                                        <TableHead className="text-center">مقدار</TableHead>
-                                        <TableHead className="text-center">واحد جنس</TableHead>
-                                        <TableHead className="text-center">تاریخ به روز رسانی شده</TableHead>
+                            <div className={`grid grid-cols-1 ${allItems.length>0 ? 'lg:grid-cols-3':' lg:grid-cols-1'} gap-5 md:gap-3 mt-5`}>
+                                {allItems.length > 0 ? allItems.map((item, ind) =>
+                                    <div className="Card space-y-3  flex flex-col  border rounded-md shadow-xl" key={ind}>
+                                        <div className="relative bg-secondary rounded-sm overflow-hidden">
+                                            <img src={"https://picsum.photos/275/60"} alt="" />
+                                            <h2 className="font-bold underline underline-offset-5 absolute top-2 left-20 text-center text-lg p-2 text-primary">{item.name}</h2>
 
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {allBalances.length > 0 ? allBalances.map((invBalance, ind) =>
-                                        <TableRow key={ind}>
-                                            <TableCell className="text-center">{invBalance.item.sku}</TableCell>
-                                            <TableCell className="text-center">{invBalance.item.name}</TableCell>
-                                            <TableCell className="text-center">{invBalance.item.product?.weight}</TableCell>
-                                            <TableCell className={`text-center ${locationColor(invBalance.location.name)}`}>{LocationTranslator(invBalance.location.name)}</TableCell>
-                                            <TableCell className="text-center">{invBalance.quantity_on_hand}</TableCell>
-                                            <TableCell className="text-center">{invBalance.item.unit}</TableCell>
-                                            <TableCell className="text-center">{new Date(invBalance.updated_at).toLocaleString()}</TableCell>
-                                        </TableRow>
-                                    ) : <TableRow>
-                                        <TableCell colSpan={5}><p className="text-muted-foreground text-center p-5 w-full"> No Receiptions </p></TableCell>
-                                    </TableRow>}
-                                </TableBody>
-                                {/* <TableFooter>
-                                    <TableRow>
-                                        <TableCell colSpan={6}>
-                                            <div className="flex justify-center items-center space-x-2">
-                                                {goodsReceipts.links.map((link, index) => (
-                                                    <a
-                                                        key={index}
-                                                        href={link.url ?? '#'}
-                                                        className={`px-3 py-1.5 border rounded ${link.active ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
-                                                    >
-                                                        {link.label.includes('Next') ? 'Next' : link.label.includes('Previous') ? 'Previous' : link.label}
-                                                    </a>
-                                                ))}
+                                        </div>
+                                        <div className="p-5">
+                                            <div className="space-y-5">
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{getDariItemType(item.item_type)}</p>
+                                                    <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.sku}</p>
+                                                    <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.default_sale_price}</p>
+                                                </div>
+                                                <div className="flex flex-col space-x-3 p-3 bg-secondary rounded-sm shadow">
+                                                    {item.inventory_balances.map((balance,ind) => <ul key={ind} className="flex justify-between items-center">
+                                                        <li className={`${locationColor(balance.location.name)}`}>{LocationTranslator(balance.location.name)}</li>
+                                                        <li>{balance.quantity_on_hand} {getDariItemUnit(item.unit)}</li>
+                                                        <li>{balance.reserved}</li>
+                                                        {/* <li>{balance.}</li> */}
+                                                    </ul>)}
+                                                </div>
                                             </div>
-                                        </TableCell>
-                                    </TableRow>
-                                </TableFooter> */}
-                            </Table>
+                                            <div className='pt-5 px-1 flex justify-between items-center'>
+                                                <p className="text-sm">{item.default_sale_price * totalStock(item)} جمله پول</p>
+                                                <p className="text-sm">{totalStock(item)} جمله  {getDariItemUnit(item.unit)} </p>
+                                            </div>
+                                        </div>
+                                    </div>) : <p className='text-sm text-center text-muted-foreground p-3  w-full  flex justify-center items-center'> <SearchX></SearchX>ریکورد موجود نیست! </p>}
+                            </div>
                         </div>
                     </div>
                 </section>
