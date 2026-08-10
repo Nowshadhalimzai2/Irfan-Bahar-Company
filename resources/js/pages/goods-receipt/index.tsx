@@ -1,3 +1,4 @@
+import LocationTranslator from '@/components/location-translator';
 import { SectionTitle } from '@/components/section-title';
 import { buttonVariants } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -50,7 +51,7 @@ const Index = ({ goodsReceipts }: Props) => {
                                     <TableRow key={ind} onClick={()=>router.get('/receipts/'+receipt.id)}>
                                         <TableCell>{ind + 1}</TableCell>
                                         <TableCell>{receipt.supplier.name}</TableCell>
-                                        <TableCell>{receipt.location.name}</TableCell>
+                                        <TableCell >{LocationTranslator(receipt.location.name)}</TableCell>
                                         <TableCell>{receipt.reference_no}</TableCell>
                                         <TableCell>{new Date(receipt.received_at).toLocaleString()}</TableCell>
                                     </TableRow>

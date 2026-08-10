@@ -16,3 +16,5 @@ export default function LocationTranslator(locName:string){
            return 'دیګر'
     }
 }
+
+export     const locationColor = (locName:string) => `${locName === 'warehouse' ? 'text-red-500': locName === 'factory' ? 'text-blue-500' : locName === 'shop' ? 'text-green-500' : 'text-yellow-500'} `;

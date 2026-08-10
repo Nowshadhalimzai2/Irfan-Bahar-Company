@@ -1,4 +1,5 @@
 import { Currency } from 'lucide-react';
+import { Item } from './item';
 
 export type * from './auth';
 export type * from './navigation';
@@ -89,3 +90,11 @@ export interface Location{
     is_active:boolean;
 }
 
+export interface InventoryBalance{
+    id:number;
+    location:Location;
+    item:Item;
+    quantity_on_hand:number;
+    reserved:number;
+    updated_at: Date;
+}

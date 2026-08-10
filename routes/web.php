@@ -6,12 +6,14 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\GoodsReceiptController;
+use App\Http\Controllers\InventoryBalanceController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SupplierController;
 use App\Models\Expense;
+use App\Models\InventoryBalance;
 use App\Models\Role;
 use App\Models\ShopAccount;
 use App\Models\User;
@@ -119,7 +121,9 @@ Route::middleware(['auth'])->group(function () {
 // ============================  Goods Receipt or Transfers Section =====================
 Route::middleware('auth')->group(function () {
     Route::resource('receipts', GoodsReceiptController::class)->names('receipts');
-    Route::resource('items', ItemController::class);
+    Route::resource('items', ItemController::class)->names('items');
+    Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
+
 });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/axios-routes.php';
