@@ -40,3 +40,12 @@ export interface Product extends Item{
     barcode:string;
     description:string;
 }
+
+export interface Transfer{
+    id:number;
+    source: Location;
+    destination:Location;
+    reference_no:string;
+    transferred_at:Date;
+    notes?:string;
+}

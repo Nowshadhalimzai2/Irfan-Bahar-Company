@@ -12,6 +12,7 @@ use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\TransferController;
 use App\Models\Expense;
 use App\Models\InventoryBalance;
 use App\Models\Role;
@@ -118,11 +119,11 @@ Route::middleware(['auth'])->group(function () {
 });
 
 
-// ============================  Goods Receipt or Transfers Section =====================
+// ============================  Goods Receipt and Transfers Section =====================
 Route::middleware('auth')->group(function () {
     Route::resource('receipts', GoodsReceiptController::class)->names('receipts');
     Route::resource('items', ItemController::class)->names('items');
-    Route::resource('transfers', ItemController::class)->names('items');
+    Route::resource('transfers', TransferController::class)->names('items');
     Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
 
 });
