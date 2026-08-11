@@ -32,7 +32,7 @@ return new class extends Migration
         });
 
         if (DB::table('categories')->count() === 0) {
-            foreach (['soap', 'powder', 'vaseline', 'shampoo', 'packing', 'raw_materail', 'asid'] as $categoryName) {
+            foreach (['soap', 'powder', 'vaseline', 'shampoo', 'packing', 'raw_material', 'acid'] as $categoryName) {
                 Category::firstOrCreate(['name' => $categoryName]);
             }
         }

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Custome\Log;
 use App\Models\Category;
 use App\Models\Item;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redirect;
@@ -15,7 +16,6 @@ class ItemController extends Controller
 {
     public function index(): Response
     {
-
         $items = Item::with('product')->paginate(10);
         return Inertia::render('item/index', compact('items'));
     }
@@ -36,7 +36,7 @@ class ItemController extends Controller
             $itemData = $request->validate([
                 'name' => 'required|string|max:255',
                 'code' => 'required|string|max:8',
-                'sku' => 'required|unique:items,sku|string|max:12',
+                // 'sku' => 'required|unique:items,sku|string|max:12',
                 'item_type' => 'required|string',
                 'price' => 'required|numeric',
                 'category_id' => 'required|exists:categories,id',
@@ -54,15 +54,20 @@ class ItemController extends Controller
                 ]);
             }
 
+           
             $item = Item::create([
                 'name' => $itemData['name'],
                 'code' => $itemData['code'],
-                'sku' => $itemData['sku'],
+                'sku' => '',
                 'item_type' => $itemData['item_type'],
                 'default_sale_price' => $itemData['price'],
                 'category_id' => $itemData['category_id'],
                 'unit' => $itemData['unit'],
             ]);
+
+             //  GENERATE SKU 
+            $item->sku = $this->generateSKU($item);
+            $item->save();
 
             if ($itemData['item_type'] === 'product') {
                 $item->product()->create([
@@ -84,6 +89,48 @@ class ItemController extends Controller
             $request->session()->flash('toast', ['type' => 'error', 'message' => 'جنس نو ثبت نشد در سیستم ' .  ' ' . $th->getMessage()]);
 
             return redirect()->back();
+        }
+    }
+
+
+    private function generateSKU(Item $item): string
+    {
+        $item->load('category:id,name');
+        $categoryName = $item->category->name ?? '';
+        $acronym = $this->getCategoryAcronym($categoryName);
+
+        if ($acronym === '') {
+            $acronym = strtoupper(substr($categoryName, 0, 3));
+        }
+        if ($item->item_type == 'product')
+            return sprintf('%s-%d-%d-%s-%s', $acronym,$item->product->weight,$item->product->per_pack, str(Carbon::now(config('app.timezone'))->year), str_pad($item->id, 5, '0', STR_PAD_LEFT));
+
+        return sprintf('%s-%s-%s', $acronym, str(Carbon::now(config('app.timezone'))->year), str_pad($item->id, 5, '0', STR_PAD_LEFT));
+    }
+
+    private function getCategoryAcronym(string $name): string
+    {
+        switch (strtolower($name)) {
+            case 'soap':
+                return 'SP';
+            case 'powder':
+                return 'PDR';
+            case 'vaseline':
+                return 'VSL';
+            case 'shampoo':
+                return 'SMP';
+            case 'raw_material' :
+                return 'RM';
+            case 'raw_materail' :
+                return 'RM';
+            case 'acid':
+                return 'ACD';
+            case 'asid':
+                return 'ACD';
+            case 'packing':
+                return 'PKN';
+            default:
+                return 'OTR';
         }
     }
 }

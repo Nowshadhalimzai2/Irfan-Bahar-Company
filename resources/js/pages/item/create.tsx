@@ -12,7 +12,6 @@ import { Category } from '@/types/item';
 type ItemType = {
     name: string;
     code: string;
-    sku: string;
     item_type: 'product' | 'raw_material' | 'packing';
     unit: 'kg' | 'ltr' | 'gr';
     price: number;
@@ -31,7 +30,6 @@ const Create = ({ categories }: Props) => {
     const { data, setData, errors, reset, post, processing } = useForm<ItemType>({
         'name': '',
         'code': '',
-        'sku': '',
         'item_type': 'product',
         'unit': 'kg',
         'price': 1,
@@ -99,24 +97,7 @@ const Create = ({ categories }: Props) => {
                                             className="mt-2"
                                         />
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="sku">اسکی یو</Label>
-                                        <Input
-                                            id="sku"
-                                            type="text"
-                                            autoFocus
-                                            tabIndex={3}
-                                            autoComplete="sku"
-                                            name="sku"
-                                            value={data.sku}
-                                            onChange={(e) => setData('sku', e.target.value)}
-                                            placeholder="اسکی یو را اینجا ورود نماید"
-                                        />
-                                        <InputError
-                                            message={errors.sku}
-                                            className="mt-2"
-                                        />
-                                    </div>
+                                   
                                     <div className="grid gap-2">
                                         <Label htmlFor="price">نرخ اوسط</Label>
                                         <Input
