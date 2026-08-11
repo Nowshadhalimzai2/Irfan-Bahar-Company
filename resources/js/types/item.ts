@@ -23,7 +23,7 @@ export interface Item{
     name:string;
     item_type: 'product' | 'raw_material' | 'packing';
     code:string;
-    unit: 'kg' | 'gr' | 'ltr';
+    unit: 'kg' | 'gr' | 'ltr' | 'packet' | 'carton' | 'bundle' | 'pair' | 'unit' | 'bag';
     sku:string;
     default_sale_price:number;
     category:Category;

@@ -122,6 +122,7 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware('auth')->group(function () {
     Route::resource('receipts', GoodsReceiptController::class)->names('receipts');
     Route::resource('items', ItemController::class)->names('items');
+    Route::resource('transfers', ItemController::class)->names('items');
     Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
 
 });

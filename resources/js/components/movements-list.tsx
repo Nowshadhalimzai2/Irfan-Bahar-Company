@@ -55,7 +55,7 @@ const goodsReceiptsList = ({ movements }: Props) => {
                                     <TableCell>{new Date(move.occured_at).toLocaleString()}</TableCell>
                                 </TableRow>
                             ) : <TableRow>
-                                <TableCell colSpan={5}><p className="text-muted-foreground text-center p-5 w-full"> No Receiptions </p></TableCell>
+                                <TableCell colSpan={7}><p className="text-muted-foreground text-center p-5 w-full"> No Receiptions </p></TableCell>
                             </TableRow>}
                         </TableBody>
                         <TableFooter>

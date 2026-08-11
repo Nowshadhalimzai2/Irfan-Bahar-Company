@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('name', 255);
             $table->string('code', 12);
             $table->enum('item_type', ['raw_material', 'product', 'packing']);
-            $table->enum('unit', ['kg', 'gr', 'ltr']);
+            $table->enum('unit', ['kg', 'gr', 'ltr','packet','carton','bundle','pair','unit','bag']);
             $table->string('sku', 12)->unique();
             $table->decimal('default_sale_price', 6, 2);
             $table->foreignIdFor(Category::class)->constrained('categories')->cascadeOnUpdate();
@@ -44,7 +44,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('categories');
         Schema::dropIfExists('items');
+        Schema::dropIfExists('categories');
     }
 };
