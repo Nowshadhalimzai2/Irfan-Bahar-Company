@@ -12,19 +12,13 @@ class Log
         $desc = trim((string)$desc);
         $targetedUser = $targetedUser ? trim($targetedUser) : null;
 
-        $suffixMap = [
-            'insert' => 'در سیستم اضافه شد',
-            'update' => 'به‌روزرسانی شد',
-            'delete' => 'از سیستم حذف شد',
-        ];
-        $suffix = $suffixMap[$actType] ?? "";
-
+       
         if ($desc !== '') {
-            $template = $targetedUser ? "{$desc} {$suffix} - {$targetedUser}" : "{$desc} {$suffix}";
+            $template = $targetedUser ? "{$desc} - {$targetedUser}" : "{$desc}";
         } elseif ($targetedUser) {
-            $template = "{$targetedUser} {$suffix}";
+            $template = "{$targetedUser}";
         } else {
-            $template = $suffix;
+            $template = 'معلومات مشخص نشد';
         }
         $now = Carbon::now(config('app.timezone'));
 
