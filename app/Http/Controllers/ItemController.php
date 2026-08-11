@@ -8,6 +8,7 @@ use App\Models\Item;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Redirect;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,19 +31,17 @@ class ItemController extends Controller
 
     public function store(Request $request)
     {
-        DB::beginTransaction();
         $itemData = [];
         try {
             $itemData = $request->validate([
                 'name' => 'required|string|max:255',
-                'code' => 'required|string|max:8',
+                'code' => 'required|string|max:12',
                 // 'sku' => 'required|unique:items,sku|string|max:12',
                 'item_type' => 'required|string',
                 'price' => 'required|numeric',
                 'category_id' => 'required|exists:categories,id',
                 'unit' => 'required|string',
-            ]);
-
+                ]);
             $productData = [];
 
             if ($itemData['item_type'] === 'product') {
@@ -55,6 +54,9 @@ class ItemController extends Controller
             }
 
            
+            // start DB transaction only after validation passed
+            DB::beginTransaction();
+
             $item = Item::create([
                 'name' => $itemData['name'],
                 'code' => $itemData['code'],
@@ -64,11 +66,7 @@ class ItemController extends Controller
                 'category_id' => $itemData['category_id'],
                 'unit' => $itemData['unit'],
             ]);
-
-             //  GENERATE SKU 
-            $item->sku = $this->generateSKU($item);
-            $item->save();
-
+            // If item is a product, create product first so SKU generation can use product data
             if ($itemData['item_type'] === 'product') {
                 $item->product()->create([
                     'barcode' => $productData['barcode'] ?? null,
@@ -76,7 +74,12 @@ class ItemController extends Controller
                     'per_pack' => $productData['contains'] ?? 1,
                     'description' => $productData['description'] ?? null,
                 ]);
+                $item->load('product');
             }
+
+            //  GENERATE SKU 
+            $item->sku = $this->generateSKU($item);
+            $item->save();
 
             $log = new Log();
             $log->create('insert', 'جنس نو ثبت شد در سیستم ' . $itemData['name']);
@@ -85,6 +88,11 @@ class ItemController extends Controller
 
             return redirect()->route('items.index');
         } catch (\Throwable $th) {
+            // Let validation exceptions bubble so Inertia/Laravel can return proper validation responses
+            if ($th instanceof ValidationException) {
+                throw $th;
+            }
+
             DB::rollBack();
             $request->session()->flash('toast', ['type' => 'error', 'message' => 'جنس نو ثبت نشد در سیستم ' .  ' ' . $th->getMessage()]);
 
@@ -103,9 +111,9 @@ class ItemController extends Controller
             $acronym = strtoupper(substr($categoryName, 0, 3));
         }
         if ($item->item_type == 'product')
-            return sprintf('%s-%d-%d-%s-%s', $acronym,$item->product->weight,$item->product->per_pack, str(Carbon::now(config('app.timezone'))->year), str_pad($item->id, 5, '0', STR_PAD_LEFT));
+            return sprintf('%s-%d-%d-%s-%s', $acronym,$item->product->weight,$item->product->per_pack, str(Carbon::now(config('app.timezone'))->year), str_pad($item->id, 3, '0', STR_PAD_LEFT));
 
-        return sprintf('%s-%s-%s', $acronym, str(Carbon::now(config('app.timezone'))->year), str_pad($item->id, 5, '0', STR_PAD_LEFT));
+        return sprintf('%s-%s-%s', $acronym, str(Carbon::now(config('app.timezone'))->year), str_pad($item->id, 3, '0', STR_PAD_LEFT));
     }
 
     private function getCategoryAcronym(string $name): string

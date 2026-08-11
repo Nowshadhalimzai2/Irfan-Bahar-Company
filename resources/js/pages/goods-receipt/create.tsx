@@ -10,6 +10,7 @@ import InputError from '@/components/input-error';
 import { Currency, Location, Supplier } from '@/types';
 import { GoodsReceiptLine, Item } from '@/types/item';
 import { LineChart } from 'lucide-react';
+import { getDariItemUnit } from '@/components/location-translator';
 
 interface Props {
     suppliers: Supplier[];
@@ -220,7 +221,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                 <Label htmlFor="quantity" className="flex justify-between">
                                                     <span>  مقدار  </span>
                                                     <span className="text-sm text-muted-foreground">
-                                                        {currentLine.quantity}   {itemUnit === 'kg' ? 'کیلو ' : itemUnit === 'ltr' ? 'لیتر' : 'ګرام'}
+                                                        {currentLine.quantity}   {getDariItemUnit(itemUnit)}
                                                     </span>
                                                 </Label>
                                                 <Input

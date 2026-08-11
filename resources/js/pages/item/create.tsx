@@ -7,13 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
-import { Category } from '@/types/item';
+import { Category, unitType } from '@/types/item';
+import { getUnitOfMeasureMents } from '@/components/location-translator';
 
 type ItemType = {
     name: string;
     code: string;
     item_type: 'product' | 'raw_material' | 'packing';
-    unit: 'kg' | 'ltr' | 'gr';
+    unit: 'kg' | 'gr' | 'ltr' | 'packet' | 'carton' | 'bundle' | 'pair' | 'unit' | 'bag';
     price: number;
     category_id: number;
     // product type
@@ -27,6 +28,8 @@ interface Props {
     categories: Category[];
 }
 const Create = ({ categories }: Props) => {
+   
+    
     const { data, setData, errors, reset, post, processing } = useForm<ItemType>({
         'name': '',
         'code': '',
@@ -138,13 +141,14 @@ const Create = ({ categories }: Props) => {
                                         <Label htmlFor="unit">واحد اندازه ګیری</Label>
                                         <select name="unit" id="unit"
                                             onChange={(e) => setData('unit', e.target.value as 'kg' | 'ltr' | 'gr')}
-                                            className="border rounded-md py-2"
+                                            className="border rounded-md py-2 "
 
                                         >
                                             <option value="">واحد اندازه ګیری انتخاب کنین</option>
-                                            <option value="kg">کیلو</option>
+                                            {/* <option value="kg">کیلو</option>
                                             <option value="ltr">لیتر</option>
-                                            <option value="gr">ګرام</option>
+                                            <option value="gr">ګرام</option> */}
+                                            {getUnitOfMeasureMents().map((unit)=> <option value={unit.value} onChange={(e)=>setData('unit',e.target.value as unitType)} className="text-center ">.................<span>{unit.label}..................</span></option>)}
 
                                         </select>
                                         <InputError

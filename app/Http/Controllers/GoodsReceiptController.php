@@ -72,15 +72,14 @@ class GoodsReceiptController extends Controller
 
                 //  ======== RECORD THE INVENTORY MOVEMENT ===
                 $inventory = new InvMovement();
-                $inventory->move(null, $data['destination_location_id'], $line['item_id'], $line['quantity'], 'receipt', $data['notes'], 'R');
+                $inventory->move($data['destination_location_id'], $line['item_id'], $line['quantity'], 'receipt', $data['notes'], 'RCT');
                 // ======== UPDATE INVENTORY BALANCE =======
-                $inventory->updateInventory($data['destination_location_id'], $line['item_id'], $line['quantity']);
             }
 
-            $log->create('insert', ' جنس نو وارد شد در '.$receipt->supplier()->name);
+            $log->create('insert', ' جنس نو وارد شد در '.$receipt->location->name);
             DB::commit();
 
-            Inertia::flash('toast', ['type' => 'success', 'message' => 'جنس نو امد برای کارخانه .']);
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'جنس نو امد به کارخانه .']);
             return redirect()->route('receipts.index');
         } catch (\Throwable $th) {
             $log->create('insert', 'جنس نو وارد نشد ');

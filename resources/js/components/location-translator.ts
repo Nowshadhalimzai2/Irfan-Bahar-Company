@@ -44,3 +44,4 @@ export const getDariItemUnit = (unit: string) => {
     }
 }
 export const getDariCurrency = (currency: string) => currency === 'AFG' ? 'افغانی' : currency === 'َUSD' ? 'دالر' : currency === 'PKR' ? 'کلداری' : '';
+export const getUnitOfMeasureMents = () => [{value:'kg', label:'کیلو'} , {value: 'gr', label:'ګرام'} , {value:'ltr',label:'لیتر'} , {value:'packet',label:'پاکت'} , {value:'carton', label:'کارتن'} , {value:'bundle', label:'بسته'} , {value:'pair',label:'جوره'} , {value:'unit', label:'دانه'} , {value:'bag',label:'بوجی'}];

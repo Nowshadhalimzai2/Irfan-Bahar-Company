@@ -29,6 +29,9 @@ export interface Item{
     category:Category;
     product?:Product;
 }
+
+export type unitType = 'kg' | 'gr' | 'ltr' | 'packet' | 'carton' | 'bundle' | 'pair' | 'unit' | 'bag';
+
 export interface Category{
     id:number;
     name:string;
@@ -48,4 +51,9 @@ export interface Transfer{
     reference_no:string;
     transferred_at:Date;
     notes?:string;
+}
+export interface TransferLine{
+    id:number;
+    item: Item;
+    quantity:number;
 }

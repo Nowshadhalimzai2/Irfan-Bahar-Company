@@ -10,59 +10,52 @@ import InputError from '@/components/input-error';
 import { Currency, Location, Supplier } from '@/types';
 import { GoodsReceiptLine, Item } from '@/types/item';
 import { LineChart } from 'lucide-react';
+import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
 
 interface Props {
-    suppliers: Supplier[];
     locations: Location[];
-    currencies: Currency[];
     items: Item[];
 }
 
-type ReceiptLine = {
+type TransferLine = {
     item_id: number;
     quantity: number;
-    unit_cost: number;
-    currency_id: number;
 }
 
-type GoodReceiptType = {
-    supplier_id: number;
-    destination_location_id: number;
+type TransferType = {
+    source_id: number;
+    destination_id: number;
     notes: string;
-    receiptLines: ReceiptLine[];
+    transferLines: TransferLine[];
 }
 
-const Create = ({ suppliers, locations, currencies, items }: Props) => {
-    const [receiptLines, setReceiptLines] = useState<ReceiptLine[]>([]);
-    const [currentLine, setCurrentLine] = useState<ReceiptLine>(() => ({
+const Create = ({ locations, items }: Props) => {
+    const [transferLine, setTransferLine] = useState<TransferLine[]>([]);
+    const [currentLine, setCurrentLine] = useState<TransferLine>(() => ({
         item_id: items[0]?.id ?? 0,
         quantity: 1,
-        unit_cost: 10,
-        currency_id: currencies[0]?.id ?? 0,
     }));
 
-    const { data, setData, errors, reset, post, processing } = useForm<GoodReceiptType>({
-        supplier_id: suppliers[0]?.id ?? 0,
-        destination_location_id: locations[0]?.id ?? 0,
-        notes: '',
-        receiptLines,
+    const { data, setData, errors, reset, post, processing } = useForm<TransferType>({
+        'source_id': locations[0]?.id ?? 1,
+        'destination_id': locations[1]?.id ?? 1,
+        'notes': '',
+        'transferLines': [],
     });
 
     useEffect(() => {
-        setData('receiptLines', receiptLines);
-    }, [receiptLines, setData]);
+        setData('transferLines', transferLine);
+    }, [transferLine, setData]);
 
     const handleReceipt = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        post('/receipts', {
+        post('/transfers', {
             onFinish: () => {
-                setReceiptLines([]);
+                setTransferLine([]);
                 setCurrentLine({
-                    item_id: items[0]?.id ?? 0,
+                    item_id: items[0]?.id ?? 1,
                     quantity: 1,
-                    unit_cost: 0,
-                    currency_id: currencies[0]?.id ?? 0,
                 });
             },
         });
@@ -70,31 +63,32 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
 
     const handleAddLine = () => {
 
-        if (!currentLine.item_id || !currentLine.currency_id || currentLine.quantity <= 0) {
+        if (!currentLine.item_id || currentLine.quantity <= 0) {
             return;
         }
 
-        setReceiptLines((prev) => [...prev, currentLine]);
+        setTransferLine((prev) => [...prev, currentLine]);
         setCurrentLine((prev) => ({
             ...prev,
             quantity: 1,
-            unit_cost: 0,
         }));
     };
 
     const handleRemoveLine = (index: number) => {
-        setReceiptLines((prev) => prev.filter((_, i) => i !== index));
+        setTransferLine((prev) => prev.filter((_, i) => i !== index));
     };
 
     const itemUnit = useMemo(() => {
+        if(items.length===0)
+            return 'unit';
         return items.filter(item => item.id === currentLine.item_id)[0].unit;
 
-    }, [currentLine])
+    }, [currentLine]);
     return (
         <AppLayout
             breadcrumbs={[
-                { title: 'اموال امده', href: '/receipts' },
-                { title: 'جنس نو را ثبت کنید', href: '/receipts/create' },
+                { title: 'اجناس انتقال شده', href: '/transfers' },
+                { title: 'انتقال جنس', href: '/transfers/create' },
             ]}
         >
             <div className="section">
@@ -108,43 +102,43 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                             <form onSubmit={handleReceipt} name="receipt" id="receipt">
                                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="supplier_id">نام تأمین کننده</Label>
+                                        <Label htmlFor="source_id">مرجع</Label>
                                         <select
                                             className="border p-1.5 rounded-md"
-                                            name="supplier_id"
+                                            name="source_id"
                                             tabIndex={1}
-                                            value={data.supplier_id}
-                                            onChange={(e) => setData('supplier_id', Number(e.target.value))}
+                                            value={data.source_id}
+                                            onChange={(e) => setData('source_id', Number(e.target.value))}
                                         >
-                                            <option value={0}>تأمین کننده را انتخاب کنید</option>
-                                            {suppliers.map((supplier) => (
-                                                <option value={supplier.id} key={supplier.id}>
-                                                    {supplier.name}
+                                            <option value={0}>از جای که میایه را انتخاب کنید</option>
+                                            {locations.map((location) => (
+                                                <option className={`${location.id === data.destination_id && 'bg-secondary'}`} value={location.id} key={location.id} disabled={location.id === data.destination_id}>
+                                                    {LocationTranslator(location.name)}
                                                 </option>
                                             ))}
                                         </select>
-                                        <InputError message={errors.supplier_id} className="mt-2" />
+                                        <InputError message={errors.source_id} className="mt-2" />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="destination_location_id">موقعیت</Label>
+                                        <Label htmlFor="destination_id">مقصود</Label>
                                         <select
                                             className="border p-1.5 rounded-md"
                                             tabIndex={2}
-                                            name="destination_location_id"
-                                            value={data.destination_location_id}
+                                            name="destination_id"
+                                            value={data.destination_id}
                                             onChange={(e) =>
-                                                setData('destination_location_id', Number(e.target.value))
+                                                setData('destination_id', Number(e.target.value))
                                             }
                                         >
-                                            <option value={0}>موقعیت را انتخاب کنید</option>
+                                            <option value={0}>جای کی پایین می شود را انتخاب کنید</option>
                                             {locations.map((location) => (
-                                                <option value={location.id} key={location.id}>
-                                                    {location.name}
+                                                <option className={`${location.id === data.source_id && 'bg-secondary'}`} value={location.id} key={location.id}  disabled={location.id === data.source_id}>
+                                                    {LocationTranslator(location.name)}
                                                 </option>
                                             ))}
                                         </select>
-                                        <InputError message={errors.destination_location_id} className="mt-2" />
+                                        <InputError message={errors.destination_id} className="mt-2" />
                                     </div>
 
                                 </div>
@@ -167,30 +161,6 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                 <section className="section ITEMSection mt-8">
                                     <div>
                                         <div className="grid gap-6   grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="currency_id">پولی واحد</Label>
-                                                <select
-                                                    className="border p-1.5 rounded-md"
-                                                    name="currency_id"
-                                                    tabIndex={4}
-                                                    value={currentLine.currency_id}
-                                                    onChange={(e) =>
-                                                        setCurrentLine((prev) => ({
-                                                            ...prev,
-                                                            currency_id: Number(e.target.value),
-                                                        }))
-                                                    }
-                                                >
-                                                    <option value={0}>پولی واحد را انتخاب نماید</option>
-                                                    {currencies.map((currency) => (
-                                                        <option value={currency.id} key={currency.id}>
-                                                            {currency.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <InputError message={errors.receiptLines} className="mt-2" />
-
-                                            </div>
 
                                             <div className="grid gap-2">
                                                 <Label htmlFor="item_id">جنس</Label>
@@ -212,7 +182,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                         </option>
                                                     ))}
                                                 </select>
-                                                <InputError message={errors.receiptLines} className="mt-2" />
+                                                <InputError message={errors.transferLines} className="mt-2" />
 
                                             </div>
 
@@ -220,7 +190,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                 <Label htmlFor="quantity" className="flex justify-between">
                                                     <span>  مقدار  </span>
                                                     <span className="text-sm text-muted-foreground">
-                                                        {currentLine.quantity}   {itemUnit === 'kg' ? 'کیلو ' : itemUnit === 'ltr' ? 'لیتر' : 'ګرام'}
+                                                        {currentLine.quantity} {getDariItemUnit(itemUnit)}
                                                     </span>
                                                 </Label>
                                                 <Input
@@ -237,30 +207,11 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                     placeholder="مقدار"
                                                     className="border p-1.5 rounded-md"
                                                 />
-                                                <InputError message={errors.receiptLines} className="mt-2" />
+                                                <InputError message={errors.transferLines} className="mt-2" />
 
                                             </div>
 
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="unit_cost">قیمت واحد</Label>
-                                                <Input
-                                                    id="unit_cost"
-                                                    type="number"
-                                                    min={0}
-                                                    step="0.01"
-                                                    value={currentLine.unit_cost}
-                                                    onChange={(e) =>
-                                                        setCurrentLine((prev) => ({
-                                                            ...prev,
-                                                            unit_cost: Number(e.target.value),
-                                                        }))
-                                                    }
-                                                    placeholder="قیمت واحد"
-                                                    className="border p-1.5 rounded-md"
-                                                />
-                                                <InputError message={errors.receiptLines} className="mt-2" />
 
-                                            </div>
                                         </div>
 
                                         <div className="mt-4">
@@ -280,13 +231,13 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
 
 
                                 {/* ================================  RESULTS  =============================================== */}
-                                {receiptLines.length > 0 && (
+                                {transferLine.length > 0 && (
                                     <div className="mt-6 overflow-hidden rounded-lg border">
                                         <div className="bg-slate-50 px-4 py-3 text-sm font-medium">
                                             خطوط حواله
                                         </div>
                                         <div className="divide-y">
-                                            {receiptLines.map((line, index) => (
+                                            {transferLine.map((line, index) => (
                                                 <div
                                                     key={`${line.item_id}-${index}`}
                                                     className="flex flex-col gap-2 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
@@ -294,12 +245,13 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                     <div>
                                                         <div className="space-y-1 gap-3 text-sm grid grid-cols-3">
                                                             <div className=" p-5 border rounded-sm bg-white">جنس: {items.find((item) => item.id === line.item_id)?.name || line.item_id}</div>
-                                                            <div className=" p-5 border rounded-sm bg-white">پولی واحد: {currencies.find((cur) => cur.id === line.currency_id)?.name || line.currency_id}</div>
+
                                                             <div className=" p-5 border rounded-sm bg-white">مقدار: {line.quantity}</div>
-                                                            <div className=" p-5 border rounded-sm bg-white">قیمت واحد: {line.unit_cost}</div>
+                                                            
+                                                            {/* <div className=" p-5 border rounded-sm bg-white">قیمت واحد: {line.unit_cost}</div> */}
 
                                                         </div>
-                                                        <div className="p-5 text-end font-medium">توتل : {line.unit_cost * line.quantity}</div>
+                                                        {/* <div className="p-5 text-end font-medium">توتل : {line.unit_cost * line.quantity}</div> */}
                                                     </div>
                                                     <Button
                                                         type="button"
@@ -312,7 +264,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                             ))}
                                             <div className="p-3 text-end">
                                                 <div>
-                                                    {receiptLines.reduce((acc, line) => acc += (line.quantity * line.unit_cost), 0)}  :جمله
+                                                    {/* {transferLine.reduce((acc, line) => acc += (line.quantity * line.unit_cost), 0)}  :جمله */}
                                                 </div>
                                             </div>
                                         </div>
