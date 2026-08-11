@@ -1,13 +1,16 @@
-import LocationTranslator from '@/components/location-translator';
-import { SectionTitle } from '@/components/section-title';
+
+import GoodsReceiptList from '@/components/goods-reciepts-list';
+import MovementsList from '@/components/movements-list';
+import PageLinks from '@/components/page-links';
 import { buttonVariants } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
-import { show } from '@/routes/employees';
+import { InventoryMovement } from '@/types';
 import { GoodsReceipt } from '@/types/item';
-import { Link, router } from '@inertiajs/react';
+import { Link } from 'lucide-react';
 
 interface Props {
+
     goodsReceipts: {
         data: GoodsReceipt[];
         current_page: number;
@@ -19,69 +22,42 @@ interface Props {
             active: boolean;
         }[];
     };
+
+    movements: {
+        data: InventoryMovement[];
+        current_page: number;
+        from: number;
+        last_page: number;
+        links: {
+            url: string | null;
+            label: string;
+            active: boolean;
+        }[];
+    }
 }
-const Index = ({ goodsReceipts }: Props) => {
+const Index = ({ goodsReceipts, movements }: Props) => {
 
     return (
         <AppLayout breadcrumbs={[
-            { title: 'اموال امده', href: '/receipts' }
+            { title: 'انتقالات ', href: '/receipts' }
         ]}>
-            <section>
-                <div className="section">
-                    <div className="flex justify-end gap-3 items-end p-5">
-                        <Link href={'/receipts/create'} className={`${buttonVariants({ variant: 'outline' })}`}>خریدن جنس نو</Link>
-                        <Link href={'/receipts/create'} className={`${buttonVariants({ variant: 'secondary' })}`}>جنس را انتقال دهید</Link>
 
-                    </div>
-                    <SectionTitle title='اموال امده برای شرکت' />
-                    <div className="max-w-4xl mx-auto p-5">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>شماره</TableHead>
-                                    <TableHead>تأمین کننده</TableHead>
-                                    <TableHead>منزل</TableHead>
-                                    <TableHead>نمبر حواله</TableHead>
-                                    <TableHead>تاریخ امد</TableHead>
+            <div className="px-5 py-10">
 
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {goodsReceipts.data.length > 0 ? goodsReceipts.data.map((receipt, ind) =>
-                                    <TableRow key={ind} onClick={()=>router.get('/receipts/'+receipt.id)}>
-                                        <TableCell>{ind + 1}</TableCell>
-                                        <TableCell>{receipt.supplier.name}</TableCell>
-                                        <TableCell >{LocationTranslator(receipt.location.name)}</TableCell>
-                                        <TableCell>{receipt.reference_no}</TableCell>
-                                        <TableCell>{new Date(receipt.received_at).toLocaleString()}</TableCell>
-                                    </TableRow>
-                                ) : <TableRow>
-                                    <TableCell colSpan={5}><p className="text-muted-foreground text-center p-5 w-full"> No Receiptions </p></TableCell>
-                                </TableRow>}
-                            </TableBody>
-                            <TableFooter>
-                                <TableRow>
-                                    <TableCell colSpan={6}>
-                                        <div className="flex justify-center items-center space-x-2">
-                                            {goodsReceipts.links.map((link, index) => (
-                                                <a
-                                                    key={index}
-                                                    href={link.url ?? '#'}
-                                                    className={`px-3 py-1.5 border rounded ${link.active ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
-                                                >
-                                                    {link.label.includes('Next') ? 'Next' : link.label.includes('Previous') ? 'Previous' : link.label}
-                                                </a>
-                                            ))}
-                                        </div>
-                                    </TableCell>
-                                </TableRow>
-                            </TableFooter>
-                        </Table>
-                    </div>
-                    <div>
-                    </div>
-                </div>
-            </section>
+                <Tabs defaultValue="transfers" className="w-full px-2 md:px-8">
+                    <TabsList className="flex justify-between items-center w-full">
+                        <TabsTrigger value="transfers">انتقالات داخلی</TabsTrigger>
+                        <TabsTrigger value="receipts"> اجناس امده</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="transfers">
+                        <MovementsList movements={movements} />
+                    </TabsContent>
+                    <TabsContent value="receipts">
+                        <GoodsReceiptList goodsReceipts={goodsReceipts} />
+                    </TabsContent>
+                </Tabs>
+
+            </div>
         </AppLayout>
     )
 }

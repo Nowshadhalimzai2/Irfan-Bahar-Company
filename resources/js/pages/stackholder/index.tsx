@@ -37,7 +37,7 @@ export default function Index({ users, roles, employees, suppliers }: Props) {
             <section className="">
                 <div>
                     <div className="mt-2">
-                        <Tabs defaultValue="overview" className="w-full px-2 md:px-8">
+                        <Tabs defaultValue="employees" className="w-full px-2 md:px-8">
                             <TabsList className="flex justify-between items-center w-full">
                                 <TabsTrigger value="tellers">مشتریان</TabsTrigger>
                                 <TabsTrigger value="employees">کاریګر ها</TabsTrigger>

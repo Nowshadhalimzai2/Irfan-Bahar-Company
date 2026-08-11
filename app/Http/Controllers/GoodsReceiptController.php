@@ -7,6 +7,7 @@ use App\Custome\Log;
 use App\Models\Currency;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptLine;
+use App\Models\InventoryMovement;
 use App\Models\Item;
 use App\Models\Location;
 use App\Models\Supplier;
@@ -20,8 +21,9 @@ class GoodsReceiptController extends Controller
 
     function index()
     {
+        $movements = InventoryMovement::with('location:id,name','item:id,name')->select('id','location_id','item_id','movement_type','quantity','occured_at','reference_no')->orderBy('id','desc')->paginate();
         $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')->orderBy('id', 'desc')->paginate(10);
-        return Inertia::render('goods-receipt/index', compact('goodsReceipts'));
+        return Inertia::render('goods-receipt/index', compact('goodsReceipts','movements'));
     }
     function create()
     {
@@ -75,7 +77,7 @@ class GoodsReceiptController extends Controller
                 $inventory->updateInventory($data['destination_location_id'], $line['item_id'], $line['quantity']);
             }
 
-            $log->create('insert', 'جنس نو وارد شد ');
+            $log->create('insert', ' جنس نو وارد شد در '.$receipt->supplier()->name);
             DB::commit();
 
             Inertia::flash('toast', ['type' => 'success', 'message' => 'جنس نو امد برای کارخانه .']);

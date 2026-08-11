@@ -98,3 +98,14 @@ export interface InventoryBalance{
     reserved:number;
     updated_at: Date;
 }
+
+
+export interface InventoryMovement{
+    id:number;
+    location:Location;
+    item:Item;
+    quantity:number;
+    movement_type: 'receipt' | 'transferred_out' | 'transferred_in' | 'production_consumption' | 'production_output' | 'sale' | 'sale_return' | 'adjustment_in' | 'adjustment_out';
+    reference_no:string;
+    occured_at: Date;
+}
