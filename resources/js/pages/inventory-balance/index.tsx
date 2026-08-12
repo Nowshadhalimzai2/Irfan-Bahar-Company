@@ -76,7 +76,7 @@ const Index = ({ items }: Props) => {
                                                     {item.item_type === 'product' && <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.product?.weight}</p>}
                                                     {item.item_type === 'product' && <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.product?.per_pack}</p>}
                                                     <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.default_sale_price}</p>
-                                                    <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.code}</p>
+                                                    <p className='border border-accent bg-accent/10 text-foreground/90 rounded-md p-0.5 text-center'>{item.category.name}</p>
                                                 </div>
                                                 <div className="flex flex-col space-x-3 p-3 bg-secondary rounded-sm shadow">
                                                     {item.inventory_balances.map((balance, ind) => <ul key={ind} className="flex justify-between items-center">

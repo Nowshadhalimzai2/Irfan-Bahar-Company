@@ -3,6 +3,7 @@
 use App\Actions\Fortify\CreateNewUser;
 use App\Custome\Log;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\BOMController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\GoodsReceiptController;
@@ -15,7 +16,6 @@ use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransferController;
 use App\Models\Expense;
-use App\Models\InventoryBalance;
 use App\Models\Role;
 use App\Models\ShopAccount;
 use App\Models\User;

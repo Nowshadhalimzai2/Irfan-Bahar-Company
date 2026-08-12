@@ -9,21 +9,28 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Item extends Model
 {
-    protected $fillable = ['name','code','sku','item_type','unit','default_sale_price','category_id'];
+    protected $fillable = ['name', 'code', 'sku', 'item_type', 'unit', 'default_sale_price', 'category_id'];
 
-    public function product(): HasOne{
+    public function product(): HasOne
+    {
 
         return $this->hasOne(Product::class);
     }
-    public function category(): BelongsTo{
+    public function category(): BelongsTo
+    {
         return $this->belongsTo(Category::class);
     }
-     public function inventoryBalances(): HasMany{
+    public function inventoryBalances(): HasMany
+    {
 
         return $this->hasMany(InventoryBalance::class);
     }
-    public function receiptLines(): HasMany{
-
+    public function receiptLines(): HasMany
+    {
         return $this->hasMany(GoodsReceiptLine::class);
+    }
+    public function bomLines(): HasMany
+    {
+        return $this->hasMany(BOMLine::class);
     }
 }

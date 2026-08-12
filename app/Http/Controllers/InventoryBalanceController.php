@@ -14,7 +14,7 @@ class InventoryBalanceController extends Controller
      */
     public function index()
     {
-        $items = Item::with('inventoryBalances','inventoryBalances.location:id,name','product:item_id,per_pack,weight')->whereHas('inventoryBalances',function ($p0) {
+        $items = Item::with('inventoryBalances','inventoryBalances.location:id,name','product:item_id,per_pack,weight','category:id,name')->whereHas('inventoryBalances',function ($p0) {
             $p0->whereNot('quanity_on_hand',0);
         })->paginate(10);
         
