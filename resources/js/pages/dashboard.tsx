@@ -26,6 +26,7 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency }: Props) {
         { name: 'تاریخچه اجرآات', url: '/logs' },
         { name: 'اجناس', url: '/items' },
         { name: 'تبادله اجناس', url: '/inventory-movements' },
+        { name: 'فورموله ها', url: '/boms' },
 
     ]
     return (

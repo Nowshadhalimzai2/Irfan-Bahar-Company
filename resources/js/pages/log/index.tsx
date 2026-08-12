@@ -12,6 +12,7 @@ import {
 import { SectionTitle } from '@/components/section-title';
 import { SearchX } from 'lucide-react';
 import AppLayout from '@/layouts/app-layout';
+import PageLinks from '@/components/page-links';
 
 interface Props {
     logs: {
@@ -57,9 +58,9 @@ const Index = ({ logs }: Props) => {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {logs.data.map((log) => (
+                        {logs.data.map((log,ind) => (
                             <TableRow key={log.id}>
-                                <TableCell>{log.id}</TableCell>
+                                <TableCell>{ind+1}</TableCell>
                                 <TableCell>{log.activity_type}</TableCell>
                                 <TableCell>{log.description}</TableCell>
                                 <TableCell>{new Date(log.activity_date).toLocaleString()}</TableCell>
@@ -72,17 +73,7 @@ const Index = ({ logs }: Props) => {
                     <TableFooter>
                         <TableRow>
                             <TableCell colSpan={6}>
-                                <div className="flex justify-center items-center space-x-2">
-                                    {logs.links.map((link, index) => (
-                                        <a
-                                            key={index}
-                                            href={link.url ?? '#'}
-                                            className={`px-3 py-1.5 border rounded ${link.active ? 'bg-blue-500 text-white' : 'bg-white text-gray-700'}`}
-                                        >
-                                            {link.label}
-                                        </a>
-                                    ))}
-                                </div>
+                                <PageLinks links={logs.links} />
                             </TableCell>
                         </TableRow>
                     </TableFooter>

@@ -1,5 +1,5 @@
 import { Currency } from 'lucide-react';
-import { Item } from './item';
+import { Item, Product } from './item';
 
 export type * from './auth';
 export type * from './navigation';
@@ -108,4 +108,19 @@ export interface InventoryMovement{
     movement_type: 'receipt' | 'transferred_out' | 'transferred_in' | 'production_consumption' | 'production_output' | 'sale' | 'sale_return' | 'adjustment_in' | 'adjustment_out';
     reference_no:string;
     occured_at: Date;
+}
+
+export interface BOM{
+    id:number;
+    formula_name:string;
+    product:Product;
+    bom_lines: BOMLine[];
+    min_exp_qty:number;
+    max_exp_qty:number;
+    is_active:boolean;
+}
+export interface BOMLine{
+    id:number;
+    item:Item;
+    required_quantity:number;
 }

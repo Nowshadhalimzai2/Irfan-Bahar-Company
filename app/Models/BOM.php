@@ -7,8 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+
 class BOM extends Model
 {
+    protected $table = 'boms';
+
     protected $fillable = ['formula_name', 'product_id', 'min_exp_qty', 'max_exp_qty', 'is_active'];
 
     public function product(): BelongsTo
@@ -19,5 +22,4 @@ class BOM extends Model
     {
         return $this->hasMany(BOMLine::class);
     }
-
 }
