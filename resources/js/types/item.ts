@@ -51,6 +51,7 @@ export interface Transfer{
     reference_no:string;
     transferred_at:Date;
     notes?:string;
+    transfer_lines:TransferLine[];
 }
 export interface TransferLine{
     id:number;

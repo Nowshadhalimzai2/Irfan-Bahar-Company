@@ -7,6 +7,7 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\InventoryBalanceController;
+use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
@@ -125,7 +126,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('items', ItemController::class)->names('items');
     Route::resource('transfers', TransferController::class)->names('items');
     Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
-
+    Route::get('/inventory-movements',[InventoryMovementController::class,'index'])->name('movements.index');
 });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/axios-routes.php';

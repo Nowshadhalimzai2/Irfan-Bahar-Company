@@ -3,8 +3,9 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { SectionTitle } from '@/components/section-title';
 import { buttonVariants } from '@/components/ui/button';
 import { Link, router } from '@inertiajs/react';
-import PageLinks from './page-links';
-import LocationTranslator from './location-translator';
+import PageLinks from '@/components/page-links';
+import LocationTranslator from '@/components/location-translator';
+import AppLayout from '@/layouts/app-layout';
 
 interface Props {
     movements: {
@@ -19,16 +20,22 @@ interface Props {
         }[];
     }
 }
-const goodsReceiptsList = ({ movements }: Props) => {
+const Index = ({ movements }: Props) => {
     return (
-        <section>
+       <AppLayout
+            breadcrumbs={[
+                {title:'دشبورد',href:'/dashboard'},
+                {title:'تبادله اجناس ',href:'/inventory-movements'}
+            ]}
+       >
+         <section>
             <div className="">
                 <div className="flex justify-end gap-3 items-end p-5">
                     <Link href={'/receipts/create'} className={`${buttonVariants({ variant: 'outline' })}`}>خریدن جنس نو</Link>
                     <Link href={'/transfers/create'} className={`${buttonVariants({ variant: 'secondary' })}`}>جنس را انتقال دهید</Link>
 
                 </div>
-                <SectionTitle title='اجناس انتقال شده در شرکت' />
+                <SectionTitle title='اجناس تبادله شده در شرکت' description='در این بخش شما دیده میتانین که چیز از کجا رفته به کجا. و همچنان چه مصرف شده و چه تولید شده'/>
                 <div className="max-w-4xl mx-auto p-5">
                     <Table>
                         <TableHeader>
@@ -71,7 +78,8 @@ const goodsReceiptsList = ({ movements }: Props) => {
                 </div>
             </div>
         </section>
+       </AppLayout>
     )
 }
 
-export default goodsReceiptsList
+export default Index

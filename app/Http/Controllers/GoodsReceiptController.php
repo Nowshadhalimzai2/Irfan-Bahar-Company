@@ -11,6 +11,7 @@ use App\Models\InventoryMovement;
 use App\Models\Item;
 use App\Models\Location;
 use App\Models\Supplier;
+use App\Models\Transfer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,9 +22,11 @@ class GoodsReceiptController extends Controller
 
     function index()
     {
-        $movements = InventoryMovement::with('location:id,name','item:id,name')->select('id','location_id','item_id','movement_type','quantity','occured_at','reference_no')->orderBy('id','desc')->paginate();
+        $transfers = Transfer::with('source:id,name','destination:id,name','transferLines:id,item_id,transfer_id,quantity','transferLines.item:id,name,unit,item_type')
+            ->select('id','source_id','destination_id','reference_no','notes','transferred_at')
+            ->orderBy('id','desc')->paginate(10);
         $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')->orderBy('id', 'desc')->paginate(10);
-        return Inertia::render('goods-receipt/index', compact('goodsReceipts','movements'));
+        return Inertia::render('goods-receipt/index', compact('goodsReceipts','transfers'));
     }
     function create()
     {

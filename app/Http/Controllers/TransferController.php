@@ -140,7 +140,9 @@ class TransferController extends Controller
      */
     public function show(Transfer $transfer)
     {
-        //
+        $transfer->load('source:id,name','destination:id,name','transferLines:id,transfer_id,quantity,item_id','transferLines.item:id,name,unit,default_sale_price,code,sku');
+        $transfer->load('transferLines.item.product:item_id,weight,per_pack,barcode');
+        return Inertia::render('transfer/show',compact('transfer'));
     }
 
     /**
