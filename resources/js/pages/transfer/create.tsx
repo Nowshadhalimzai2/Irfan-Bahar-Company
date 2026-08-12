@@ -79,7 +79,7 @@ const Create = ({ locations, items }: Props) => {
     };
 
     const itemUnit = useMemo(() => {
-        if(items.length===0)
+        if (items.length === 0)
             return 'unit';
         return items.filter(item => item.id === currentLine.item_id)[0].unit;
 
@@ -133,7 +133,7 @@ const Create = ({ locations, items }: Props) => {
                                         >
                                             <option value={0}>جای کی پایین می شود را انتخاب کنید</option>
                                             {locations.map((location) => (
-                                                <option className={`${location.id === data.source_id && 'bg-secondary'}`} value={location.id} key={location.id}  disabled={location.id === data.source_id}>
+                                                <option className={`${location.id === data.source_id && 'bg-secondary'}`} value={location.id} key={location.id} disabled={location.id === data.source_id}>
                                                     {LocationTranslator(location.name)}
                                                 </option>
                                             ))}
@@ -197,6 +197,7 @@ const Create = ({ locations, items }: Props) => {
                                                     id="quantity"
                                                     type="number"
                                                     min={1}
+                                                    // max={items[currentLine.item_id]}
                                                     value={currentLine.quantity}
                                                     onChange={(e) =>
                                                         setCurrentLine((prev) => ({
@@ -247,7 +248,7 @@ const Create = ({ locations, items }: Props) => {
                                                             <div className=" p-5 border rounded-sm bg-white">جنس: {items.find((item) => item.id === line.item_id)?.name || line.item_id}</div>
 
                                                             <div className=" p-5 border rounded-sm bg-white">مقدار: {line.quantity}</div>
-                                                            
+
                                                             {/* <div className=" p-5 border rounded-sm bg-white">قیمت واحد: {line.unit_cost}</div> */}
 
                                                         </div>
