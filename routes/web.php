@@ -127,7 +127,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('transfers', TransferController::class)->names('items');
     Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
     Route::get('/inventory-movements',[InventoryMovementController::class,'index'])->name('movements.index');
-    Route::get('/boms',[BOMController::class,'index'])->name('boms.index');
+    Route::resource('boms',BOMController::class)->names('boms');
 });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/axios-routes.php';

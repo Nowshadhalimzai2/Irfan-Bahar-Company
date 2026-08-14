@@ -18,7 +18,7 @@ export default function LocationTranslator(locName: string) {
 }
 
 export const locationColor = (locName: string) => `${locName === 'warehouse' ? 'text-red-500' : locName === 'factory' ? 'text-blue-500' : locName === 'shop' ? 'text-green-500' : 'text-yellow-500'} `;
-export const getDariItemType = (itemType: string) => itemType === 'product' ? 'جنس ' : itemType === 'raw_material' ? 'مواد خام' : itemType === 'packing' ? 'پیکنګ' : '';
+export const getDariItemType = (itemType: string) => itemType === 'product' ? 'محصول ' : itemType === 'raw_material' ? 'مواد خام' : itemType === 'packing' ? 'پیکنګ' : '';
 export const getDariItemUnit = (unit: string) => {
     switch (unit.toLowerCase()) {
         case 'kg':
@@ -44,4 +44,4 @@ export const getDariItemUnit = (unit: string) => {
     }
 }
 export const getDariCurrency = (currency: string) => currency === 'AFG' ? 'افغانی' : currency === 'َUSD' ? 'دالر' : currency === 'PKR' ? 'کلداری' : '';
-export const getUnitOfMeasureMents = () => [{value:'kg', label:'کیلو'} , {value: 'gr', label:'ګرام'} , {value:'ltr',label:'لیتر'} , {value:'packet',label:'پاکت'} , {value:'carton', label:'کارتن'} , {value:'bundle', label:'بسته'} , {value:'pair',label:'جوره'} , {value:'unit', label:'دانه'} , {value:'bag',label:'بوجی'}];
+export const getUnitOfMeasurements = () => [{value:'kg', label:'کیلو'} , {value: 'gr', label:'ګرام'} , {value:'ltr',label:'لیتر'} , {value:'packet',label:'پاکت'} , {value:'carton', label:'کارتن'} , {value:'bundle', label:'بسته'} , {value:'pair',label:'جوره'} , {value:'unit', label:'دانه'} , {value:'bag',label:'بوجی'}];

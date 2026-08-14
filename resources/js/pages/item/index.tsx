@@ -1,3 +1,4 @@
+import { getDariItemUnit } from '@/components/location-translator';
 import { SectionTitle } from '@/components/section-title';
 import { buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -107,7 +108,7 @@ const Index = ({ items }: Props) => {
                     <TableCell className="text-center">{item.name}</TableCell>
                     <TableCell className={`text-center ${item.item_type === 'product' ? 'text-green-500' : item.item_type === 'raw_material' ? 'text-blue-500' : 'text-pink-500'}`}>{item.item_type}</TableCell>
                     <TableCell className="text-center">{item.code}</TableCell>
-                    <TableCell className="text-center">{item.unit}</TableCell>
+                    <TableCell className="text-center">{getDariItemUnit(item.unit)}</TableCell>
                     <TableCell className="text-center">{item.default_sale_price}</TableCell>
                     <TableCell className="text-center">{item.product?.weight ?? 'N/A'}</TableCell>
                     <TableCell className="text-center">{item.product?.per_pack ?? 'N/A'}</TableCell>

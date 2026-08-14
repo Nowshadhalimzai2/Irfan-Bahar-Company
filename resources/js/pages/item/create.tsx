@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
 import { Category, unitType } from '@/types/item';
-import { getUnitOfMeasureMents } from '@/components/location-translator';
+import { getUnitOfMeasurements } from '@/components/location-translator';
 
 type ItemType = {
     name: string;
@@ -148,7 +148,7 @@ const Create = ({ categories }: Props) => {
                                             {/* <option value="kg">کیلو</option>
                                             <option value="ltr">لیتر</option>
                                             <option value="gr">ګرام</option> */}
-                                            {getUnitOfMeasureMents().map((unit)=> <option value={unit.value} onChange={(e)=>setData('unit',e.target.value as unitType)} className="text-center ">.................<span>{unit.label}..................</span></option>)}
+                                            {getUnitOfMeasurements().map((unit)=> <option value={unit.value} onChange={(e)=>setData('unit',e.target.value as unitType)} className="text-center ">.................<span>{unit.label}..................</span></option>)}
 
                                         </select>
                                         <InputError

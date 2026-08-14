@@ -15,7 +15,10 @@ return new class extends Migration
         Schema::create('boms', function (Blueprint $table) {
             $table->id();
             $table->string('formula_name',55);
-            $table->foreignIdFor(Product::class)->constrained('products')->cascadeOnDelete()->cascadeOnUpdate();
+            $table->foreignId('product_id')
+                  ->constrained('products', 'item_id')
+                  ->cascadeOnDelete()
+                  ->cascadeOnUpdate();
             $table->decimal('min_exp_qty',5,2);
             $table->decimal('max_exp_qty',5,2);
             $table->boolean('is_active')->default(true);

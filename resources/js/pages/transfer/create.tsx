@@ -87,7 +87,7 @@ const Create = ({ locations, items }: Props) => {
     return (
         <AppLayout
             breadcrumbs={[
-                { title: 'اجناس انتقال شده', href: '/transfers' },
+                { title: 'اجناس انتقال شده', href: '/receipts' },
                 { title: 'انتقال جنس', href: '/transfers/create' },
             ]}
         >
@@ -95,7 +95,7 @@ const Create = ({ locations, items }: Props) => {
                 <section>
                     <div className="max-w-3xl mx-auto p-5">
                         <SectionTitle
-                            title="فورم اجناس نو "
+                            title="فورم اجناس انتقال "
                             description="لطفا دقت نماید. این فورم برای اجناس که نو امده برای شرکت، است"
                         />
                         <div className="section">

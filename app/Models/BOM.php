@@ -16,10 +16,10 @@ class BOM extends Model
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class,'item_id');
+        return $this->belongsTo(Product::class, 'product_id', 'item_id');
     }
     public function bomLines(): HasMany
     {
-        return $this->hasMany(BOMLine::class);
+        return $this->hasMany(BOMLine::class,'bom_id');
     }
 }
