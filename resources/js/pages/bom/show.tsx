@@ -1,12 +1,25 @@
-import LocationTranslator, { getDariItemType, getDariItemUnit } from '@/components/location-translator';
-import { SectionTitle } from '@/components/section-title';
-import { Button } from '@/components/ui/button';
+import { getDariItemType, getDariItemUnit } from '@/components/location-translator';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { BOM, BOMLine } from '@/types';
+import { BOM } from '@/types';
 import { Minus, Plus } from 'lucide-react';
-import React, { useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
+
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
+import { router } from '@inertiajs/core';
+import { route } from 'ziggy-js';
+import { Link } from '@inertiajs/react';
+
 interface Props {
     bom: BOM;
 }
@@ -64,7 +77,7 @@ const Show = ({ bom }: Props) => {
                                         <Button onClick={() => setQuantity(pre => pre - 1)}><Minus /></Button>
                                         <div className='space-y-1'>
                                             <Input className='font-bold' type='text' max={maxqty} value={quantity} onChange={(e) => setQuantity(Number(e.target.value))} />
-                                            <p className='text-sm text-muted-foreground'>ه{quantity} {productUnit} که معادل {quantity*bom.product.weight} کیلو</p>
+                                            <p className='text-sm text-muted-foreground'>ه{quantity} {productUnit} که معادل {quantity * bom.product.weight} کیلو</p>
                                         </div>
                                         <Button onClick={() => setQuantity(pre => pre + 1)}><Plus /></Button>
                                     </div>
@@ -109,9 +122,90 @@ const Show = ({ bom }: Props) => {
                         </div>
                     </div>
                 </section>
+
+                <section className="py-8 px-5">
+                    {/*  BOM LINE DELETION SECITON    ------ */}
+                    <div className="grid grid-cols-2 gap-5">
+                        <DeleteBomLIne bomID={bom.id} />
+                        <EditBom bomID={bom.id} />
+                    </div>
+                </section>
             </div>
         </AppLayout>
     )
 }
 
+const DeleteBomLIne = ({ bomID }: { bomID: number }) => {
+    return (
+        <div className="space-y-4 rounded-lg border border-red-100 bg-red-50 p-4 dark:border-red-200/10 dark:bg-red-700/10">
+            <div className="relative space-y-0.5 text-red-600 dark:text-red-100">
+                <p className="font-medium">هشدار</p>
+                <p className="text-sm">
+                    لطفا عمل را با احتیاط اجرا کنین
+                </p>
+            </div>
+
+            <Dialog>
+                <DialogTrigger asChild>
+                    <Button
+                        variant="destructive"
+                        data-test="delete-user-button"
+                    >
+                        فورمول را حذف کنین
+                    </Button>
+                </DialogTrigger>
+                <DialogContent>
+                    <DialogTitle>
+                        مطمئین هستین که فورمول را حذف کنین؟
+                    </DialogTitle>
+
+                    <DialogFooter className="gap-2">
+                        <DialogClose asChild>
+                            <Button
+                                variant="secondary"
+                            >
+                                لغوه حذف نمودن فورمول
+                            </Button>
+                        </DialogClose>
+
+                        <Button
+                            variant="destructive"
+                            asChild
+                            onClick={() => router.delete('/boms/' + bomID)}
+
+                        >
+                            <button
+                                data-test="confirm-delete-bomline-button"
+                            >
+                                فورمول را حدف کنین
+                            </button>
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog >
+        </div >
+    )
+}
+
+const EditBom = ({ bomID }: { bomID: number }) => {
+    return (
+        <div className="space-y-4 rounded-lg border border-slate-100 bg-slate-50 p-4 dark:border-slate-200/10 dark:bg-slate-700/10">
+            <div className="relative space-y-0.5 text-slate-600 dark:text-slate-100">
+                <p className="font-medium">ویرایش نمودن </p>
+                <p className="text-sm">
+                    نیاز به بر رزو رسانی دارید . اینجا کلیک کنین
+                </p>
+            </div>
+
+            <Link
+                className={buttonVariants({variant:"secondary"})}
+                data-test="edit-bom-test"
+                href={'/boms/'+bomID+'/edit'}
+            >
+               ویرایش فورمول
+            </Link>
+        </div >
+    )
+}
 export default Show
+

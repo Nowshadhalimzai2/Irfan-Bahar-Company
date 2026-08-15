@@ -13,7 +13,7 @@ import AppLayout from '@/layouts/app-layout';
 import { BOM } from "@/types";
 import { Link, router } from "@inertiajs/react";
 import { buttonVariants } from "@/components/ui/button";
-import { getDariItemType } from "@/components/location-translator";
+import { getDariCategory, getDariItemType } from "@/components/location-translator";
 
 
 interface Props {
@@ -48,7 +48,7 @@ const Index = ({ boms }: Props) => {
                                 <TableRow key={bom.id} onClick={()=>router.get('/boms/'+bom.id)}>
                                     <TableCell className="text-center">{ind+1}</TableCell>
                                     <TableCell className="text-center">{bom.formula_name}</TableCell>
-                                    <TableCell className="text-center">{bom.product.item.category.name}</TableCell>
+                                    <TableCell className="text-center">{getDariCategory(bom.product.item.category.name)}</TableCell>
                                     <TableCell className="text-center">{bom.min_exp_qty}</TableCell>
                                     <TableCell className="text-center">{bom.max_exp_qty}</TableCell>
 

@@ -6,8 +6,10 @@ use App\Custome\Log;
 use App\Models\BOM;
 use App\Models\Item;
 use App\Models\Product;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -94,5 +96,35 @@ class BOMController extends Controller
         $bom->load('bomLines:id,bom_id,item_id,required_quantity', 'bomLines.item:id,item_type,name,unit,default_sale_price,code,sku');
         $bom->load('product:item_id,weight,per_pack', 'product.item:id,name,unit');
         return Inertia::render('bom/show', compact('bom'));
+    }
+
+    public function edit(Bom $bom){
+
+        $bom->load('bomLines:id,bom_id,item_id,required_quantity','bomLines.item:id,name');
+        return Inertia::render('bom/edit',compact('bom'));
+    }
+    public function update(Request $request, BOM $bom){
+
+    }
+
+    public function destroy(BOM $bom): RedirectResponse
+    {
+
+        DB::beginTransaction();
+        try {
+            $log = new Log();
+            $des = ' فورمول به نام ' . $bom->formula_name . ' حذف شد ';
+            $log->create('delete', $des);
+            Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
+            $bom->delete();
+            DB::commit();
+            return redirect()->to(route('boms.index'));
+        } catch (\Throwable $th) {
+            // if($th instanceof )
+            DB::rollBack();
+            $des = ' فورمول به نام ' . $bom->formula_name . ' حذف نشد ';
+            Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
+            return redirect()->back();
+        }
     }
 }
