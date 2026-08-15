@@ -36,7 +36,7 @@ const Show = ({ bom }: Props) => {
             ]}
         >
             <div>
-                <section className="">
+                <section className=" py-8">
                     <div className="max-w-4xl mx-auto">
                         {/* <SectionTitle title={'bom'} /> */}
 

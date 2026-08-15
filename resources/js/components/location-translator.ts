@@ -19,6 +19,7 @@ export default function LocationTranslator(locName: string) {
 
 export const locationColor = (locName: string) => `${locName === 'warehouse' ? 'text-red-500' : locName === 'factory' ? 'text-blue-500' : locName === 'shop' ? 'text-green-500' : 'text-yellow-500'} `;
 export const getDariItemType = (itemType: string) => itemType === 'product' ? 'محصول ' : itemType === 'raw_material' ? 'مواد خام' : itemType === 'packing' ? 'پیکنګ' : '';
+export const getDariCategory = (category: string) => category === 'soap' ? 'صابون ' : category === 'powder' ? 'پودر' : category === 'shampoo' ? 'شامپو' : category === 'acid' ? 'تیزاب': category === 'vaseline' ? 'واسلین' : category ==='raw_materail' ? 'مواد خام' : category ==='packing' ? 'پیکینګ' : '';
 export const getDariItemUnit = (unit: string) => {
     switch (unit.toLowerCase()) {
         case 'kg':
