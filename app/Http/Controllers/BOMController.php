@@ -40,12 +40,11 @@ class BOMController extends Controller
             'bomLines' => 'required|array|min:1',
 
             // each line validation
-            'bomLines.*.item_id' => 'required|integer|exists:items,id',
-            'bomLines.*.required_quantity' => 'required|integer|gt:0',
+            'bomLines.*.item_id' => 'required|integer|exists:items,id|distinct',
+            'bomLines.*.required_quantity' => 'required|numeric|gt:0',
         ]);
 
         $log = new Log();
-
         DB::beginTransaction();
         try {
             // create the goods receipt 
@@ -56,15 +55,19 @@ class BOMController extends Controller
                 'max_exp_qty' => $data['max_exp_qty'],
                 'is_active' => true,
             ]);
-            
             // ===== CREATE THE BOM LINES =====
             foreach ($data['bomLines'] as $line) {
                 $bom->bomLines()->create($line);
             }
-            $des = $data['formula_name'].' در ثبت سیستم ثبت شد ';
+            $des = $data['formula_name'] . ' در ثبت سیستم ثبت شد ';
             $log->create('insert', $des);
             DB::commit();
-            Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
+
+            session()->flash('toast', ['type' => 'success', 'message' => $des]);
+
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'success', 'message' => $des, 'bom' => $bom], 201);
+            }
 
             return redirect()->route('boms.index');
         } catch (\Throwable $th) {
@@ -72,18 +75,24 @@ class BOMController extends Controller
             if ($th instanceof ValidationException) {
                 throw $th;
             }
-            $des = ' متاسفانه '.$data['formula_name'].'در ثبت سیستم ثبت نشد ';
+            $des = ' متاسفانه ' . ($data['formula_name'] ?? '') . 'در ثبت سیستم ثبت نشد ';
             $log->create('insert', $des);
             DB::rollBack();
-            Inertia::flash('toast', ['type' => 'error', 'message' => $des . $th->getMessage()]);
+
+            session()->flash('toast', ['type' => 'error', 'message' => $des . $th->getMessage()]);
+
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'error', 'message' => $des, 'error' => $th->getMessage()], 500);
+            }
+
             return redirect()->back();
         }
     }
 
-     public function show(BOM $bom)
+    public function show(BOM $bom)
     {
-        $bom->load('bomLines:id,bom_id,item_id,required_quantity','bomLines.item:id,item_type,name,unit,default_sale_price,code,sku');
-        $bom->load('product:item_id,weight,per_pack','product.item:id,name,unit');
-        return Inertia::render('bom/show',compact('bom'));
+        $bom->load('bomLines:id,bom_id,item_id,required_quantity', 'bomLines.item:id,item_type,name,unit,default_sale_price,code,sku');
+        $bom->load('product:item_id,weight,per_pack', 'product.item:id,name,unit');
+        return Inertia::render('bom/show', compact('bom'));
     }
 }

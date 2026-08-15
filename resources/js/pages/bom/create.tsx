@@ -31,6 +31,7 @@ type BOMType = {
 
 const Create = ({ products, items }: Props) => {
   const [BOMLine, setBOMLine] = useState<BOMLine[]>([]);
+  const [lineError, setLineError] = useState<string | null>(null);
   const [currentLine, setCurrentLine] = useState<BOMLine>(() => ({
     item_id: items[0]?.id ?? 0,
     required_quantity: 1,
@@ -68,11 +69,18 @@ const Create = ({ products, items }: Props) => {
       return;
     }
 
+    // prevent adding the same item twice
+    if (BOMLine.some((l) => l.item_id === currentLine.item_id)) {
+      setLineError('این جنس قبلا اضافه شده است');
+      return;
+    }
+
     setBOMLine((prev) => [...prev, currentLine]);
     setCurrentLine((prev) => ({
       ...prev,
       required_quantity: 1,
     }));
+    setLineError(null);
   };
 
   const handleRemoveLine = (index: number) => {
@@ -237,6 +245,7 @@ console.log(products);
                         اضافه کردن جنس
                       </Button>
                     </div>
+                    {lineError && <div className="mt-2"><InputError message={lineError} /></div>}
                   </div>
                 </section>
 
