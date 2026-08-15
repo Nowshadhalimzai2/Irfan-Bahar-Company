@@ -121,6 +121,7 @@ export interface BOM{
 }
 export interface BOMLine{
     id:number;
+    item_id:number;
     item:Item;
     required_quantity:number;
 }

@@ -98,13 +98,74 @@ class BOMController extends Controller
         return Inertia::render('bom/show', compact('bom'));
     }
 
-    public function edit(Bom $bom){
+    public function edit(BOM $bom)
+    {
 
-        $bom->load('bomLines:id,bom_id,item_id,required_quantity','bomLines.item:id,name');
-        return Inertia::render('bom/edit',compact('bom'));
+        $bom->load('bomLines:id,bom_id,item_id,required_quantity', 'bomLines.item:id,name');
+        $bom->load('product:item_id,name');
+        $products = Product::with('item:id,name,unit,item_type')->select('item_id', 'weight', 'per_pack')->get();
+        $items = Item::whereNot('item_type', 'product')->get();
+        return Inertia::render('bom/edit', compact('bom', 'items', 'products'));
     }
-    public function update(Request $request, BOM $bom){
+    public function update(Request $request, BOM $bom)
+    {
+        $data = $request->validate([
+            'formula_name' => 'required|string|max:55',
+            'product_id' => 'required|integer|exists:products,item_id',
+            'min_exp_qty' => 'numeric|required|gte:1',
+            'max_exp_qty' => 'numeric|required|gte:1',
+            'bomLines' => 'required|array|min:1',
 
+            // each line validation
+            'bomLines.*.item_id' => 'required|integer|exists:items,id|distinct',
+            'bomLines.*.required_quantity' => 'required|numeric|gt:0',
+        ]);
+
+        $log = new Log();
+        DB::beginTransaction();
+        try {
+            // update BOM
+            $bom->formula_name = $data['formula_name'];
+            $bom->product_id = $data['product_id'];
+            $bom->min_exp_qty = $data['min_exp_qty'];
+            $bom->max_exp_qty = $data['max_exp_qty'];
+            $bom->is_active = true;
+            $bom->save();
+
+            // remove existing lines to avoid unique-constraint conflicts, then recreate
+            $bom->bomLines()->delete();
+            foreach ($data['bomLines'] as $line) {
+                $bom->bomLines()->create($line);
+            }
+
+            $des = $data['formula_name'] . ' بروزرسانی شد ';
+            $log->create('update', $des);
+            DB::commit();
+
+            Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
+
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'success', 'message' => $des, 'bom' => $bom], 200);
+            }
+
+            return redirect()->route('boms.index');
+        } catch (\Throwable $th) {
+            // Let validation exceptions bubble so Inertia/Laravel can return proper validation responses
+            if ($th instanceof ValidationException) {
+                throw $th;
+            }
+            $des = ' متاسفانه ' . ($data['formula_name'] ?? '') . 'برروز رسانی نشد ';
+            $log->create('insert', $des);
+            DB::rollBack();
+
+            Inertia::flash('toast', ['type' => 'error', 'message' => $des]);
+
+            if ($request->expectsJson()) {
+                return response()->json(['status' => 'error', 'message' => $des, 'error' => $th->getMessage()], 500);
+            }
+
+            return redirect()->back();
+        }
     }
 
     public function destroy(BOM $bom): RedirectResponse

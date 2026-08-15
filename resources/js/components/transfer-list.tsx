@@ -1,12 +1,10 @@
-import { GoodsReceipt, Transfer } from '@/types/item';
+import { Transfer } from '@/types/item';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import LocationTranslator from '@/components/location-translator';
 import { SectionTitle } from '@/components/section-title';
 import { buttonVariants } from '@/components/ui/button';
 import { Link, router } from '@inertiajs/react';
 import PageLinks from './page-links';
-
-
 
 interface Props {
     transfers: {
@@ -30,7 +28,7 @@ const TransferList = ({ transfers }: Props) => {
                     <Link href={'/transfers/create'} className={`${buttonVariants({ variant: 'secondary' })}`}>جنس را انتقال دهید</Link>
 
                 </div>
-                <SectionTitle title='اجناس امده برای شرکت' />
+                <SectionTitle title='اجناس انتقال شده در داخل شرکت' />
                 <div className="max-w-4xl mx-auto p-5">
                     <Table>
                         <TableHeader>

@@ -49,7 +49,7 @@ const Create = ({ products, items }: Props) => {
     setData('bomLines', BOMLine);
   }, [BOMLine, setData]);
 
-  const handleReceipt = (e: FormEvent<HTMLFormElement>) => {
+  const handleBOM = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     post('/boms', {
@@ -107,7 +107,7 @@ console.log(products);
           <div className="max-w-3xl mx-auto p-5">
             <SectionTitle title='فورم فورموله' />
             <div className="section">
-              <form onSubmit={handleReceipt} name="receipt" id="receipt">
+              <form onSubmit={handleBOM} name="receipt" id="receipt">
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
                   <div className="grid gap-2">
                     <Label htmlFor="formula_name">نام فورمول</Label>

@@ -70,7 +70,7 @@ const Show = ({ bom }: Props) => {
                                 </div>
                             </div>
                             {/* <p className="text-end p-5 text-accent-foreground text-sm border-b">نوت : {bom.notes}</p>  */}
-                            <div className='mt-3 border-t '>
+                            <div className='mt-3 border-t'>
                                 <div className="QuantityCalculator bg-foreground py-5 rounded-md text-white  ">
                                     <h3 className='text-center font-semibold p-6'>کلکولیتر مواد خام</h3>
                                     <div className="flex justify-center items-start gap-5 max-w-xl mx-auto">
@@ -82,9 +82,10 @@ const Show = ({ bom }: Props) => {
                                         <Button onClick={() => setQuantity(pre => pre + 1)}><Plus /></Button>
                                     </div>
                                 </div>
-                                <h2 className='text-lg font-medium text-center text-secondary-foreground p-5'>مواد که در یک مکسر در  ساختن {bom.product.item.name} استفاده میشود</h2>
-                                <Table>
-                                    <TableCaption>اجناس بالا در تولید جنس استفاده میشود</TableCaption>
+                               <div className="py-8 ">
+                                 <h2 className='text-lg font-medium text-center text-secondary-foreground p-5'>مواد که در یک مکسر در  ساختن {bom.product.item.name} استفاده میشود</h2>
+                                <Table >
+                                    <TableCaption><Button variant={'secondary'} onClick={()=>alert('printed')}>پرینت کنید</Button> اجناس بالا در تولید جنس استفاده میشود  </TableCaption>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="text-center">
@@ -118,16 +119,17 @@ const Show = ({ bom }: Props) => {
                                         )}
                                     </TableBody>
                                 </Table>
+                               </div>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                <section className="py-8 px-5">
+                <section className="py-8 max-w-4xl mx-auto px-5 border-t ">
                     {/*  BOM LINE DELETION SECITON    ------ */}
-                    <div className="grid grid-cols-2 gap-5">
-                        <DeleteBomLIne bomID={bom.id} />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         <EditBom bomID={bom.id} />
+                        <DeleteBomLIne bomID={bom.id} />
                     </div>
                 </section>
             </div>
