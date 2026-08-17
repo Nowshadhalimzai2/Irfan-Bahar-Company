@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useCurrentUrl } from '@/hooks/use-current-url';
 import type { NavItem } from '@/types';
+import { Bell } from 'lucide-react';
 
 export function NavMain({ items = [] }: { items: NavItem[] }) {
     const { isCurrentUrl } = useCurrentUrl();
@@ -17,7 +18,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
             <SidebarGroupLabel>Platform</SidebarGroupLabel>
             <SidebarMenu>
                 {items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
+                    <SidebarMenuItem key={item.title} className='flex justify-between items-center'>
                         <SidebarMenuButton
                             asChild
                             isActive={isCurrentUrl(item.href)}
@@ -28,6 +29,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                 <span>{item.title}</span>
                             </Link>
                         </SidebarMenuButton>
+                        {item.title == 'اطلاعات' && <Bell className={`size-4`}/>}
                     </SidebarMenuItem>
                 ))}
             </SidebarMenu>

@@ -126,8 +126,16 @@ Route::middleware('auth')->group(function () {
     Route::resource('items', ItemController::class)->names('items');
     Route::resource('transfers', TransferController::class)->names('items');
     Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
-    Route::get('/inventory-movements',[InventoryMovementController::class,'index'])->name('movements.index');
-    Route::resource('boms',BOMController::class)->names('boms');
+    Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])->name('movements.index');
+    Route::resource('boms', BOMController::class)->names('boms');
+});
+
+Route::middleware(['auth'])->group(function () {
+    Route::prefix('factory')->group(function () {
+        Route::get('/home', function () {
+            return Inertia::render('factory/home');
+        })->name('factory');
+    });
 });
 require __DIR__ . '/settings.php';
 require __DIR__ . '/axios-routes.php';

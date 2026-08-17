@@ -22,4 +22,8 @@ class BOM extends Model
     {
         return $this->hasMany(BOMLine::class,'bom_id');
     }
+    public function productionOrders():HasMany{
+
+        return $this->hasMany(ProductionOrder::class);
+    }
 }
