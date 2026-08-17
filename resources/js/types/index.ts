@@ -1,5 +1,5 @@
 import { Currency } from 'lucide-react';
-import { Item, Product } from './item';
+import { Category, Item, Product } from './item';
 
 export type * from './auth';
 export type * from './navigation';
@@ -113,7 +113,7 @@ export interface InventoryMovement{
 export interface BOM{
     id:number;
     formula_name:string;
-    product:Product;
+    category:Category;
     bom_lines: BOMLine[];
     min_exp_qty:number;
     max_exp_qty:number;

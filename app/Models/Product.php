@@ -14,8 +14,5 @@ class Product extends Model
 
         return $this->belongsTo(Item::class)->where('item_type','product');
     }
-    public function bom(): HasOne{
-
-        return $this->hasOne(BOM::class);
-    }
+  
 }

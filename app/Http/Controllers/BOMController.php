@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Custome\Log;
 use App\Models\BOM;
+use App\Models\Category;
 use App\Models\Item;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redirect;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -19,15 +19,15 @@ class BOMController extends Controller
     public function index(): Response
     {
 
-        $boms = BOM::with('product:item_id,weight,per_pack', 'product.item:id,name,unit,item_type,category_id', 'product.item.category:id,name')->get();
+        $boms = BOM::with('category:id,name')->get();
         return Inertia::render('bom/index', compact('boms'));
     }
 
     public function create(): Response
     {
-        $products = Product::with('item:id,name,unit,item_type')->select('item_id', 'weight', 'per_pack')->get();
+        $categories = Category::all();
         $items = Item::whereNot('item_type', 'product')->get();
-        return Inertia::render('bom/create', compact('products', 'items'));
+        return Inertia::render('bom/create', compact('categories', 'items'));
     }
 
 
@@ -36,7 +36,7 @@ class BOMController extends Controller
         // dd($request->all());
         $data = $request->validate([
             'formula_name' => 'required|string|max:55',
-            'product_id' => 'required|integer|exists:products,item_id',
+            'category_id' => 'required|integer|exists:categories,id',
             'min_exp_qty' => 'numeric|required|gte:1',
             'max_exp_qty' => 'numeric|required|gte:1',
             'bomLines' => 'required|array|min:1',
@@ -52,7 +52,7 @@ class BOMController extends Controller
             // create the goods receipt 
             $bom = BOM::create([
                 'formula_name' => $data['formula_name'],
-                'product_id' => $data['product_id'],
+                'category_id' => $data['category_id'],
                 'min_exp_qty' => $data['min_exp_qty'],
                 'max_exp_qty' => $data['max_exp_qty'],
                 'is_active' => true,
@@ -62,7 +62,7 @@ class BOMController extends Controller
                 $bom->bomLines()->create($line);
             }
             $des = $data['formula_name'] . ' در ثبت سیستم ثبت شد ';
-            $log->create('insert', $des);
+            $log->create('insert', $des,null,'/boms/'.$bom->id);
             DB::commit();
 
             session()->flash('toast', ['type' => 'success', 'message' => $des]);
@@ -94,7 +94,7 @@ class BOMController extends Controller
     public function show(BOM $bom)
     {
         $bom->load('bomLines:id,bom_id,item_id,required_quantity', 'bomLines.item:id,item_type,name,unit,default_sale_price,code,sku');
-        $bom->load('product:item_id,weight,per_pack', 'product.item:id,name,unit');
+        $bom->load('category:id,name');
         return Inertia::render('bom/show', compact('bom'));
     }
 

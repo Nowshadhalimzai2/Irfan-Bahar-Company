@@ -12,11 +12,11 @@ class BOM extends Model
 {
     protected $table = 'boms';
 
-    protected $fillable = ['formula_name', 'product_id', 'min_exp_qty', 'max_exp_qty', 'is_active'];
+    protected $fillable = ['formula_name', 'category_id', 'min_exp_qty', 'max_exp_qty', 'is_active'];
 
-    public function product(): BelongsTo
+    public function category(): BelongsTo
     {
-        return $this->belongsTo(Product::class, 'product_id', 'item_id');
+        return $this->belongsTo(Category::class);
     }
     public function bomLines(): HasMany
     {

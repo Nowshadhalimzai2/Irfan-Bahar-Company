@@ -18,8 +18,8 @@ export default function LocationTranslator(locName: string) {
 }
 
 export const locationColor = (locName: string) => `${locName === 'warehouse' ? 'text-red-500' : locName === 'factory' ? 'text-blue-500' : locName === 'shop' ? 'text-green-500' : 'text-yellow-500'} `;
-export const getDariItemType = (itemType: string) => itemType === 'product' ? 'محصول ' : itemType === 'raw_material' ? 'مواد خام' : itemType === 'packing' ? 'پیکنګ' : '';
-export const getDariCategory = (category: string) => category === 'soap' ? 'صابون ' : category === 'powder' ? 'پودر' : category === 'shampoo' ? 'شامپو' : category === 'acid' ? 'تیزاب': category === 'vaseline' ? 'واسلین' : category ==='raw_materail' ? 'مواد خام' : category ==='packing' ? 'پیکینګ' : '';
+export const getDariItemType = (itemType: string) => itemType === 'product' ? 'محصول ' : itemType === 'raw_material' ? 'مواد خام' : itemType === 'packing' ? 'پیکنګ' : itemType;
+export const getDariCategory = (category: string) => category === 'soap' ? 'صابون ' : category === 'powder' ? 'پودر' : category === 'shampoo' ? 'شامپو' : category === 'acid' ? 'تیزاب': category === 'vaseline' ? 'واسلین' : category ==='raw_material' ? 'مواد خام' : category ==='packing' ? 'پیکینګ' : category;
 export const getDariItemUnit = (unit: string) => {
     switch (unit.toLowerCase()) {
         case 'kg':
@@ -41,8 +41,8 @@ export const getDariItemUnit = (unit: string) => {
         case 'carton':
             return 'کارتن';
         default:
-            return 'واحداش مشخص نیست';
+            return unit;
     }
 }
-export const getDariCurrency = (currency: string) => currency === 'AFG' ? 'افغانی' : currency === 'َUSD' ? 'دالر' : currency === 'PKR' ? 'کلداری' : '';
+export const getDariCurrency = (currency: string) => currency === 'AFG' ? 'افغانی' : currency === 'َUSD' ? 'دالر' : currency === 'PKR' ? 'کلداری' : currency;
 export const getUnitOfMeasurements = () => [{value:'kg', label:'کیلو'} , {value: 'gr', label:'ګرام'} , {value:'ltr',label:'لیتر'} , {value:'packet',label:'پاکت'} , {value:'carton', label:'کارتن'} , {value:'bundle', label:'بسته'} , {value:'pair',label:'جوره'} , {value:'unit', label:'دانه'} , {value:'bag',label:'بوجی'}];

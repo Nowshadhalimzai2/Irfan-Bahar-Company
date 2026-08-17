@@ -8,11 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
 
-import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
-import { Item, Product } from '@/types/item';
+import LocationTranslator, { getDariCategory, getDariItemUnit } from '@/components/location-translator';
+import { Category, Item, Product } from '@/types/item';
 
 interface Props {
-  products: Product[];
+  categories: Category[];
   items: Item[];
 }
 
@@ -23,13 +23,13 @@ type BOMLine = {
 
 type BOMType = {
   formula_name: string;
-  product_id: number;
+  category_id: number;
   min_exp_qty: number;
   max_exp_qty: number;
   bomLines: BOMLine[];
 }
 
-const Create = ({ products, items }: Props) => {
+const Create = ({ categories, items }: Props) => {
   const [BOMLine, setBOMLine] = useState<BOMLine[]>([]);
   const [lineError, setLineError] = useState<string | null>(null);
   const [currentLine, setCurrentLine] = useState<BOMLine>(() => ({
@@ -37,9 +37,9 @@ const Create = ({ products, items }: Props) => {
     required_quantity: 1,
   }));
 
-  const { data, setData, errors, reset, post, processing } = useForm<BOMType>({
+  const { data, setData, errors, post, processing } = useForm<BOMType>({
     'formula_name': '',
-    'product_id': products[0]?.id ?? 1,
+    'category_id': categories[0].id,
     'min_exp_qty': 1,
     'max_exp_qty': 1,
     'bomLines': [],
@@ -86,7 +86,7 @@ const Create = ({ products, items }: Props) => {
   const handleRemoveLine = (index: number) => {
     setBOMLine((prev) => prev.filter((_, i) => i !== index));
   };
-console.log(products);
+console.log(categories);
 
   const itemUnit = useMemo(() => {
     if (items.length === 0)
@@ -125,24 +125,24 @@ console.log(products);
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="product_id">جنس تولید</Label>
+                    <Label htmlFor="category_id">جنس</Label>
                     <select
                       className="border p-1.5 rounded-md"
                       tabIndex={2}
-                      name="product_id"
-                      value={data.product_id}
+                      name="category_id"
+                      value={data.category_id}
                       onChange={(e) =>
-                        setData('product_id', Number(e.target.value))
+                        setData('category_id', Number(e.target.value))
                       }
                     >
                       <option value={0}>جنس که برای فورمول ساخته میشود</option>
-                      {products.map((product) => (
-                        <option value={product.item_id} key={product.item_id} >
-                          {product.item.name}
+                      {categories.map((category) => (
+                        <option value={category.id} key={category.id} >
+                          {getDariCategory(category.name)}
                         </option>
                       ))}
                     </select>
-                    <InputError message={errors.product_id} className="mt-2" />
+                    <InputError message={errors.category_id} className="mt-2" />
                   </div>
 
                 <div className="grid gap-2 mt-5">

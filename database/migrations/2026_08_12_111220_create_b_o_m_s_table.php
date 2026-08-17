@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -15,10 +16,11 @@ return new class extends Migration
         Schema::create('boms', function (Blueprint $table) {
             $table->id();
             $table->string('formula_name',55);
-            $table->foreignId('product_id')
-                  ->constrained('products', 'item_id')
-                  ->cascadeOnDelete()
+            $table->foreignIdFor(Category::class)
+                  ->constrained('categories')
+                  ->noActionOnDelete()
                   ->cascadeOnUpdate();
+            
             $table->decimal('min_exp_qty',5,2);
             $table->decimal('max_exp_qty',5,2);
             $table->boolean('is_active')->default(true);

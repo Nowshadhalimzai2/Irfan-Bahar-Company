@@ -29,7 +29,7 @@ export function NavMain({ items = [] }: { items: NavItem[] }) {
                                 <span>{item.title}</span>
                             </Link>
                         </SidebarMenuButton>
-                        {item.title == 'اطلاعات' && <Bell className={`size-4`}/>}
+                        {item.title == 'اطلاعات' && <Bell className={`size-4 text-yellow-500 animate-bounce`}/>}
                     </SidebarMenuItem>
                 ))}
             </SidebarMenu>

@@ -1,6 +1,6 @@
 <?php
 
-use App\Models\Product;
+use App\Http\Controllers\ProductionOrderController;
 use App\Models\ProductionOrder;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -16,8 +16,11 @@ return new class extends Migration
         Schema::create('production_outputs', function (Blueprint $table) {
             $table->id();
             $table->foreignIdFor(ProductionOrder::class)->constrained('production_orders')->cascadeOnDelete()->cascadeOnUpdate();
-            $table->foreignIdFor(Product::class,'item_id')->constrained('products')->noActionOnDelete()->cascadeOnUpdate();
-            $table->decimal('quantity_produced',6,2);
+            $table->foreignId('product_id')
+                ->constrained('products', 'item_id')
+                ->noActionOnDelete()
+                ->cascadeOnUpdate();
+            $table->decimal('quantity_produced', 6, 2);
             $table->timestamps();
         });
     }
