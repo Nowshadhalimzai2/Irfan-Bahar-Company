@@ -125,3 +125,26 @@ export interface BOMLine{
     item:Item;
     required_quantity:number;
 }
+
+export interface ProductionOrder{
+    id:number;
+    ordered_by:string;
+    bom:BOM;
+    order_date:Date;
+    status: 'pending' | 'progress' | 'completed' | 'drafted' | 'cancelled';
+    notes:string;
+    production_outputs:ProductionOutput[];
+    production_inputs:ProductionInput[];
+}
+
+export interface ProductionOutput{
+    id:number;
+    product:Product;
+    quantity_produced:number;
+}
+
+export interface ProductionInput{
+    id:number;
+    item:Product;
+    quantity_used:number;
+}

@@ -12,10 +12,13 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransferController;
 use App\Models\Expense;
+use App\Models\Item;
+use App\Models\ProductionOrder;
 use App\Models\Role;
 use App\Models\ShopAccount;
 use App\Models\User;
@@ -133,8 +136,28 @@ Route::middleware('auth')->group(function () {
 Route::middleware(['auth'])->group(function () {
     Route::prefix('factory')->group(function () {
         Route::get('/home', function () {
-            return Inertia::render('factory/home');
+
+            //  ===========  get items available in Factory  ===========
+            $items = Item::with([
+                'inventoryBalances' => function ($query) {
+                    $query->whereHas('location', function ($locationQuery) {
+                        $locationQuery->where('name', 'factory');
+                    });
+                },
+                'inventoryBalances.location:id,name',
+                'product:item_id,per_pack,weight',
+                'category:id,name',
+            ])->whereHas('inventoryBalances', function ($p0) {
+                $p0->whereNot('quanity_on_hand', 0)
+                    ->whereHas('location', function ($locationQuery) {
+                        $locationQuery->where('name', 'factory');
+                    });
+            })->paginate(4);
+
+        $pendingOrders = ProductionOrder::with('bom:id,category_id','bom.category:id,name','productionOutputs:id,quantity_produced')->select('id','ordered_by','order_date','status')->get();
+            return Inertia::render('factory/home',compact('items','pendingOrders'));
         })->name('factory');
+        Route::resource('production_orders',ProductController::class)->names('orders');
     });
 });
 require __DIR__ . '/settings.php';

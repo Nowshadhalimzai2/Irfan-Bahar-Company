@@ -10,7 +10,7 @@ import InputError from '@/components/input-error';
 import { Currency, Location, Supplier } from '@/types';
 import { GoodsReceiptLine, Item } from '@/types/item';
 import { LineChart } from 'lucide-react';
-import { getDariItemUnit } from '@/components/location-translator';
+import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
 
 interface Props {
     suppliers: Supplier[];
@@ -117,9 +117,9 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                             value={data.supplier_id}
                                             onChange={(e) => setData('supplier_id', Number(e.target.value))}
                                         >
-                                            <option value={0}>تأمین کننده را انتخاب کنید</option>
+                                            <option value={0} className=" dark:text-accent-foreground dark:bg-secondary-foreground">تأمین کننده را انتخاب کنید</option>
                                             {suppliers.map((supplier) => (
-                                                <option value={supplier.id} key={supplier.id}>
+                                                <option value={supplier.id} key={supplier.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
                                                     {supplier.name}
                                                 </option>
                                             ))}
@@ -138,10 +138,10 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                 setData('destination_location_id', Number(e.target.value))
                                             }
                                         >
-                                            <option value={0}>موقعیت را انتخاب کنید</option>
+                                            <option value={0} className='dark:text-accent-foreground'>موقعیت را انتخاب کنید</option>
                                             {locations.map((location) => (
-                                                <option value={location.id} key={location.id}>
-                                                    {location.name}
+                                                <option value={location.id} key={location.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
+                                                    {LocationTranslator(location.name)}
                                                 </option>
                                             ))}
                                         </select>
@@ -182,9 +182,9 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                         }))
                                                     }
                                                 >
-                                                    <option value={0}>پولی واحد را انتخاب نماید</option>
+                                                    <option value={0} className=" dark:text-accent-foreground dark:bg-secondary-foreground">پولی واحد را انتخاب نماید</option>
                                                     {currencies.map((currency) => (
-                                                        <option value={currency.id} key={currency.id}>
+                                                        <option value={currency.id} key={currency.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
                                                             {currency.name}
                                                         </option>
                                                     ))}
@@ -208,7 +208,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                     }
                                                 >
                                                     {items.map((item) => (
-                                                        <option value={item.id} key={item.id}>
+                                                        <option value={item.id} key={item.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
                                                             {item.name}
                                                         </option>
                                                     ))}
