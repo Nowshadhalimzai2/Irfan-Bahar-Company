@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductionOrder extends Model
 {
@@ -12,5 +13,14 @@ class ProductionOrder extends Model
     public function bom(): BelongsTo
     {
         return $this->belongsTo(BOM::class, 'bom_id');
+    }
+    public function productionInputs(): HasMany
+    {
+        return $this->hasMany(ProductionInput::class);
+    }
+
+    public function productionOutputs(): HasMany
+    {
+        return $this->hasMany(ProductionOutput::class);
     }
 }
