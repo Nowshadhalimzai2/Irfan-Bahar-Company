@@ -164,6 +164,7 @@ const Create = ({ categories, items }: Props) => {
                   <Input
                     className="border p-1.5 rounded-md text-sm"
                     tabIndex={2}
+                    min={data.min_exp_qty}
                     name="max_exp_qty"
                     value={data.max_exp_qty}
                     onChange={(e) =>

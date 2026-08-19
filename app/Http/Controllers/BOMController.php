@@ -45,7 +45,10 @@ class BOMController extends Controller
             'bomLines.*.item_id' => 'required|integer|exists:items,id|distinct',
             'bomLines.*.required_quantity' => 'required|numeric|gt:0',
         ]);
-
+        $request->validate([
+            'min_exp_qty' => 'required|lte:'.$data['max_exp_qty'],
+            'max_exp_qty' => 'required|gte:'.$data['min_exp_qty'],
+        ]);
         $log = new Log();
         DB::beginTransaction();
         try {
