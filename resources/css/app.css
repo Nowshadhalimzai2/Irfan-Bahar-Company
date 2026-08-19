@@ -193,8 +193,31 @@
         background: var(--primary);
         color: white;
     }
+
     .section {
-        @apply py-20 mb-8 ;
+        @apply py-20 mb-8;
+    }
+
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+
+        #printArea,
+        #printArea * {
+            visibility: visible;
+        }
+
+        #printArea {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+
+        .no-print {
+            display: none;
+        }
     }
 }
 

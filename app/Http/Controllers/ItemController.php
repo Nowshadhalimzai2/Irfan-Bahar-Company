@@ -36,7 +36,7 @@ class ItemController extends Controller
             $itemData = $request->validate([
                 'name' => 'required|string|max:255',
                 'code' => 'required|string|max:12',
-                // 'sku' => 'required|unique:items,sku|string|max:12',
+                // 'per_pack' => 'required|unique:items,sku|string|max:12',
                 'item_type' => 'required|string',
                 'price' => 'required|numeric',
                 'category_id' => 'required|exists:categories,id',
@@ -48,7 +48,7 @@ class ItemController extends Controller
                 $productData = $request->validate([
                     'barcode' => 'nullable|string|max:16|unique:products,barcode',
                     'weight' => 'required|numeric',
-                    'contains' => 'required|integer',
+                    'per_pack' => 'required|integer',
                     'description' => 'nullable|string|max:255',
                 ]);
             }
@@ -71,7 +71,7 @@ class ItemController extends Controller
                 $item->product()->create([
                     'barcode' => $productData['barcode'] ?? null,
                     'weight' => $productData['weight'] ?? 0,
-                    'per_pack' => $productData['contains'] ?? 1,
+                    'per_pack' => $productData['per_pack'] ?? 1,
                     'description' => $productData['description'] ?? null,
                 ]);
                 $item->load('product');
@@ -91,10 +91,11 @@ class ItemController extends Controller
             // Let validation exceptions bubble so Inertia/Laravel can return proper validation responses
             if ($th instanceof ValidationException) {
                 throw $th;
+                Inertia::Flash('toast', ['type' => 'error', 'message' => 'جنس نو ثبت نشد در سیستم ' .  ' ' . $th->getMessage()]);
             }
 
             DB::rollBack();
-            $request->session()->flash('toast', ['type' => 'error', 'message' => 'جنس نو ثبت نشد در سیستم ' .  ' ' . $th->getMessage()]);
+            Inertia::Flash('toast', ['type' => 'error', 'message' => 'جنس نو ثبت نشد در سیستم ' .  ' ' . $th->getMessage()]);
 
             return redirect()->back();
         }

@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
 
-import LocationTranslator, { getDariCategory, getDariItemUnit } from '@/components/location-translator';
-import { Category, Item, Product } from '@/types/item';
+import { getDariCategory, getDariItemUnit } from '@/components/location-translator';
+import { Category, Item } from '@/types/item';
 
 interface Props {
   categories: Category[];
@@ -86,7 +86,6 @@ const Create = ({ categories, items }: Props) => {
   const handleRemoveLine = (index: number) => {
     setBOMLine((prev) => prev.filter((_, i) => i !== index));
   };
-console.log(categories);
 
   const itemUnit = useMemo(() => {
     if (items.length === 0)
@@ -107,7 +106,7 @@ console.log(categories);
           <div className="max-w-3xl mx-auto p-5">
             <SectionTitle title='فورم فورموله' />
             <div className="section">
-              <form onSubmit={handleBOM} name="receipt" id="receipt">
+              <form onSubmit={handleBOM} name="boms" id="boms">
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
                   <div className="grid gap-2">
                     <Label htmlFor="formula_name">نام فورمول</Label>

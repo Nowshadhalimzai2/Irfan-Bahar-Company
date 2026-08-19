@@ -13,6 +13,7 @@ use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransferController;
@@ -154,10 +155,11 @@ Route::middleware(['auth'])->group(function () {
                     });
             })->paginate(4);
 
-        $pendingOrders = ProductionOrder::with('bom:id,category_id','bom.category:id,name','productionOutputs:id,quantity_produced')->select('id','ordered_by','order_date','status')->get();
+        $pendingOrders = ProductionOrder::with('bom:id,category_id','bom.category:id,name','productionOutputs:id,production_order_id,quantity_produced')->select('id','ordered_by','order_date','status','bom_id')->get();
+            // dd($pendingOrders);
             return Inertia::render('factory/home',compact('items','pendingOrders'));
         })->name('factory');
-        Route::resource('production_orders',ProductController::class)->names('orders');
+        Route::resource('production-orders',ProductionOrderController::class)->names('orders');
     });
 });
 require __DIR__ . '/settings.php';

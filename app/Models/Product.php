@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Product extends Model
 {
-    protected $fillable = ['item_id','weight','contains','description','barcode'];
+    protected $fillable = ['item_id','weight','per_pack','description','barcode'];
 
     public function item(): BelongsTo{
 

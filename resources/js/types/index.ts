@@ -132,7 +132,7 @@ export interface ProductionOrder{
     bom:BOM;
     order_date:Date;
     status: 'pending' | 'progress' | 'completed' | 'drafted' | 'cancelled';
-    notes:string;
+    notes?:string;
     production_outputs:ProductionOutput[];
     production_inputs:ProductionInput[];
 }
