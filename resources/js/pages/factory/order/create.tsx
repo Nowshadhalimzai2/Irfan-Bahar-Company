@@ -53,7 +53,7 @@ const Create = ({ boms, products }: Props) => {
   const handleOrders = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    post('/factory/production_orders', {
+    post('/factory/production-orders', {
       onFinish: () => {
         setProductionOutput([]);
         setCurrentLine({
@@ -96,7 +96,6 @@ const Create = ({ boms, products }: Props) => {
     
   }, [currentLine]);
 
-  console.log('weight: ',products[3].per_pack);
   
   return (
     <AppLayout breadcrumbs={[

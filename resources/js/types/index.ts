@@ -135,6 +135,7 @@ export interface ProductionOrder{
     notes?:string;
     production_outputs:ProductionOutput[];
     production_inputs:ProductionInput[];
+    reference_no:string;
 }
 
 export interface ProductionOutput{

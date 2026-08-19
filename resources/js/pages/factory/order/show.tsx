@@ -43,14 +43,15 @@ const Show = ({ productionOrder, logo }: Props) => {
                     <Header logo={logo} title="بل سفارش"/>
 
                     {/* BILL INFO */}
-                    <div className="flex justify-between items-center mt-5 ">
+                    <div className="flex font-medium justify-between items-center mt-5 ">
                         <p>سفارش توسط : {productionOrder.ordered_by}</p>
-                        <p>جنس : {getDariCategory(productionOrder.bom.category.name)}</p>
                         <p>تاریخ سفارش : {new Date(productionOrder.order_date).toLocaleDateString()}</p>
+                        <p> {productionOrder.reference_no} : سفارش نمبر </p>
                     </div>
 
                     {/*  BILL CONTENT */}
-                    <div className="py-5 h-165">
+                    <div className="py-5 h-165 relative">
+                        <h2 className="absolute top-50 left-20 text-6xl opacity-30 -rotate-45 font-bold text-primary">سفارش جاوید افغان</h2>
                         <div>
                             <Table className="border">
                                 <TableHeader>

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignIdFor(BOM::class,'bom_id')->constrained('boms')->noActionOnDelete()->nullOnUpdate();
             $table->enum('status',['pending','progress','completed','drafted','cancelled'])->default('pending');
             $table->date('order_date');
+            $table->string('reference_no',15);
             $table->text('notes')->nullable();
             $table->timestamps();
         });

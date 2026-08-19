@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductionOrder extends Model
 {
-    protected $fillable = ['ordered_by', 'bom_id', 'status', 'order_date', 'notes'];
+    protected $fillable = ['ordered_by', 'bom_id', 'status', 'order_date', 'notes','reference_no'];
 
     public function bom(): BelongsTo
     {
