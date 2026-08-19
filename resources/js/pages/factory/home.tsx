@@ -29,7 +29,7 @@ interface Props {
   pendingOrders: ProductionOrder[];
 }
 const Home = ({ pendingOrders, items }: Props) => {
-
+    
   const [allItems, setAllItems] = useState<ItemWithInventory[]>(items.data);
   const totalStock = (item: ItemWithInventory) => {
     return item.inventory_balances.reduce((acc, balance) => acc + (balance.quantity_on_hand - balance.reserved), 0);
@@ -91,20 +91,24 @@ const Home = ({ pendingOrders, items }: Props) => {
                 <h4 className="text-lg font-semibold text-center p-2 text-accent bg-accent-foreground">حوالات اجناس</h4>
                 <div className="ORDERLIST">
                   <div className="CREATE-NEW-ORDER flex justify-end items-end mt-2">
-                    <Link href={'/factory/production_orders/create'} className={`${buttonVariants({ variant: 'secondary' })} `} >حواله جدید</Link>
+                    <Link href={'/factory/production-orders/create'} className={`${buttonVariants({ variant: 'secondary' })} `} >حواله جدید</Link>
                   </div>
                   <div className="LIST py-3">
                     <div>
                       {pendingOrders.length> 0 ?pendingOrders.map(order =>
-                        <div className="flex justify-between items-center p-2 rounded-sm bg-secondary text-secondary-foreground border">
+                        <div className={`${order.status==="pending" ? 'border-accent':''} flex justify-between items-center p-2 rounded-sm bg-secondary text-secondary-foreground border`}>
                           <div>{order.ordered_by}</div>
-                          <div>{order.bom.category.name}</div>
+                          <div>{getDariCategory(order.bom.category.name)}</div>
                           <div>{order.production_outputs.reduce((acc,output)=>acc+=output.quantity_produced,0)}</div>
                           <div>{new Date(order.order_date).toDateString()}</div>
                         </div>
                       ):
                         <p className="text-center text-sm text-muted-foreground">کدام حواله در حال منتظر موجود نیست!</p>
                       }
+                      <Link 
+                      href={'/factory/production-orders'}
+                        className="underline text-sm py-0 mt-5"
+                      >بشتر را ببین!</Link>
                     </div>
                   </div>
                 </div>
