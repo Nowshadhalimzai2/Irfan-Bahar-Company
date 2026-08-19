@@ -20,7 +20,7 @@ type ItemType = {
     // product type
     barcode: string;
     weight?: number;
-    contains?: number;
+    per_pack?: number;
     description?: string;
 }
 
@@ -40,7 +40,7 @@ const Create = ({ categories }: Props) => {
         // product related
         'barcode': '',
         'weight': 1,
-        'contains': 1,
+        'per_pack': 1,
         'description': '',
     });
     const [isItemTypeProduct, setIsItemTypeProduct] = useState<'product' | 'raw_material' | 'packing'>('raw_material');
@@ -105,7 +105,7 @@ const Create = ({ categories }: Props) => {
                                         <Label htmlFor="price">نرخ اوسط</Label>
                                         <Input
                                             id="price"
-                                            type="text"
+                                            type="number"
                                             required
                                             autoFocus
                                             tabIndex={4}
@@ -183,7 +183,7 @@ const Create = ({ categories }: Props) => {
                                             <Label htmlFor="weight">وزن یک جنس</Label>
                                             <Input
                                                 id="weight"
-                                                type="text"
+                                                type="number"
                                                 required
                                                 autoFocus
                                                 tabIndex={5}
@@ -200,20 +200,20 @@ const Create = ({ categories }: Props) => {
                                         </div>
 
                                         <div className="grid gap-2">
-                                            <Label htmlFor="contains">مقدار پر پیک</Label>
+                                            <Label htmlFor="per_pack">مقدار پر پیک</Label>
                                             <Input
-                                                id="contains"
+                                                id="per_pack"
                                                 type="text"
                                                 required
                                                 autoFocus
                                                 tabIndex={6}
-                                                autoComplete="contains"
-                                                name="contains"
-                                                value={data.contains}
-                                                onChange={(e) => setData('contains', Number(e.target.value))}
+                                                autoComplete="per_pack"
+                                                name="per_pack"
+                                                value={data.per_pack}
+                                                onChange={(e) => setData('per_pack', Number(e.target.value))}
                                             />
                                             <InputError
-                                                message={errors.contains}
+                                                message={errors.per_pack}
                                                 className="mt-2"
                                             />
                                         </div>
