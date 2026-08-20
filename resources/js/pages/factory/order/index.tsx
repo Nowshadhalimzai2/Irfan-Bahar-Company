@@ -14,6 +14,7 @@ import {
 import { router } from '@inertiajs/core';
 import { getDariCategory, getDariOrderStatus, getStatusColor } from '@/components/location-translator';
 import orders from '@/routes/orders';
+import { Button } from '@/components/ui/button';
 
 interface Props {
     production_orders: ProductionOrder[];
@@ -42,8 +43,8 @@ const Index = ({ production_orders }: Props) => {
                                             <TableHead className="text-center">سفارش کننده</TableHead>
                                             <TableHead className="text-center">جنس</TableHead>
                                             <TableHead className="text-center">حالت سفارش</TableHead>
-                                            <TableHead className="text-center">مقدار</TableHead>
                                             <TableHead className="text-center">تاریخ سفارش</TableHead>
+                                            <TableHead className="text-center">تغیر حالت</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -53,10 +54,10 @@ const Index = ({ production_orders }: Props) => {
                                                 <TableCell className="text-center">{order.ordered_by}</TableCell>
                                                 <TableCell className="text-center">{getDariCategory(order.bom.category.name)}</TableCell>
                                                 <TableCell className={`text-center ${getStatusColor(order.status)}`}>{getDariOrderStatus(order.status)}</TableCell>
-                                                <TableCell className="text-center">{order.production_outputs.reduce((acc,output)=>acc+=(output.quantity_produced*output.product.weight),0)} کیلو/ لیتر</TableCell>
-                                                {/* <TableCell className="text-center">{50}</TableCell> */}
                                                 <TableCell className="text-center">{new Date(order.order_date).toDateString()}</TableCell>
-
+                                                <TableCell className="text-center p-0">
+                                                    <button className='bg-emerald-900 text-secondary w-full py-2'>جریان</button>
+                                                </TableCell>
                                             </TableRow>
                                         )) : <TableRow>
                                             <TableCell colSpan={6} className="text-center text-gray-500 text-sm p-5"> سفارش موجود نیست</TableCell></TableRow>}
