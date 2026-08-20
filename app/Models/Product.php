@@ -4,15 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Product extends Model
 {
-    protected $fillable = ['item_id','weight','per_pack','description','barcode'];
+    protected $primaryKey = 'item_id';
 
-    public function item(): BelongsTo{
+    public $incrementing = false;
 
-        return $this->belongsTo(Item::class)->where('item_type','product');
+    protected $keyType = 'int';
+
+    protected $fillable = ['item_id', 'weight', 'per_pack', 'description', 'barcode'];
+
+    public function item(): BelongsTo
+    {
+        return $this->belongsTo(Item::class, 'item_id', 'id');
     }
-  
 }

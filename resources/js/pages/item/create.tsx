@@ -8,11 +8,10 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
 import { Category, unitType } from '@/types/item';
-import { getUnitOfMeasurements } from '@/components/location-translator';
+import { getDariCategory, getUnitOfMeasurements } from '@/components/location-translator';
 
 type ItemType = {
     name: string;
-    code: string;
     item_type: 'product' | 'raw_material' | 'packing';
     unit: 'kg' | 'gr' | 'ltr' | 'packet' | 'carton' | 'bundle' | 'pair' | 'unit' | 'bag';
     price: number;
@@ -32,7 +31,6 @@ const Create = ({ categories }: Props) => {
     
     const { data, setData, errors, reset, post, processing } = useForm<ItemType>({
         'name': '',
-        'code': '',
         'item_type': 'product',
         'unit': 'kg',
         'price': 1,
@@ -43,7 +41,7 @@ const Create = ({ categories }: Props) => {
         'per_pack': 1,
         'description': '',
     });
-    const [isItemTypeProduct, setIsItemTypeProduct] = useState<'product' | 'raw_material' | 'packing'>('raw_material');
+    const [isItemTypeProduct, setIsItemTypeProduct] = useState<'product' | 'raw_material' | 'packing'>('product');
     const handleItem = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         post('/items');
@@ -83,21 +81,13 @@ const Create = ({ categories }: Props) => {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="code">کود جنس</Label>
+                                        <Label htmlFor="code">کود جنس (خودکار)</Label>
                                         <Input
                                             id="code"
                                             type="text"
-                                            autoFocus
+                                            readOnly
                                             tabIndex={2}
-                                            autoComplete="code"
-                                            name="code"
-                                            value={data.code}
-                                            onChange={(e) => setData('code', e.target.value)}
-                                            placeholder="کود جنس  SP-001"
-                                        />
-                                        <InputError
-                                            message={errors.code}
-                                            className="mt-2"
+                                            value="بعد از ثبت خودکار ساخته می‌شود"
                                         />
                                     </div>
                                    
@@ -127,7 +117,7 @@ const Create = ({ categories }: Props) => {
                                             className="border rounded-md py-2"
                                         >
                                             <option value="">کتګوری را انتخاب کنین</option>
-                                            {categories.map((category, ind) => <option key={ind} value={category.id}>{category.name}</option>)}
+                                            {categories.map((category, ind) => <option key={ind} value={category.id}>{getDariCategory(category.name)}</option>)}
 
                                         </select>
                                         <InputError
@@ -140,7 +130,7 @@ const Create = ({ categories }: Props) => {
                                     <div className="grid gap-2">
                                         <Label htmlFor="unit">واحد اندازه ګیری</Label>
                                         <select name="unit" id="unit"
-                                            onChange={(e) => setData('unit', e.target.value as 'kg' | 'ltr' | 'gr')}
+                                            onChange={(e) => setData('unit', e.target.value as unitType)}
                                             className="border rounded-md py-2 "
 
                                         >
@@ -219,18 +209,17 @@ const Create = ({ categories }: Props) => {
                                         </div>
 
                                         <div className="grid gap-2">
-                                            <Label htmlFor="barcode">بار کود </Label>
+                                            <Label htmlFor="barcode">بارکد (خودکار)</Label>
                                             <Input
                                                 id="barcode"
                                                 type="text"
-                                                required
                                                 autoFocus
                                                 tabIndex={7}
                                                 autoComplete="barcode"
                                                 name="barcode"
                                                 value={data.barcode}
                                                 onChange={(e) => setData('barcode', e.target.value)}
-                                                placeholder="XXXX-XXXX-XXXX"
+                                                placeholder="در صورت خالی بودن خودکار ساخته می‌شود"
                                             />
                                             <InputError
                                                 message={errors.barcode}

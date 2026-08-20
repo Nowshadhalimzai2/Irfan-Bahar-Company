@@ -1,4 +1,5 @@
 import { getDariItemUnit } from '@/components/location-translator';
+import PageLinks from '@/components/page-links';
 import { SectionTitle } from '@/components/section-title';
 import { buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,14 @@ import { useEffect, useState } from 'react';
 interface Props {
   items: {
     data: Item[];
-
+     current_page: number;
+    from: number;
+    last_page: number;
+    links: {
+      url: string | null;
+      label: string;
+      active: boolean;
+    }[];
   };
 }
 const Index = ({ items }: Props) => {
@@ -122,6 +130,7 @@ const Index = ({ items }: Props) => {
               </TableBody>
             </Table>
           </div>
+          <PageLinks links={items.links} />
         </section>
       </div>
     </AppLayout>

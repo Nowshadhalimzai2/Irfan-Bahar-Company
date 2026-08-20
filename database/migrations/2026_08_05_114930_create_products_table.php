@@ -16,7 +16,7 @@ return new class extends Migration
             $table->foreignIdFor(Item::class)->primary(true)->constrained()->cascadeOnDelete()->cascadeOnUpdate();
             $table->decimal('weight', 3, 3);
             $table->integer('per_pack')->default(1);
-            $table->text('description');
+            $table->text('description')->nullable();
             $table->string('barcode', 50)->unique()->nullable();
             $table->timestamps();
             $table->unique(['item_id', 'weight', 'per_pack']);
