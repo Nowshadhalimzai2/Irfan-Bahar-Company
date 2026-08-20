@@ -160,6 +160,7 @@ Route::middleware(['auth'])->group(function () {
             return Inertia::render('factory/home',compact('items','pendingOrders'));
         })->name('factory');
         Route::resource('production-orders',ProductionOrderController::class)->names('orders');
+        Route::get('/production-orders/get-related-products/{category}',[ProductionOrderController::class,'getCategoryBasedProducts']);
     });
 });
 require __DIR__ . '/settings.php';

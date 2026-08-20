@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Custome\Log;
 use App\Models\BOM;
+use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductionOrder;
 use Carbon\Carbon;
@@ -34,14 +35,19 @@ class ProductionOrderController extends Controller
     public function create()
     {
 
-        $boms = BOM::select('id', 'formula_name')->get();
+        $boms = BOM::with('category:id,name')->select('id', 'formula_name','category_id')->get();
         if ($boms->count() == 0) {
             $des = 'هیج فورمول وجود ندارد . لطفا اول فورمول را اضافه و بعدا سفارش بدهید.';
             Inertia::flash('toast', ['type' => 'error', 'message' => $des]);
             return redirect()->to(route('boms.create'));
         }
-        $products = Product::with('item:id,name,unit')->get();
-        return Inertia::render('factory/order/create', compact('boms', 'products'));
+
+        // $products = Product::with(['item:id,name,unit,category_id','item.category:id,name'])
+        // ->whereHas('item.category', function ($query) use ($bomCategory) {
+        //     $query->where('name', $bomCategory);
+        // })
+        // ->get();
+        return Inertia::render('factory/order/create', compact('boms'));
     }
 
     public function store(Request $request)
@@ -104,5 +110,15 @@ class ProductionOrderController extends Controller
         $productionOrder->load('productionOutputs:id,product_id,quantity_produced,production_order_id', 'productionOutputs.product:item_id,per_pack,weight', 'productionOutputs.product.item:id,name,unit');
 
         return Inertia::render('factory/order/show', compact('productionOrder', 'logo'));
+    }
+
+    public function getCategoryBasedProducts(Category $category){
+
+         $products = Product::with(['item:id,name,unit,category_id','item.category:id,name'])
+        ->whereHas('item.category', function ($query) use ($category) {
+            $query->where('name', $category->name);
+        })
+          ->get();
+        return response()->json($products);
     }
 }

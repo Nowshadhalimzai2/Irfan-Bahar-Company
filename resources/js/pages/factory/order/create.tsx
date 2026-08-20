@@ -11,6 +11,7 @@ import { BOM, ProductionInput } from '@/types';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useForm } from '@inertiajs/react';
 import { SectionTitle } from '@/components/section-title';
+import axios from 'axios';
 
 interface Props {
   boms: BOM[];
@@ -30,14 +31,11 @@ type ProductionOrder = {
 }
 
 
-const Create = ({ boms, products }: Props) => {
-
+const Create = ({ boms}: Props) => {
+  const [relatedProducts,setRelatedProducts] = useState<Product[]>([]);  
   const [productionOutput, setProductionOutput] = useState<ProductionOutput[]>([]);
   const [lineError, setLineError] = useState<string | null>(null);
-  const [currentLine, setCurrentLine] = useState<ProductionOutput>(() => ({
-    product_id: products[0]?.item_id,
-    quantity_produced: 1,
-  }));
+
 
   const { data, setData, errors, post, processing } = useForm<ProductionOrder>({
     'ordered_by': '',
@@ -48,8 +46,27 @@ const Create = ({ boms, products }: Props) => {
   useEffect(() => {
     setData('productionOutputs', productionOutput);
   }, [productionOutput, setData]);
+  
 
+  
+  useEffect(()=>{
+    async function getRelatedProduts() {
+      const pds = await axios.get('/factory/production-orders/get-related-products/'+boms.filter(bom=>bom.id === data.bom_id)[0].category.id);
+      if(pds.status == 200){
+        setRelatedProducts(pds.data);        
+      }
+      else{
+        console.log('error fetching data'+pds.statusText);
+        
+      }
+    }
+    getRelatedProduts();
+  },[data.bom_id]);
 
+    const [currentLine, setCurrentLine] = useState<ProductionOutput>(() => ({
+    product_id: relatedProducts[0]?.item_id,
+    quantity_produced: 1,
+  }));
   const handleOrders = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -57,7 +74,7 @@ const Create = ({ boms, products }: Props) => {
       onFinish: () => {
         setProductionOutput([]);
         setCurrentLine({
-          product_id: products[0]?.id,
+          product_id: relatedProducts[0]?.id,
           quantity_produced: 1,
         });
       },
@@ -90,9 +107,9 @@ const Create = ({ boms, products }: Props) => {
   };
   
   const itemUnit = useMemo(() => {
-    if (products.length === 0)
+    if (relatedProducts.length === 0)
       return 'unit';
-    return products.filter(product => product.item_id === currentLine.product_id)[0].item.unit;
+    return relatedProducts.filter(product => product.item_id === currentLine.product_id)[0].item.unit;
     
   }, [currentLine]);
 
@@ -169,7 +186,7 @@ const Create = ({ boms, products }: Props) => {
                     <div className="grid gap-6   grid-cols-1 md:grid-cols-2 ">
 
                       <div className="grid gap-2">
-                        <Label htmlFor="product_id">جنس که حواله میشه</Label>
+                        <Label htmlFor="product_id">جنس که سفارش میشه</Label>
                         <select
                           className="border p-1.5 rounded-md dark:bg-secondary-foreground dark:text-accent"
                           name="product_id"
@@ -182,9 +199,9 @@ const Create = ({ boms, products }: Props) => {
                             }))
                           }
                         >
-                          {products.map((product) => (
+                          {relatedProducts.map((product) => (
                             <option value={product.item_id} key={product.item_id} className='dark:bg-secondary dark:text-accent'>
-                              {product.item.name} {(product.weight/product.per_pack).toFixed(3)}
+                              {product.item.name} {(product.weight/product.per_pack)*1000}
                             </option>
                           ))}
                         </select>
@@ -252,7 +269,7 @@ const Create = ({ boms, products }: Props) => {
                         >
                           <div>
                             <div className="space-y-1 gap-3 text-sm grid grid-cols-3">
-                              <div className=" p-5 border rounded-sm bg-white">جنس: {products.find((product) => product.item_id === line.product_id)?.item.name || line.product_id}</div>
+                              <div className=" p-5 border rounded-sm bg-white">جنس: {relatedProducts.find((product) => product.item_id === line.product_id)?.item.name || line.product_id}</div>
 
                               <div className=" p-5 border rounded-sm bg-white">مقدار: {line.quantity_produced}</div>
 
