@@ -5,7 +5,7 @@ interface Props {
 }
 const Overview = ({ children, className = '' }: Props) => {
     return (
-        <div className={`flex font-medium justify-between items-center mt-5 ${className}`}>
+        <div className={`flex font-medium justify-between items-center mt-5 px-4 ${className}`}>
             {children}
         </div>
     )

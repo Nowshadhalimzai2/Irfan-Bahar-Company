@@ -219,45 +219,10 @@
             display: none;
         }
 
-        .billing-paper {
-            width: auto;
-            min-height: auto;
-            margin: 0;
-            padding: 0;
-        }
+       
     }
 
-    @page {
-        size: A4;
-        margin: 12mm;
-    }
-
-    .billing-paper {
-        box-sizing: border-box;
-        width: 210mm;
-        min-height: 297mm;
-        padding: 12mm;
-        margin: 0 auto;
-
-        display: flex;
-        flex-direction: column;
-        background: white;
-    }
-
-    .bill-header {
-        flex: 0 0 auto;
-    }
-
-    .bill-content {
-        flex: 1 0 auto;
-        /* fills spare space, grows for long content */
-    }
-
-    .bill-footer {
-        flex: 0 0 auto;
-        margin-top: auto;
-        /* keeps footer at the bottom when content is short */
-    }
+   
 }
 
 
