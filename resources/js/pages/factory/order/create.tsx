@@ -6,7 +6,7 @@ import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
 
 import LocationTranslator, { getDariCategory, getDariItemUnit } from '@/components/location-translator';
-import {  Product } from '@/types/item';
+import { Product } from '@/types/item';
 import { BOM, ProductionInput } from '@/types';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useForm } from '@inertiajs/react';
@@ -31,8 +31,8 @@ type ProductionOrder = {
 }
 
 
-const Create = ({ boms}: Props) => {
-  const [relatedProducts,setRelatedProducts] = useState<Product[]>([]);  
+const Create = ({ boms }: Props) => {
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [productionOutput, setProductionOutput] = useState<ProductionOutput[]>([]);
   const [lineError, setLineError] = useState<string | null>(null);
 
@@ -46,24 +46,24 @@ const Create = ({ boms}: Props) => {
   useEffect(() => {
     setData('productionOutputs', productionOutput);
   }, [productionOutput, setData]);
-  
 
-  
-  useEffect(()=>{
+
+
+  useEffect(() => {
     async function getRelatedProduts() {
-      const pds = await axios.get('/factory/production-orders/get-related-products/'+boms.filter(bom=>bom.id === data.bom_id)[0].category.id);
-      if(pds.status == 200){
-        setRelatedProducts(pds.data);        
+      const pds = await axios.get('/factory/production-orders/get-related-products/' + boms.filter(bom => bom.id === data.bom_id)[0].category.id);
+      if (pds.status == 200) {
+        setRelatedProducts(pds.data);
       }
-      else{
-        console.log('error fetching data'+pds.statusText);
-        
+      else {
+        console.log('error fetching data' + pds.statusText);
+
       }
     }
     getRelatedProduts();
-  },[data.bom_id]);
+  }, [data.bom_id]);
 
-    const [currentLine, setCurrentLine] = useState<ProductionOutput>(() => ({
+  const [currentLine, setCurrentLine] = useState<ProductionOutput>(() => ({
     product_id: relatedProducts[0]?.item_id,
     quantity_produced: 1,
   }));
@@ -105,26 +105,27 @@ const Create = ({ boms}: Props) => {
   const handleRemoveLine = (index: number) => {
     setProductionOutput((prev) => prev.filter((_, i) => i !== index));
   };
-  
+
   const itemUnit = useMemo(() => {
     if (relatedProducts.length === 0)
       return 'unit';
     return relatedProducts.filter(product => product.item_id === currentLine.product_id)[0].item.unit;
-    
+
   }, [currentLine]);
 
-  
+
   return (
     <AppLayout breadcrumbs={[
       { title: 'کارخانه', href: '/factory/home' },
       { title: 'لیست حواله جات', href: '/factory/production-orders' },
       { title: 'حواله جدید', href: '/factory/production-orders/create' },
     ]}>
-     <div className="section">
+      <div className="section">
         <section>
           <div className="max-w-3xl mx-auto p-5">
-            <SectionTitle title='فورم حواله' />
-            <div className="section">
+            <SectionTitle title='فورم سفارش' />
+            <div className="">
+              <h4 className='text-center text-xl font-semibold p-5 text-secondary-foreground'>مشخصات سفارش کننده</h4>
               <form onSubmit={handleOrders} name="orders" id="orders">
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
                   <div className="grid gap-2">
@@ -163,26 +164,28 @@ const Create = ({ boms}: Props) => {
                     <InputError message={errors.bom_id} className="mt-2" />
                   </div>
 
-                
-                <div className="grid gap-2 mt-5">
-                  <Label htmlFor="notes">نوت</Label>
-                  <textarea
-                    className="border p-1.5 rounded-md text-sm"
-                    tabIndex={2}
-                    name="notes"
-                    value={data.notes}
-                    onChange={(e) =>
-                      setData('notes', e.target.value)
-                    }
-                    placeholder="نوت تان اینجا اضافه کنین"
-                  />
 
-                  <InputError message={errors.notes} className="mt-2" />
-                </div>
+                  <div className="grid gap-2 mt-5">
+                    <Label htmlFor="notes">نوت</Label>
+                    <textarea
+                      className="border p-1.5 rounded-md text-sm"
+                      tabIndex={2}
+                      name="notes"
+                      value={data.notes}
+                      onChange={(e) =>
+                        setData('notes', e.target.value)
+                      }
+                      placeholder="نوت تان اینجا اضافه کنین"
+                    />
+
+                    <InputError message={errors.notes} className="mt-2" />
+                  </div>
                 </div>
 
-                <section className="section ITEMSection mt-8">
+                <section className=" border-t-2 rounded-b-md p-5 bg-secondary ITEMSection mt-8">
                   <div>
+                    <h4 className='text-center text-xl font-semibold p-5 text-secondary-foreground'>اجناس</h4>
+
                     <div className="grid gap-6   grid-cols-1 md:grid-cols-2 ">
 
                       <div className="grid gap-2">
@@ -201,7 +204,7 @@ const Create = ({ boms}: Props) => {
                         >
                           {relatedProducts.map((product) => (
                             <option value={product.item_id} key={product.item_id} className='dark:bg-secondary dark:text-accent'>
-                              {product.item.name} {(product.weight/product.per_pack)*1000}
+                              {product.item.name} {(product.weight / product.per_pack) * 1000}
                             </option>
                           ))}
                         </select>
@@ -242,7 +245,7 @@ const Create = ({ boms}: Props) => {
                       <Button
                         type="button"
                         className="w-full"
-                        variant={'secondary'}
+                        variant={'outline'}
                         tabIndex={6}
                         onClick={handleAddLine}
                       >
@@ -259,7 +262,7 @@ const Create = ({ boms}: Props) => {
                 {productionOutput.length > 0 && (
                   <div className="mt-6 overflow-hidden rounded-lg border">
                     <div className="bg-slate-50 px-4 py-3 text-sm font-medium">
-                     اجناس
+                      اجناس
                     </div>
                     <div className="divide-y">
                       {productionOutput.map((line, index) => (

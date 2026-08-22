@@ -38,13 +38,13 @@ export default defineConfig({
         
         // FIX 1: Explicitly allow your specific IP and localhost
         cors: {
-            origin: /^https?:\/\/(192\.168\.0\.161|localhost|127\.0\.0\.1)(:\d+)?$/,
+            origin: /^https?:\/\/(192\.168\.0\.162|localhost|127\.0\.0\.1)(:\d+)?$/,
             credentials: true,
         },
         
         // FIX 2: Force HMR to use the specific IP
         hmr: {
-            host: '192.168.0.161', // MUST match the IP you access from phone
+            host: '192.168.0.162', // MUST match the IP you access from phone
             port: 5173,
             protocol: 'ws',
         },

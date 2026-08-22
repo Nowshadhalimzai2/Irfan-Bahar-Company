@@ -1,13 +1,10 @@
 import Content from "@/components/bill/content";
 import Footer from "@/components/bill/footer";
 import Header from "@/components/bill/header";
-import { getDariCategory, getDariItemUnit } from "@/components/location-translator";
-import { Button } from "@/components/ui/button";
+import {  getDariItemUnit } from "@/components/location-translator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AppLayout from "@/layouts/app-layout";
 import { ProductionOrder } from "@/types";
-import { Printer } from "lucide-react";
-import { useRef } from "react";
 import Bill from "../../../components/bill/bill";
 import Overview from "@/components/bill/overveiw";
 
@@ -25,7 +22,9 @@ const Show = ({ productionOrder, logo }: Props) => {
             { title: 'سفارش ' + productionOrder.ordered_by, href: '/factory/production-orders/' + productionOrder.id },
         ]}>
 
-            <Bill >
+            <div className="p-5">
+               
+                <Bill production_order_id={productionOrder.id} >
                 {/* BILL HEADER  */}
                 <Header logo={logo} title="بل سفارش" />
 
@@ -68,12 +67,17 @@ const Show = ({ productionOrder, logo }: Props) => {
                     <div className="p-5 bg-muted">
                         <p>{productionOrder?.notes}</p>
                     </div>
+
+                    <div className="mt-5 py-5 text-center">
+                            <p>{productionOrder.production_outputs.reduce((acc,output)=>acc+=(output.quantity_produced*output.product.weight),0)}</p>
+                    </div>
                 </Content>
 
                 {/* BILL FOOTER */}
                 <Footer />
 
             </Bill>
+            </div>
         </AppLayout>
     )
 }

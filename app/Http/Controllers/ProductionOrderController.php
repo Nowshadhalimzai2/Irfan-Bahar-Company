@@ -6,6 +6,7 @@ use App\Custome\Log;
 use App\Models\BOM;
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductionInput;
 use App\Models\ProductionOrder;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -35,7 +36,7 @@ class ProductionOrderController extends Controller
     public function create()
     {
 
-        $boms = BOM::with('category:id,name')->select('id', 'formula_name','category_id')->get();
+        $boms = BOM::with('category:id,name')->select('id', 'formula_name', 'category_id')->get();
         if ($boms->count() == 0) {
             $des = 'هیج فورمول وجود ندارد . لطفا اول فورمول را اضافه و بعدا سفارش بدهید.';
             Inertia::flash('toast', ['type' => 'error', 'message' => $des]);
@@ -82,7 +83,12 @@ class ProductionOrderController extends Controller
             foreach ($data['productionOutputs'] as $output) {
                 $order->productionOutputs()->create($output);
             }
-            $des = 'سفارش ' . $data['ordered_by'] . ' در ثبت سیستم ثبت شد ';
+
+            // ============= CREATE PRODUCTION INPUTS ============
+            $this->createProductionInputs($order);
+
+
+            $des = 'سفارش ' . $data['ordered_by'] . ' در سیستم ثبت شد ';
             $log->create('insert', $des, null, '/factory/production-orders/' . $order->id);
             DB::commit();
 
@@ -112,13 +118,55 @@ class ProductionOrderController extends Controller
         return Inertia::render('factory/order/show', compact('productionOrder', 'logo'));
     }
 
-    public function getCategoryBasedProducts(Category $category){
+    public function getCategoryBasedProducts(Category $category)
+    {
 
-         $products = Product::with(['item:id,name,unit,category_id','item.category:id,name'])
-        ->whereHas('item.category', function ($query) use ($category) {
-            $query->where('name', $category->name);
-        })
-          ->get();
+        $products = Product::with(['item:id,name,unit,category_id', 'item.category:id,name'])
+            ->whereHas('item.category', function ($query) use ($category) {
+                $query->where('name', $category->name);
+            })
+            ->get();
         return response()->json($products);
+    }
+
+    private function createProductionInputs(ProductionOrder $production_order)
+    {
+        // load bomLine 
+        $production_order->load('bom:id,formula_name,min_exp_qty,max_exp_qty', 'bom.bomLines:id,item_id,bom_id,required_quantity', 'bom.bomLines.item:id,name,unit');
+
+
+
+        // Get At least and at most expected quantity;
+        // $min_exp_qty = $production_order->bom->min_exp_qty;
+        $max_exp_qty = $production_order->bom->max_exp_qty;
+
+        // Load Production OutPuts;
+        $production_order->load('productionOutputs:id,production_order_id,product_id,quantity_produced', 'productionOutputs.product:item_id,weight');
+
+        // get the ordered quantity of all products ordered
+        $ordered_qty = 0;
+        foreach ($production_order->productionOutputs as $output) {
+            $ordered_qty += ($output->quantity_produced * $output->product->weight);
+        }
+
+
+        if ($max_exp_qty <= 0) {
+            abort(422, 'The BOM maximum expected quantity must be greater than zero.');
+        }
+
+        foreach ($production_order->bom->bomLines as $bom_line) {
+            $quantity_used = round(
+                ($bom_line->required_quantity * $ordered_qty) / $max_exp_qty,
+                2
+            );
+
+            ProductionInput::updateOrCreate(
+                [
+                    'production_order_id' => $production_order->id,
+                    'item_id' => $bom_line->item_id,
+                ],
+                ['quantity_used' => $quantity_used]
+            );
+        }
     }
 }

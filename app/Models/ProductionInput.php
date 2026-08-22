@@ -12,4 +12,8 @@ class ProductionInput extends Model
     public function productionOrder() : BelongsTo {
         return $this->belongsTo(ProductionOrder::class);
     }
+    public function item() : BelongsTo {
+        return $this->belongsTo(Item::class);
+    }
+    
 }

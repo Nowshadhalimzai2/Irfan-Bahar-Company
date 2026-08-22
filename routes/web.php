@@ -13,6 +13,7 @@ use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductionInputController;
 use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SupplierController;
@@ -161,6 +162,7 @@ Route::middleware(['auth'])->group(function () {
         })->name('factory');
         Route::resource('production-orders',ProductionOrderController::class)->names('orders');
         Route::get('/production-orders/get-related-products/{category}',[ProductionOrderController::class,'getCategoryBasedProducts']);
+        Route::get('/production-orders/{production_order}/production-inputs',[ProductionInputController::class,'getInputs']);
     });
 });
 require __DIR__ . '/settings.php';
