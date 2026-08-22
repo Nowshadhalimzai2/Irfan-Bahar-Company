@@ -6,6 +6,7 @@ import Bill from '@/components/bill/bill';
 import Header from '@/components/bill/header';
 import Content from '@/components/bill/content';
 import Footer from '@/components/bill/footer';
+import Overview from '@/components/bill/overveiw';
 interface Props {
     production_order: ProductionOrder;
     logo: string;
@@ -18,16 +19,20 @@ const Ingredients = ({ production_order, logo }: Props) => {
             breadcrumbs={[
                 { title: 'کارخانه', href: '/factory/home' },
                 { title: 'لیست سفارشات', href: '/factory/production-orders' },
-                { title: 'سفارش '+production_order.ordered_by, href: '/factory/production-orders/' + 1 },
+                { title: 'سفارش ' + production_order.ordered_by, href: '/factory/production-orders/' + 1 },
                 { title: 'ترکیبات', href: '/factory/production-orders/' + production_order.id + '/production-inputs' },
             ]}
         >
-            <div className=''>
-                <div className=''>
-                    <SectionTitle title={production_order.bom.formula_name} />
-                </div>
+            <div className='mt-10'>
+
+                {/* <SectionTitle title={production_order.bom.formula_name} /> */}
                 <Bill >
-                    <Header logo={logo} title='بل ترکیبات'/>
+                    <Header logo={logo} title={' بل ترکیبات '} />
+                    <Overview>
+                            <p>فورمول : {production_order.bom.formula_name}</p>                     
+                            <p>تاریخ سفارش : {new Date(production_order.order_date).toLocaleDateString()}</p>
+                            <p> {production_order.reference_no} : سفارش نمبر </p>
+                    </Overview>
                     <Content >
                         <div>
                             <Table className="border">

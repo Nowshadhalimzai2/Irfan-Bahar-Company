@@ -151,7 +151,7 @@ class ProductionOrderController extends Controller
 
 
         if ($max_exp_qty <= 0) {
-            abort(422, 'The BOM maximum expected quantity must be greater than zero.');
+            abort(422, 'مقدار تخمینی فورمول کمتر از صفر است. مقدار تخمینی را چک و دوباره کوشش کنید');
         }
 
         foreach ($production_order->bom->bomLines as $bom_line) {
