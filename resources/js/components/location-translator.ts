@@ -52,4 +52,4 @@ export const getUnitOfMeasurements = () => [{ value: 'kg', label: 'کیلو' }, 
 
 export const getSingleUnitWeight = (weight: number, per_pack: number = 1) => (weight / per_pack).toFixed(3);
 export const getDariOrderStatus = (status: string) => status === 'pending' ? 'انتظار ' : status === 'progress' ? 'جریان' : status === 'completed' ? 'تکمیل شده' : status === 'cancelled' ? 'لغو شده' : status === 'drafted' ? 'پیش نویس شده' : status;
-export const getStatusColor = (status: string) => `${status === 'cancelled' ? 'text-red-500 bg-red-500/15' : status === 'drafted' ? 'text-blue-500 bg-blue-500/15' : status === 'completed' ? 'text-green-500 bg-green-500/15' : status ==='pending' ? 'text-yellow-500 bg-yellow-500/15' : ''} `;
+export const getStatusColor = (status: string) => `${status === 'cancelled' ? 'text-red-500 bg-red-500/15' : status === 'drafted' ? 'text-blue-500 bg-blue-500/15' : status === 'completed' ? 'text-green-500 bg-green-500/15' : status ==='pending' ? 'text-yellow-500 bg-yellow-500/15' : status ==='progress' ? 'text-cyan-500 bg-cyan-500/15' : ''} `;

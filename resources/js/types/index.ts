@@ -149,3 +149,5 @@ export interface ProductionInput{
     item:Product;
     quantity_used:number;
 }
+
+export type StatusType = 'pending' | 'progress' | 'completed' | 'drafted' | 'cancelled';

@@ -2,32 +2,43 @@ import Content from "@/components/bill/content";
 import Footer from "@/components/bill/footer";
 import Header from "@/components/bill/header";
 import { getDariItemUnit } from "@/components/location-translator";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import AppLayout from "@/layouts/app-layout";
-import { ProductionOrder } from "@/types";
+import { BreadcrumbItem, ProductionOrder } from "@/types";
 import Bill from "../../../components/bill/bill";
 import Overview from "@/components/bill/overveiw";
+import { useMemo } from "react";
 
 interface Props {
     productionOrder: ProductionOrder;
     logo: string;
 }
 const Show = ({ productionOrder, logo }: Props) => {
-
-
-    return (
-        <AppLayout breadcrumbs={[
+    let breadcrumbs: BreadcrumbItem[] = [
+        { title: 'کارخانه', href: '/factory/home' },
+        { title: 'لیست سفارشات', href: '/factory/production-orders' },
+        { title: 'سفارش ' + productionOrder.ordered_by, href: '/factory/production-orders/' + productionOrder.id },
+    ];
+    if (productionOrder.status === 'cancelled' || productionOrder.status === 'drafted') {
+        breadcrumbs = [
             { title: 'کارخانه', href: '/factory/home' },
             { title: 'لیست سفارشات', href: '/factory/production-orders' },
+            { title: 'لیست سفارشات آشغال', href: '/factory/production-orders/junks' },
             { title: 'سفارش ' + productionOrder.ordered_by, href: '/factory/production-orders/' + productionOrder.id },
-        ]}>
+        ];
+    }
+    const totalOrderWeight = useMemo(() => {
+        return productionOrder.production_outputs.reduce((acc, output) => acc += (output.quantity_produced * output.product.weight), 0)
+    }, [[productionOrder]]);
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
 
             <div className="p-4">
 
                 <Bill production_order_id={productionOrder.id} >
                     {/* BILL HEADER  */}
                     <Header logo={logo} title="بل سفارش" />
-
+            
                     {/* BILL INFO */}
                     <Overview>
                         <p>سفارش توسط : {productionOrder.ordered_by}</p>
@@ -36,7 +47,7 @@ const Show = ({ productionOrder, logo }: Props) => {
                     </Overview>
 
                     {/*  BILL CONTENT */}
-                    <Content>
+                    <Content orderStatus={productionOrder.status} >
                         <div>
                             <Table className="border">
                                 <TableHeader>
@@ -62,15 +73,19 @@ const Show = ({ productionOrder, logo }: Props) => {
                                     }
 
                                 </TableBody>
+
+                                <TableFooter>
+                                    <TableRow>
+                                        <TableCell>جمله وزن سفارش : </TableCell>
+                                        <TableCell colSpan={4} className="text-center">{totalOrderWeight}</TableCell>
+                                    </TableRow>
+                                </TableFooter>
                             </Table>
                         </div>
-                        <div className="p-5 bg-muted">
-                            <p>{productionOrder?.notes}</p>
+                        <div className="p-5 border text-muted-foreground mt-5">
+                            <p>نوت : {productionOrder?.notes}</p>
                         </div>
 
-                        <div className="mt-5 py-5 text-center">
-                            <p>{productionOrder.production_outputs.reduce((acc, output) => acc += (output.quantity_produced * output.product.weight), 0)}</p>
-                        </div>
                     </Content>
 
                     {/* BILL FOOTER */}

@@ -18,15 +18,14 @@ interface Props {
     method?: 'get' | 'put';
 }
 export const CustomeDropDownMenu = ({ items, deletion, method = 'get' }: Props) => {
-    console.log(items);
-
+    
     const handleToggle = (url: string) => {
         if (method === 'put') {
             if (confirm('مطمئن هستین تا اجرآات کند؟'))
                 router.put(url)
         }
         else if (method === "get")
-            router.get(url)
+            router.get(url);
     }
 
     return (

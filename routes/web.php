@@ -156,13 +156,15 @@ Route::middleware(['auth'])->group(function () {
                     });
             })->paginate(4);
 
-        $pendingOrders = ProductionOrder::with('bom:id,category_id','bom.category:id,name','productionOutputs:id,production_order_id,quantity_produced')->select('id','ordered_by','order_date','status','bom_id')->get();
-            // dd($pendingOrders);
-            return Inertia::render('factory/home',compact('items','pendingOrders'));
+            $pendingOrders = ProductionOrder::with('bom:id,category_id', 'bom.category:id,name', 'productionOutputs:id,production_order_id,quantity_produced')
+                ->select('id', 'ordered_by', 'order_date', 'status', 'bom_id')->get();
+            return Inertia::render('factory/home', compact('items', 'pendingOrders'));
         })->name('factory');
-        Route::resource('production-orders',ProductionOrderController::class)->names('orders');
-        Route::get('/production-orders/get-related-products/{category}',[ProductionOrderController::class,'getCategoryBasedProducts']);
-        Route::get('/production-orders/{production_order}/production-inputs',[ProductionInputController::class,'getInputs']);
+        Route::get('/production-orders/junks', [ProductionOrderController::class, 'junks'])->name('orders.junks');
+        Route::resource('production-orders', ProductionOrderController::class)->names('orders');
+        Route::get('/production-orders/get-related-products/{category}', [ProductionOrderController::class, 'getCategoryBasedProducts']);
+        Route::get('/production-orders/{production_order}/production-inputs', [ProductionInputController::class, 'getInputs']);
+        Route::put('/production-orders/{production_order}/change-status/{status}', [ProductionOrderController::class, 'changeOrderStatus']);
     });
 });
 require __DIR__ . '/settings.php';

@@ -28,10 +28,26 @@ class ProductionOrderController extends Controller
             'productionOutputs.product:item_id,weight,per_pack',
         ])
             ->select(['id', 'ordered_by', 'status', 'order_date', 'notes', 'bom_id'])
+            ->whereNotIn('status', ['drafted', 'cancelled'])
             ->orderBy('id', 'desc')
             ->get();
 
         return Inertia::render('factory/order/index', compact('production_orders'));
+    }
+    public function junks(): Response
+    {
+        $junkOrders = ProductionOrder::with([
+            'bom:id,category_id',
+            'bom.category:id,name',
+            'productionOutputs:id,production_order_id,product_id,quantity_produced',
+            'productionOutputs.product:item_id,weight,per_pack',
+        ])
+            ->select(['id', 'ordered_by', 'status', 'order_date', 'notes', 'bom_id'])
+            ->whereIn('status', ['drafted', 'cancelled'])
+            ->orderBy('id', 'desc')
+            ->get();
+
+        return Inertia::render('factory/order/junks', compact('junkOrders'));
     }
     public function create()
     {
@@ -53,33 +69,19 @@ class ProductionOrderController extends Controller
 
     public function store(Request $request)
     {
-        $data = $request->validate([
-            'ordered_by' => 'required|string|max:55',
-            'bom_id' => 'required|integer|exists:boms,id',
-            'notes' => 'nullable|string|max:255',
-            'productionOutputs' => 'required|array|min:1',
-
-            // each line validation
-            'productionOutputs.*.product_id' => 'required|integer|exists:items,id|distinct',
-            'productionOutputs.*.quantity_produced' => 'required|numeric|gt:0',
-        ]);
+        $data = $this->validateOrder($request);
         $log = new Log();
         DB::beginTransaction();
 
         try {
-            // create the goods receipt 
-            $order = ProductionOrder::create([
-                'ordered_by' => $data['ordered_by'],
-                'bom_id' => $data['bom_id'],
-                'notes' => $data['notes'],
-                'order_date' => Carbon::now(config('app.timezone')),
-                'status' => 'pending',
-                'reference_no' => '',
-            ]);
+            // create the Production Order 
+            $order = $this->createProductionOrder($data);
+
             $order->reference_no = sprintf('ORD-%s-%s', Carbon::now(config('app.timezone'))->year, str_pad($order->id, 5, '0', STR_PAD_LEFT));
             $order->save();
             // dd($data['productionOutputs']);
-            // ===== CREATE THE BOM LINES =====
+
+            // ===== CREATE PRODUCTION OUTPUTS =====
             foreach ($data['productionOutputs'] as $output) {
                 $order->productionOutputs()->create($output);
             }
@@ -87,13 +89,11 @@ class ProductionOrderController extends Controller
             // ============= CREATE PRODUCTION INPUTS ============
             $this->createProductionInputs($order);
 
-
             $des = 'سفارش ' . $data['ordered_by'] . ' در سیستم ثبت شد ';
             $log->create('insert', $des, null, '/factory/production-orders/' . $order->id);
+
             DB::commit();
-
             Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
-
             return redirect()->to(route('orders.index'));
         } catch (\Throwable $th) {
             // Let validation exceptions bubble so Inertia/Laravel can return proper validation responses
@@ -102,8 +102,8 @@ class ProductionOrderController extends Controller
             }
             $des = ' متاسفانه سفارش' . ($data['ordered_by'] ?? '') . 'در ثبت سیستم ثبت نشد ';
             $log->create('insert', $des);
-            DB::rollBack();
 
+            DB::rollBack();
             Inertia::flash('toast', ['type' => 'error', 'message' => $des . $th->getMessage()]);
             return redirect()->back();
         }
@@ -116,6 +116,22 @@ class ProductionOrderController extends Controller
         $productionOrder->load('productionOutputs:id,product_id,quantity_produced,production_order_id', 'productionOutputs.product:item_id,per_pack,weight', 'productionOutputs.product.item:id,name,unit');
 
         return Inertia::render('factory/order/show', compact('productionOrder', 'logo'));
+    }
+
+    public function changeOrderStatus(ProductionOrder $production_order, string $status)
+    {
+        $currentStatus = $production_order->status;
+        if ($status === 'completed') {
+            // handle the inventory blanace and movements as well!
+
+            Inertia::flash('toast', ['type' => "success", 'message' =>  'شد  ' . $status . ' به ' . $currentStatus . ' حالت سفارش تغیر  از ']);
+            return redirect()->back();
+        }
+        $production_order->status = $status;
+        $production_order->save();
+
+        Inertia::flash('toast', ['type' => "success", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به شد' . $status]);
+        return redirect()->back();
     }
 
     public function getCategoryBasedProducts(Category $category)
@@ -168,5 +184,31 @@ class ProductionOrderController extends Controller
                 ['quantity_used' => $quantity_used]
             );
         }
+    }
+
+    private function validateOrder(Request $request): array
+    {
+        return $request->validate([
+            'ordered_by' => 'required|string|max:55',
+            'bom_id' => 'required|integer|exists:boms,id',
+            'notes' => 'nullable|string|max:255',
+            'productionOutputs' => 'required|array|min:1',
+
+            // each line validation
+            'productionOutputs.*.product_id' => 'required|integer|exists:items,id|distinct',
+            'productionOutputs.*.quantity_produced' => 'required|numeric|gt:0',
+        ]);
+    }
+
+    private function createProductionOrder(array $data): ProductionOrder
+    {
+        return ProductionOrder::create([
+            'ordered_by' => $data['ordered_by'],
+            'bom_id' => $data['bom_id'],
+            'notes' => $data['notes'],
+            'order_date' => Carbon::now(config('app.timezone')),
+            'status' => 'pending',
+            'reference_no' => '',
+        ]);
     }
 }
