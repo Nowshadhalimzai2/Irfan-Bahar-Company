@@ -60,11 +60,11 @@ const Index = ({ junkOrders }: Props) => {
                                                 <TableCell className="text-center">{ind + 1}</TableCell>
                                                 <TableCell className="text-center">{order.ordered_by}</TableCell>
                                                 <TableCell className="text-center">{getDariCategory(order.bom.category.name)}</TableCell>
-                                                <TableCell className={`text-center ${getStatusColor(order.status)}`}>{getDariOrderStatus(order.status)}</TableCell>
+                                                <TableCell className={`text-center font-medium ${getStatusColor(order.status)}`}>{getDariOrderStatus(order.status)}</TableCell>
                                                 <TableCell className="text-center">{new Date(order.order_date).toDateString()}</TableCell>
                                                 <TableCell className="text-center p-0">
                                                     <DropdownMenu>
-                                                        <DropdownMenuTrigger>
+                                                        <DropdownMenuTrigger className='bg-teal-800 p-1 px-5 text-white'>
                                                             <Recycle />
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>

@@ -121,17 +121,24 @@ class ProductionOrderController extends Controller
     public function changeOrderStatus(ProductionOrder $production_order, string $status)
     {
         $currentStatus = $production_order->status;
-        if ($status === 'completed') {
-            // handle the inventory blanace and movements as well!
-
-            Inertia::flash('toast', ['type' => "success", 'message' =>  'شد  ' . $status . ' به ' . $currentStatus . ' حالت سفارش تغیر  از ']);
+        DB::beginTransaction();
+        try {
+            if ($status !== 'completed') {
+                $production_order->status = $status;
+                $production_order->save();
+                $log = new Log();
+                $des = 'حالت سفارش ' . $production_order->reference_no . ' تغیر از ' . $currentStatus . ' به' . $status . 'شد';
+                $log->create('update', $des, null, route('orders.show', $production_order->id));
+                DB::commit();
+                Inertia::flash('toast', ['type' => "success", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به شد' . $status]);
+                return redirect()->to(route('orders.show', $production_order->id));
+            }
+            return redirect()->to(route('orders.confirm-inputs', [$production_order,$status]));
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Inertia::flash('toast', ['type' => "error", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به نشد' . $status . ': مشکل: ' . $th->getMessage()]);
             return redirect()->back();
         }
-        $production_order->status = $status;
-        $production_order->save();
-
-        Inertia::flash('toast', ['type' => "success", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به شد' . $status]);
-        return redirect()->back();
     }
 
     public function getCategoryBasedProducts(Category $category)

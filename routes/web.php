@@ -161,6 +161,7 @@ Route::middleware(['auth'])->group(function () {
             return Inertia::render('factory/home', compact('items', 'pendingOrders'));
         })->name('factory');
         Route::get('/production-orders/junks', [ProductionOrderController::class, 'junks'])->name('orders.junks');
+        Route::get('/production-orders/{production_order}/{status}/confirm-order-inputs', [ProductionInputController::class, 'confirmInputs'])->name('orders.confirm-inputs');
         Route::resource('production-orders', ProductionOrderController::class)->names('orders');
         Route::get('/production-orders/get-related-products/{category}', [ProductionOrderController::class, 'getCategoryBasedProducts']);
         Route::get('/production-orders/{production_order}/production-inputs', [ProductionInputController::class, 'getInputs']);
