@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Models\InventoryBalance;
+use Error;
 use Inertia\Inertia;
 
 class TransferController extends Controller
@@ -61,35 +62,9 @@ class TransferController extends Controller
 
         $log = new Log();
 
-        // Validate source location has enough quantity for each transfer line
-        $required = [];
-        foreach ($data['transferLines'] as $index => $line) {
-            $itemId = $line['item_id'];
-            $required[$itemId] = ($required[$itemId] ?? 0) + intval($line['quantity']);
-        }
-
-        $messages = [];
-        foreach ($required as $itemId => $qtyNeeded) {
-            $balance = InventoryBalance::where('item_id', $itemId)->where('location_id', $data['source_id'])->first();
-            $onHand = $balance->quantity_on_hand ?? 0;
-            if ($qtyNeeded > $onHand) {
-                // find all lines for this item and attach message to their quantity fields
-                foreach ($data['transferLines'] as $i => $line) {
-                    if ($line['item_id'] == $itemId) {
-                        $messages["transferLines.$i.quantity"] = ["Not enough quantity in source location. Available: $onHand, required: $qtyNeeded."];
-                    }
-                }
-            }
-        }
-
-        if (!empty($messages)) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'مقدار جنس از حد تجاوز کرد. لطفا مقدار چک و دوباره را امتحان کنید']);
-
-            return redirect()->back()->withErrors($messages)->withInput();
-        }
         if ($data['source_id'] === $data['destination_id']) {
             Inertia::flash('toast', ['type' => 'error', 'message' => 'موقیعت ها ممکن نیست که بک جای باشد.']);
-            return redirect()->back()->withErrors($messages)->withInput();
+            return redirect()->back()->withInput();
         }
         DB::beginTransaction();
         try {
@@ -111,7 +86,10 @@ class TransferController extends Controller
                 $transfer->transferLines()->create($line);
                 //  ======== RECORD THE INVENTORY MOVEMENT ===
                 $inventory = new InvMovement();
-                $inventory->move($data['source_id'], $line['item_id'], $line['quantity'], 'transferred_out', $data['notes'], '-');
+                // -------- if the quantity while being reduced not enough in location that will throw an error
+                if (!$inventory->move($data['source_id'], $line['item_id'], $line['quantity'], 'transferred_out', $data['notes'], '-')) {
+                    throw new Error("در مرجع" . ' کافی مقدار نداریم');
+                }
                 $inventory->move($data['destination_id'], $line['item_id'], $line['quantity'], 'transferred_in', $data['notes']);
                 // ======== UPDATE INVENTORY BALANCE =======
             }
@@ -140,9 +118,9 @@ class TransferController extends Controller
      */
     public function show(Transfer $transfer)
     {
-        $transfer->load('source:id,name','destination:id,name','transferLines:id,transfer_id,quantity,item_id','transferLines.item:id,name,unit,default_sale_price,code,sku');
+        $transfer->load('source:id,name', 'destination:id,name', 'transferLines:id,transfer_id,quantity,item_id', 'transferLines.item:id,name,unit,default_sale_price,code,sku');
         $transfer->load('transferLines.item.product:item_id,weight,per_pack,barcode');
-        return Inertia::render('transfer/show',compact('transfer'));
+        return Inertia::render('transfer/show', compact('transfer'));
     }
 
     /**

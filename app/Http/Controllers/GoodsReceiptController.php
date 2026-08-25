@@ -75,8 +75,7 @@ class GoodsReceiptController extends Controller
 
                 //  ======== RECORD THE INVENTORY MOVEMENT ===
                 $inventory = new InvMovement();
-                $inventory->move($data['destination_location_id'], $line['item_id'], $line['quantity'], 'receipt', $data['notes'], 'RCT');
-                // ======== UPDATE INVENTORY BALANCE =======
+                $inventory->move($data['destination_location_id'], $line['item_id'], $line['quantity'], 'receipt', $data['notes']);
             }
 
             $log->create('insert', ' جنس نو وارد شد در '.$receipt->location->name);
