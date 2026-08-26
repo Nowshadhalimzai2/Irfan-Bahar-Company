@@ -5,10 +5,14 @@ namespace App\Http\Controllers;
 use App\Custome\Log;
 use App\Models\BOM;
 use App\Models\Category;
+use App\Models\InventoryBalance;
+use App\Models\Item;
+use App\Models\Location;
 use App\Models\Product;
 use App\Models\ProductionInput;
 use App\Models\ProductionOrder;
 use Carbon\Carbon;
+use Error;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -124,6 +128,16 @@ class ProductionOrderController extends Controller
         DB::beginTransaction();
         try {
             if ($status !== 'completed') {
+
+                // check the inventory if there's enough items in factory
+                // for status 'progress'
+                if ($status === 'progress') {
+
+                    //  check evenry row_materials if we have in factory
+                    foreach ($production_order->productionInputs as $input) {
+                        $this->ensureTheresEnoughQuantityInFactory($input->item, $input->quantity_used);
+                    }
+                }
                 $production_order->status = $status;
                 $production_order->save();
                 $log = new Log();
@@ -133,13 +147,15 @@ class ProductionOrderController extends Controller
                 Inertia::flash('toast', ['type' => "success", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به شد' . $status]);
                 return redirect()->to(route('orders.show', $production_order->id));
             }
-            return redirect()->to(route('orders.confirm-inputs', [$production_order,$status]));
+
+            return redirect()->to(route('orders.confirm-inputs', [$production_order, $status]));
         } catch (\Throwable $th) {
             DB::rollBack();
             Inertia::flash('toast', ['type' => "error", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به نشد' . $status . ': مشکل: ' . $th->getMessage()]);
             return redirect()->back();
         }
     }
+
 
     public function getCategoryBasedProducts(Category $category)
     {
@@ -150,6 +166,19 @@ class ProductionOrderController extends Controller
             })
             ->get();
         return response()->json($products);
+    }
+
+    private function ensureTheresEnoughQuantityInFactory(Item $item, float $req_qty): void
+    {
+        $location = Location::firstWhere('name', 'factory');
+        if ($location === null)
+            abort(404, 'the factory is not found for processing the order');
+        $balance = InventoryBalance::where('location_id', $location->id)->where('item_id', $item->id)->first();
+        if ($balance === null)
+            abort(404, 'the balance is not found for the item : '.$item->name.' check the balance and retry!');
+        $quantity_in_stock = $balance->quantity_on_hand - $balance->reserved;
+        if ($quantity_in_stock < $req_qty)
+            abort(422, 'there is not enough quantity in factory for the item : '.$item->name);
     }
 
     private function createProductionInputs(ProductionOrder $production_order)
