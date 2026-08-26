@@ -18,6 +18,7 @@ use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransferController;
+use App\Http\Controllers\WasteController;
 use App\Models\Expense;
 use App\Models\Item;
 use App\Models\ProductionOrder;
@@ -157,15 +158,23 @@ Route::middleware(['auth'])->group(function () {
             })->paginate(4);
 
             $pendingOrders = ProductionOrder::with('bom:id,category_id', 'bom.category:id,name', 'productionOutputs:id,production_order_id,quantity_produced')
-                ->select('id', 'ordered_by', 'order_date', 'status', 'bom_id')->get();
+                ->select('id', 'ordered_by', 'order_date', 'status', 'bom_id')
+                ->where('status','pending')
+                ->get();
             return Inertia::render('factory/home', compact('items', 'pendingOrders'));
         })->name('factory');
         Route::get('/production-orders/junks', [ProductionOrderController::class, 'junks'])->name('orders.junks');
+
         Route::get('/production-orders/{production_order}/{status}/confirm-order-inputs', [ProductionInputController::class, 'confirmInputs'])->name('orders.confirm-inputs');
+        Route::put('/production-inputs/{production_order}', [ProductionInputController::class, 'update'])->name('order-inputs.update');
+
         Route::resource('production-orders', ProductionOrderController::class)->names('orders');
         Route::get('/production-orders/get-related-products/{category}', [ProductionOrderController::class, 'getCategoryBasedProducts']);
         Route::get('/production-orders/{production_order}/production-inputs', [ProductionInputController::class, 'getInputs']);
         Route::put('/production-orders/{production_order}/change-status/{status}', [ProductionOrderController::class, 'changeOrderStatus']);
+        Route::post('/wastes/{production_order}', [WasteController::class, 'store'])->name('wastes.store');
+        Route::get('/wastes/{production_order}', [WasteController::class, 'create'])->name('wastes.create');
+        Route::get('/production-orders/{production_order}/wastes', [WasteController::class, 'show'])->name('wastes.index');
     });
 });
 require __DIR__ . '/settings.php';
