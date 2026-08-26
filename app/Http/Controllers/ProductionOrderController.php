@@ -157,8 +157,6 @@ class ProductionOrderController extends Controller
         // load bomLine 
         $production_order->load('bom:id,formula_name,min_exp_qty,max_exp_qty', 'bom.bomLines:id,item_id,bom_id,required_quantity', 'bom.bomLines.item:id,name,unit');
 
-
-
         // Get At least and at most expected quantity;
         // $min_exp_qty = $production_order->bom->min_exp_qty;
         $max_exp_qty = $production_order->bom->max_exp_qty;

@@ -150,4 +150,11 @@ export interface ProductionInput{
     quantity_used:number;
 }
 
+export interface Waste{
+    id:number;
+    item:Item;
+    wasted_quantity:number;
+    reason:string;
+}
+
 export type StatusType = 'pending' | 'progress' | 'completed' | 'drafted' | 'cancelled';

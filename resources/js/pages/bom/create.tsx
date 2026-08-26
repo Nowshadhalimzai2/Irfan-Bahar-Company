@@ -51,7 +51,6 @@ const Create = ({ categories, items }: Props) => {
 
   const handleBOM = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
     post('/boms', {
       onFinish: () => {
         setBOMLine([]);

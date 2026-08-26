@@ -2,16 +2,21 @@
 
 namespace App\Http\Controllers;
 
+use App\Custome\InvMovement;
+use App\Custome\Log;
 use App\Models\Item;
+use App\Models\Location;
 use App\Models\ProductionInput;
 use App\Models\ProductionOrder;
+use App\Models\ProductionOutput;
+use Error;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ProductionInputController extends Controller
 {
-
 
     public function getInputs(ProductionOrder $production_order)
     {
@@ -29,30 +34,162 @@ class ProductionInputController extends Controller
     public function confirmInputs(ProductionOrder $production_order, string $status)
     {
 
-        // if($status !== 'completed')
-        //     return redirect()->to(route('orders.index'));
+        if($status !== 'completed')
+            return redirect()->to(route('orders.index'));
 
-        $production_order->load('productionOutputs:id,product_id,production_order_id', 'productionOutputs.product:item_id,weight');
-        $production_order->load('productionOutputs.product.item:id,name,category_id','productionOutputs.product.item.category:id,name');
 
-        $items = Item::with('category:id,name')->whereHas('category', function ($q) use ($production_order) {
-            $q->where('id', $production_order->productionOutputs()->first()->product->item->category_id);
-        })->get();
+        $items = Item::whereNot('item_type', 'product')->select('id', 'name', 'unit', 'item_type')->get();
+        // dd($items);
         $production_order->load('productionInputs:id,item_id,quantity_used,production_order_id', 'productionInputs.item:id,name,unit');
-        return Inertia::render('factory/order/confirm-inputs', compact('production_order','status','items'));
+        return Inertia::render('factory/order/confirm-inputs', compact('production_order', 'status', 'items'));
     }
 
     public function update(Request $request, ProductionOrder $production_order)
     {
-        //  if ($status !== 'completed') {
-        //         $production_order->status = $status;
-        //         $production_order->save();
-        //         $log = new Log();
-        //         $des = 'حالت سفارش ' . $production_order->reference_no . ' تغیر از ' . $currentStatus . ' به' . $status . 'شد';
-        //         $log->create('update', $des, null, route('orders.show', $production_order->id));
-        //         DB::commit();
-        //         Inertia::flash('toast', ['type' => "success", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به شد' . $status]);
-        //         return redirect()->to(route('orders.show', $production_order->id));
-        //     }
+        $data = $this->validateData($request);
+
+        if ((int) $data['production_order_id'] !== (int) $production_order->id) {
+            abort(422, 'محصول تولید شده مشابهت نمی کنه');
+        }
+
+        if ($production_order->status === 'completed') {
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'این سفارش قبلاً تکمیل شده است.',
+            ]);
+
+            return redirect()->back();
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $currentStatus = $production_order->status;
+
+            $production_order->update([
+                'status' => $data['status'],
+            ]);
+
+            if (!$this->updateProductionInputs($data, $production_order)) {
+                throw new \RuntimeException(
+                    'در کارخانه مواد کافی نداریم لطفا مقدار چک و دوباره امتحان نمایید.'
+                );
+            }
+
+            if (!$this->updateProductionOutputs($production_order)) {
+                throw new \RuntimeException(
+                    'موجودی محصول تولیدشده به‌روزرسانی نشد.'
+                );
+            }
+
+            $log = new Log();
+            $des = 'حالت سفارش ' . $production_order->reference_no
+                . ' تغیر از ' . $currentStatus
+                . ' به ' . $data['status'] . ' شد';
+
+            $log->create(
+                'update',
+                $des,
+                null,
+                route('orders.show', $production_order->id)
+            );
+
+            DB::commit();
+
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => 'سفارش با موفقیت تکمیل شد.',
+            ]);
+
+            if ($data['doesItHaveWaste']) {
+                return redirect()->route('wastes.create', $production_order->id);
+            }
+
+            return redirect()->route('orders.show', $production_order->id);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'درخواست تان قبول نشد. ' . $th->getMessage(),
+            ]);
+
+            return redirect()->back();
+        }
+    }
+
+    private function updateProductionInputs(array $data, ProductionOrder $production_order): bool
+    {
+        $location = Location::firstWhere('name', 'factory');
+
+        if (!$location) {
+            throw new \RuntimeException('Factory location was not found.');
+        }
+
+        foreach ($data['orderInputs'] as $input) {
+            ProductionInput::updateOrCreate(
+                [
+                    'production_order_id' => $production_order->id,
+                    'item_id' => $input['item_id'],
+                ],
+                [
+                    'quantity_used' => $input['quantity_used'],
+                ]
+            );
+
+            $movement = new InvMovement();
+
+            if (!$movement->move(
+                $location->id,
+                $input['item_id'],
+                $input['quantity_used'],
+                'production_consumption',
+                '',
+                '-'
+            )) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function validateData(Request $request): array
+    {
+        return $request->validate([
+            'production_order_id' => 'required|integer|exists:production_orders,id',
+            'status' => 'required|in:completed',
+            'doesItHaveWaste' => 'required|boolean',
+            'orderInputs' => 'required|array|min:1',
+            'orderInputs.*.item_id' => 'required|integer|exists:items,id|distinct',
+            'orderInputs.*.quantity_used' => 'required|numeric|gt:0',
+        ]);
+    }
+    private function updateProductionOutputs(ProductionOrder $production_order): bool
+    {
+        $location = Location::firstWhere('name', 'factory');
+
+        if (!$location) {
+            throw new \RuntimeException('Factory location was not found.');
+        }
+
+        $production_order->load(
+            'productionOutputs:id,production_order_id,product_id,quantity_produced'
+        );
+
+        foreach ($production_order->productionOutputs as $output) {
+            $movement = new InvMovement();
+
+            if (!$movement->move(
+                $location->id,
+                $output->product_id,
+                $output->quantity_produced,
+                'production_output'
+            )) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

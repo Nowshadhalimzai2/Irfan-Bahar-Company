@@ -74,7 +74,7 @@ const Home = ({ pendingOrders, items }: Props) => {
                         </div>
                       </div>
                       <div className='pt-5 px-1 flex justify-between items-center'>
-                        <p className="text-sm">{item.default_sale_price * totalStock(item)} جمله پول</p>
+                        <p className="text-sm">{(item.default_sale_price * totalStock(item)).toFixed(2)} جمله پول</p>
                         <p className="text-sm">{totalStock(item)} جمله  {getDariItemUnit(item.unit)} </p>
                       </div>
                     </div>
