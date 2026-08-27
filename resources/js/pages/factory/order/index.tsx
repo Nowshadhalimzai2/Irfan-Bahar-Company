@@ -23,7 +23,8 @@ interface Props {
 }
 
 const Index = ({ production_orders }: Props) => {
-
+    console.log('/factory/production-orders/' + production_orders[0].id);
+    
     const handleOrderStatus = (orderID: number, status: StatusType) => {
         router.put(`/factory/production-orders/${orderID}/change-status/${status}`);
     }

@@ -1,14 +1,14 @@
+import { Link } from "@inertiajs/react";
+import { SearchX } from "lucide-react";
+import { useState } from "react";
+import HighProductionChart from "@/components/custome-charts/high-production-chart";
 import LocationTranslator, { getDariCategory, getDariItemType, getDariItemUnit, locationColor } from "@/components/location-translator";
 import PageLinks from "@/components/page-links";
 import { SectionTitle } from "@/components/section-title";
 import { buttonVariants } from "@/components/ui/button";
 import AppLayout from "@/layouts/app-layout";
-import { InventoryBalance, ProductionOrder } from "@/types";
-import { Item } from "@/types/item";
-import { Link } from "@inertiajs/react";
-import { da } from "date-fns/locale";
-import { SearchX } from "lucide-react";
-import { useState } from "react";
+import type { InventoryBalance, ProductionOrder } from "@/types";
+import type { Item } from "@/types/item";
 
 type ItemWithInventory = Item & {
   inventory_balances: InventoryBalance[];
@@ -25,15 +25,22 @@ interface Props {
       label: string;
       active: boolean;
     }[];
-  }; 
+  };
   pendingOrders: ProductionOrder[];
+  productionChart: Record<string, string | number>[];
+  topProductionCategories: {
+    id: number;
+    name: string;
+    total: number;
+  }[];
 }
-const Home = ({ pendingOrders, items }: Props) => {
-    
-  const [allItems, setAllItems] = useState<ItemWithInventory[]>(items.data);
+const Home = ({ pendingOrders, items, productionChart, topProductionCategories }: Props) => {
+
+  const [allItems] = useState<ItemWithInventory[]>(items.data);
   const totalStock = (item: ItemWithInventory) => {
     return item.inventory_balances.reduce((acc, balance) => acc + (balance.quantity_on_hand - balance.reserved), 0);
   }
+
   return (
     <AppLayout breadcrumbs={[
       { title: 'کارخانه', href: '/factory/home' },
@@ -86,8 +93,8 @@ const Home = ({ pendingOrders, items }: Props) => {
             </section>
 
             {/* ===========   NEW ORDERS LIST  ============= */}
-            <section className="md:w-2/5 w-full border rounded-sm text-center p-2">
-              <div>
+            <section className="md:w-2/5 w-full">
+              <div className=" border rounded-sm text-center p-2">
                 <h4 className="text-lg font-semibold text-center p-2 text-accent bg-accent-foreground">حوالات اجناس</h4>
                 <div className="ORDERLIST">
                   <div className="CREATE-NEW-ORDER flex justify-end items-end mt-2">
@@ -95,24 +102,30 @@ const Home = ({ pendingOrders, items }: Props) => {
                   </div>
                   <div className="LIST py-3">
                     <div>
-                      {pendingOrders.length> 0 ?pendingOrders.map(order =>
-                        <div className={`${order.status==="pending" ? 'border-accent':''} flex justify-between items-center p-2 rounded-sm bg-secondary text-secondary-foreground border`}>
+                      {pendingOrders.length > 0 ? pendingOrders.map(order =>
+                        <div className={`${order.status === "pending" ? 'border-accent' : ''} gap-1 flex justify-between items-center p-2 rounded-sm bg-secondary text-secondary-foreground border`}>
                           <div>{order.ordered_by}</div>
                           <div>{getDariCategory(order.bom.category.name)}</div>
-                          <div>{order.production_outputs.reduce((acc,output)=>acc+=output.quantity_produced,0)}</div>
+                          <div>{order.production_outputs.reduce((acc, output) => acc += output.quantity_produced, 0)}</div>
                           <div>{new Date(order.order_date).toDateString()}</div>
                         </div>
-                      ):
+                      ) :
                         <p className="text-center text-sm text-muted-foreground">کدام حواله در حال منتظر موجود نیست!</p>
                       }
-                      <Link 
-                      href={'/factory/production-orders'}
+                      <Link
+                        href={'/factory/production-orders'}
                         className="underline text-sm py-0 mt-5"
                       >بشتر را ببین!</Link>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* ProductionGraph */}
+              <HighProductionChart
+                productionChart={productionChart}
+                topProductionCategories={topProductionCategories}
+              />
             </section>
           </div>
         </div>
@@ -121,5 +134,7 @@ const Home = ({ pendingOrders, items }: Props) => {
     </AppLayout>
   )
 }
+
+
 
 export default Home

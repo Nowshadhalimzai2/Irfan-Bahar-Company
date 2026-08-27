@@ -12,7 +12,6 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductionInputController;
 use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\SalaryController;
@@ -25,6 +24,7 @@ use App\Models\ProductionOrder;
 use App\Models\Role;
 use App\Models\ShopAccount;
 use App\Models\User;
+use App\Services\HighProductionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -159,11 +159,19 @@ Route::middleware(['auth'])->group(function () {
                     });
             })->paginate(4);
 
+            $highProductionService = new HighProductionService();
+            $productionByCategory = $highProductionService->getCategoryByProduction();
+
+
+            $topProductionCategories = $highProductionService->topProductionCategory($productionByCategory);
+
+            $productionChart = $highProductionService->GenerateProductionChart($productionByCategory,$topProductionCategories);
+
             $pendingOrders = ProductionOrder::with('bom:id,category_id', 'bom.category:id,name', 'productionOutputs:id,production_order_id,quantity_produced')
                 ->select('id', 'ordered_by', 'order_date', 'status', 'bom_id')
                 ->where('status','pending')
                 ->get();
-            return Inertia::render('factory/home', compact('items', 'pendingOrders'));
+            return Inertia::render('factory/home', compact('items', 'pendingOrders', 'productionChart', 'topProductionCategories'));
         })->name('factory');
         Route::get('/production-orders/junks', [ProductionOrderController::class, 'junks'])->name('orders.junks');
 
