@@ -7,10 +7,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
-import { Currency, Location, Supplier } from '@/types';
-import { GoodsReceiptLine, Item } from '@/types/item';
-import { LineChart } from 'lucide-react';
+import { InventoryBalance, Location } from '@/types';
+import { Item } from '@/types/item';
 import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
+import axios from 'axios';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DeleteIcon } from 'lucide-react';
 
 interface Props {
     locations: Location[];
@@ -30,13 +32,14 @@ type TransferType = {
 }
 
 const Create = ({ locations, items }: Props) => {
+    const [itemsInLoc, setItemInLoc] = useState<Item[]>(items);
     const [transferLine, setTransferLine] = useState<TransferLine[]>([]);
     const [currentLine, setCurrentLine] = useState<TransferLine>(() => ({
         item_id: items[0]?.id ?? 0,
         quantity: 1,
     }));
 
-    const { data, setData, errors, reset, post, processing } = useForm<TransferType>({
+    const { data, setData, errors, post, processing } = useForm<TransferType>({
         'source_id': locations[0]?.id ?? 1,
         'destination_id': locations[1]?.id ?? 1,
         'notes': '',
@@ -47,7 +50,47 @@ const Create = ({ locations, items }: Props) => {
         setData('transferLines', transferLine);
     }, [transferLine, setData]);
 
-    const handleReceipt = (e: FormEvent<HTMLFormElement>) => {
+    //  Fetch availible qty foreach item of each location to display on the screen for user
+    //  to know about available stock
+    const [balance, setBalance] = useState<InventoryBalance>();
+    useEffect(() => {
+        if (currentLine.item_id === 0) {
+            return;
+        }
+
+        const getItemBalance = async () => {
+            const response = await axios.get(`/transfers/${data.source_id}/items/${currentLine.item_id}`);
+            if (response.status === 200) {
+                setBalance(response.data);
+                // console.log(response.data);
+            }
+            else {
+                console.log('failed fetching Item data : ', response.statusText);
+            }
+        }
+        getItemBalance();
+
+    }, [currentLine.item_id, data.source_id])
+    useEffect(() => {
+        const getAvailableItems = async () => {
+            const response = await axios.get(`/transfers/${data.source_id}/create`);
+            if (response.status === 200) {
+                const availableItems = response.data as Item[];
+                setItemInLoc(availableItems);
+                setCurrentLine({
+                    item_id: availableItems[0]?.id ?? 0,
+                    quantity: 1,
+                });
+            }
+            else {
+                console.log('failed fetching Item data : ', response.statusText);
+            }
+        }
+        getAvailableItems();
+
+    }, [data.source_id])
+
+    const handleTransfer = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
         post('/transfers', {
@@ -74,16 +117,14 @@ const Create = ({ locations, items }: Props) => {
         }));
     };
 
-    const handleRemoveLine = (index: number) => {
+    const removeItem = (index: number) => {
         setTransferLine((prev) => prev.filter((_, i) => i !== index));
     };
 
     const itemUnit = useMemo(() => {
-        if (items.length === 0)
-            return 'unit';
-        return items.filter(item => item.id === currentLine.item_id)[0].unit;
+        return itemsInLoc.find(item => item.id === currentLine.item_id)?.unit ?? 'unit';
 
-    }, [currentLine]);
+    }, [currentLine.item_id, itemsInLoc]);
     return (
         <AppLayout
             breadcrumbs={[
@@ -91,7 +132,7 @@ const Create = ({ locations, items }: Props) => {
                 { title: 'انتقال جنس', href: '/transfers/create' },
             ]}
         >
-            <div className="section">
+            <div className="">
                 <section>
                     <div className="max-w-3xl mx-auto p-5">
                         <SectionTitle
@@ -99,7 +140,7 @@ const Create = ({ locations, items }: Props) => {
                             description="لطفا دقت نماید. این فورم برای اجناس که نو امده برای شرکت، است"
                         />
                         <div className="section">
-                            <form onSubmit={handleReceipt} name="receipt" id="receipt">
+                            <form onSubmit={handleTransfer} className='' name="receipt" id="receipt">
                                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
                                     <div className="grid gap-2">
                                         <Label htmlFor="source_id">مرجع</Label>
@@ -108,7 +149,10 @@ const Create = ({ locations, items }: Props) => {
                                             name="source_id"
                                             tabIndex={1}
                                             value={data.source_id}
-                                            onChange={(e) => setData('source_id', Number(e.target.value))}
+                                            onChange={(e) => {
+                                                setBalance(undefined);
+                                                setData('source_id', Number(e.target.value));
+                                            }}
                                         >
                                             <option value={0}>از جای که میایه را انتخاب کنید</option>
                                             {locations.map((location) => (
@@ -158,8 +202,13 @@ const Create = ({ locations, items }: Props) => {
                                     <InputError message={errors.notes} className="mt-2" />
                                 </div>
 
-                                <section className="section ITEMSection mt-8">
+                                {balance?.id !== undefined && <section className="ITEMSection mt-8">
                                     <div>
+                                        {/* ============ STOCK MONITOR ========== */}
+                                        {balance && <div>
+                                            <BalanceMonitor balance={balance} location={locations[data.source_id - 1]} />
+                                        </div>}
+
                                         <div className="grid gap-6   grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 
                                             <div className="grid gap-2">
@@ -176,7 +225,7 @@ const Create = ({ locations, items }: Props) => {
                                                         }))
                                                     }
                                                 >
-                                                    {items.map((item) => (
+                                                    {itemsInLoc.map((item) => (
                                                         <option value={item.id} key={item.id}>
                                                             {item.name}
                                                         </option>
@@ -227,63 +276,52 @@ const Create = ({ locations, items }: Props) => {
                                             </Button>
                                         </div>
                                     </div>
-                                </section>
+                                </section>}
 
 
 
                                 {/* ================================  RESULTS  =============================================== */}
-                                {transferLine.length > 0 && (
-                                    <div className="mt-6 overflow-hidden rounded-lg border">
-                                        <div className="bg-slate-50 px-4 py-3 text-sm font-medium">
-                                            خطوط حواله
-                                        </div>
-                                        <div className="divide-y">
-                                            {transferLine.map((line, index) => (
-                                                <div
-                                                    key={`${line.item_id}-${index}`}
-                                                    className="flex flex-col gap-2 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                                                >
-                                                    <div>
-                                                        <div className="space-y-1 gap-3 text-sm grid grid-cols-3">
-                                                            <div className=" p-5 border rounded-sm bg-white">جنس: {items.find((item) => item.id === line.item_id)?.name || line.item_id}</div>
+                                {transferLine.length > 0 && <>
 
-                                                            <div className=" p-5 border rounded-sm bg-white">مقدار: {line.quantity}</div>
+                                    <h3 className='text-xl font-medium text-center p-3 text-accent mt-3'>لیست اجناس انتقال دهی</h3>
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className='text-center'>شماره</TableHead>
+                                                <TableHead className='text-center'>جنس</TableHead>
+                                                <TableHead className='text-center'>مقدار</TableHead>
+                                                <TableHead className='text-center'>حذف</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {transferLine.length > 0 && (
+                                                transferLine.map((transfer, ind) =>
+                                                    <TableRow key={ind}>
+                                                        <TableCell className='text-center'>{ind}</TableCell>
+                                                        <TableCell className='text-center'>{items.filter(item => item.id === transfer.item_id)[0].name}</TableCell>
+                                                        <TableCell className='text-center'>{transfer.quantity}</TableCell>
+                                                        <TableCell className='flex justify-center items-center'>
+                                                            <DeleteIcon onClick={() => removeItem(ind)} className='text-destructive' />
+                                                        </TableCell>
+                                                    </TableRow>
+                                                )
+                                            )}
+                                        </TableBody>
+                                    </Table>
 
-                                                            {/* <div className=" p-5 border rounded-sm bg-white">قیمت واحد: {line.unit_cost}</div> */}
-
-                                                        </div>
-                                                        {/* <div className="p-5 text-end font-medium">توتل : {line.unit_cost * line.quantity}</div> */}
-                                                    </div>
-                                                    <Button
-                                                        type="button"
-                                                        variant="destructive"
-                                                        onClick={() => handleRemoveLine(index)}
-                                                    >
-                                                        حذف
-                                                    </Button>
-                                                </div>
-                                            ))}
-                                            <div className="p-3 text-end">
-                                                <div>
-                                                    {/* {transferLine.reduce((acc, line) => acc += (line.quantity * line.unit_cost), 0)}  :جمله */}
-                                                </div>
-                                            </div>
-                                        </div>
+                                    <div className="mt-6">
+                                        <Button
+                                            type="submit"
+                                            className="w-full"
+                                            tabIndex={7}
+                                            data-test="register-employee-button"
+                                        >
+                                            {processing && <Spinner />}
+                                            ثبت کنید
+                                        </Button>
                                     </div>
-                                )}
 
-                                <div className="mt-6">
-                                    <Button
-                                        type="submit"
-                                        className="w-full"
-                                        tabIndex={7}
-                                        data-test="register-employee-button"
-                                    >
-                                        {processing && <Spinner />}
-                                        ثبت کنید
-                                    </Button>
-                                </div>
-                            </form>
+                                </>}                            </form>
                         </div>
                     </div>
                 </section>
@@ -291,5 +329,22 @@ const Create = ({ locations, items }: Props) => {
         </AppLayout>
     );
 };
+
+const BalanceMonitor = ({ balance, location }: { balance: InventoryBalance, location: Location }) => {
+    console.log(balance);
+
+    return (
+        <div className='mb-5 grid grid-cols-2'>
+            <div className='bg-secondary border  rounded-sm p-3 shadow-md backdrop-blur-sm'>
+                <h5 className='text-center font-medium'>{balance.item?.name ?? 'نامشخص'}</h5>
+                <div className='grid place-items-center text-primary grid-cols-2 gap-3 p-3'>
+                    <li className='list-none font-semibold text-2xl '> {balance.quantity_on_hand} {getDariItemUnit(balance.item?.unit ?? '')}</li>
+                    <li className='list-none font-medium text-muted-foreground text-sm'><span className=''>حفظ شده</span>{balance.reserved}</li>
+                </div>
+                <small className='text-center w-full text-muted-foreground text-sm'>موجوده مقدار در {LocationTranslator(location.name) ?? 'جنس موجود نیست'}</small>
+            </div>
+        </div>
+    )
+}
 
 export default Create;

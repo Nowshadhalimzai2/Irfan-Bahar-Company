@@ -8,13 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
 
-import { getDariCategory, getDariItemUnit } from '@/components/location-translator';
-import { Category, Item } from '@/types/item';
+import {  getDariItemUnit } from '@/components/location-translator';
+import {  Item } from '@/types/item';
 import { ProductionOrder } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AlertCircle, DeleteIcon } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import orderInputs from '@/routes/order-inputs';
+import {  DeleteIcon } from 'lucide-react';
 
 interface Props {
     items: Item[];

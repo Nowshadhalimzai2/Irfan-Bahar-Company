@@ -15,6 +15,7 @@ use Illuminate\Validation\ValidationException;
 use App\Models\InventoryBalance;
 use Error;
 use Inertia\Inertia;
+use Monolog\Processor\LoadAverageProcessor;
 
 class TransferController extends Controller
 {
@@ -29,17 +30,27 @@ class TransferController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function create()
+    public function create(Request $request, ?Location $location)
     {
-        $locations = Location::select('id', 'name')->get();
 
+        $locations = Location::select('id', 'name')->get();
+        if ($location instanceof Location) {
+            if ($request->expectsJson()) {
+                $items = Item::with('inventoryBalances:id,location_id,item_id,quanity_on_hand,reserved')
+                    ->whereHas(
+                        'inventoryBalances',
+                        fn($query) =>
+                        $query->where('location_id', $location->id)
+                    )->get();
+                return response()->json($items);
+            }
+        }
 
         $items = Item::with(['product', 'inventoryBalances' => function ($query) {
             $query->select('id', 'item_id', 'quantity_on_hand')->where('quantity_on_hand', '>', 0);
         }])->whereHas('inventoryBalances', function ($query) {
             $query->where('quantity_on_hand', '>', 0);
         })->select('id', 'name', 'unit')->get();
-
 
         return Inertia::render('transfer/create', compact('locations', 'items'));
     }
@@ -123,27 +134,10 @@ class TransferController extends Controller
         return Inertia::render('transfer/show', compact('transfer'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Transfer $transfer)
-    {
-        //
-    }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Transfer $transfer)
+    public function getItemBalance(Location $location, Item $item)
     {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Transfer $transfer)
-    {
-        //
+        $balance = InventoryBalance::with('item:id,name,unit')->where('location_id', $location->id)->where('item_id', $item->id)->first();
+        return response()->json($balance);
     }
 }
