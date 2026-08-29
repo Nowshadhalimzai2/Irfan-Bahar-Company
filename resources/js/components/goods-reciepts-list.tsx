@@ -27,7 +27,6 @@ const GoodsReceiptList = ({ goodsReceipts }: Props) => {
             <div className="">
                 <div className="flex justify-end gap-3 items-end p-5">
                     <Link href={'/receipts/create'} className={`${buttonVariants({ variant: 'outline' })}`}>خریدن جنس نو</Link>
-                    <Link href={'/transfers/create'} className={`${buttonVariants({ variant: 'secondary' })}`}>جنس را انتقال دهید</Link>
 
                 </div>
                 <SectionTitle title='اجناس امده برای شرکت' />

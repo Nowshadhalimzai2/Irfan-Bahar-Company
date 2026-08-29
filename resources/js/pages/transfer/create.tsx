@@ -22,6 +22,7 @@ interface Props {
 type TransferLine = {
     item_id: number;
     quantity: number;
+    unit_price: number;
 }
 
 type TransferType = {
@@ -37,6 +38,7 @@ const Create = ({ locations, items }: Props) => {
     const [currentLine, setCurrentLine] = useState<TransferLine>(() => ({
         item_id: items[0]?.id ?? 0,
         quantity: 1,
+        unit_price: items[0].default_sale_price ?? 1,
     }));
 
     const { data, setData, errors, post, processing } = useForm<TransferType>({
@@ -80,6 +82,7 @@ const Create = ({ locations, items }: Props) => {
                 setCurrentLine({
                     item_id: availableItems[0]?.id ?? 0,
                     quantity: 1,
+                    unit_price: availableItems[0].default_sale_price ?? 0,
                 });
             }
             else {
@@ -99,6 +102,7 @@ const Create = ({ locations, items }: Props) => {
                 setCurrentLine({
                     item_id: items[0]?.id ?? 1,
                     quantity: 1,
+                    unit_price: items[0]?.default_sale_price ?? 1
                 });
             },
         });
@@ -260,7 +264,31 @@ const Create = ({ locations, items }: Props) => {
                                                 <InputError message={errors.transferLines} className="mt-2" />
 
                                             </div>
+                                            <div className="grid gap-2">
+                                                <Label htmlFor="unit_price" className="flex justify-between">
+                                                    <span>  قیمت  </span>
+                                                    <span className="text-sm text-muted-foreground">
+                                                        {currentLine.unit_price* currentLine.quantity}
+                                                    </span>
+                                                </Label>
+                                                <Input
+                                                    id="unit_price"
+                                                    type="number"
+                                                    min={1}
+                                                    // max={items[currentLine.item_id]}
+                                                    value={currentLine.unit_price}
+                                                    onChange={(e) =>
+                                                        setCurrentLine((prev) => ({
+                                                            ...prev,
+                                                            unit_price: Number(e.target.value),
+                                                        }))
+                                                    }
+                                                    placeholder="نرخ بر عدد"
+                                                    className="border p-1.5 rounded-md"
+                                                />
+                                                <InputError message={errors.transferLines} className="mt-2" />
 
+                                            </div>
 
                                         </div>
 
@@ -290,6 +318,7 @@ const Create = ({ locations, items }: Props) => {
                                                 <TableHead className='text-center'>شماره</TableHead>
                                                 <TableHead className='text-center'>جنس</TableHead>
                                                 <TableHead className='text-center'>مقدار</TableHead>
+                                                <TableHead className='text-center'>قیمت</TableHead>
                                                 <TableHead className='text-center'>حذف</TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -300,6 +329,7 @@ const Create = ({ locations, items }: Props) => {
                                                         <TableCell className='text-center'>{ind}</TableCell>
                                                         <TableCell className='text-center'>{items.filter(item => item.id === transfer.item_id)[0].name}</TableCell>
                                                         <TableCell className='text-center'>{transfer.quantity}</TableCell>
+                                                        <TableCell className='text-center'>{transfer.unit_price}</TableCell>
                                                         <TableCell className='flex justify-center items-center'>
                                                             <DeleteIcon onClick={() => removeItem(ind)} className='text-destructive' />
                                                         </TableCell>

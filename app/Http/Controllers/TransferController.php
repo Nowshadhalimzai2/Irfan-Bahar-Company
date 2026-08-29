@@ -19,13 +19,11 @@ use Monolog\Processor\LoadAverageProcessor;
 
 class TransferController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
+   
+
+// the INDEX METHOD OF TRANSFERCONTROLLER IS IN THE GOODS-RECEIPT CONTROLLER
+
+
 
     /**
      * Show the form for creating a new resource.
@@ -50,7 +48,7 @@ class TransferController extends Controller
             $query->select('id', 'item_id', 'quantity_on_hand')->where('quantity_on_hand', '>', 0);
         }])->whereHas('inventoryBalances', function ($query) {
             $query->where('quantity_on_hand', '>', 0);
-        })->select('id', 'name', 'unit')->get();
+        })->select('id', 'name', 'unit','default_sale_price')->get();
 
         return Inertia::render('transfer/create', compact('locations', 'items'));
     }
@@ -69,6 +67,7 @@ class TransferController extends Controller
             // each line validation
             'transferLines.*.item_id' => 'required|integer|exists:items,id',
             'transferLines.*.quantity' => 'required|integer|gt:0',
+            'transferLines.*.unit_price' => 'required|numeric|gt:0',
         ]);
 
         $log = new Log();

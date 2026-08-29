@@ -1,14 +1,9 @@
 
 import GoodsReceiptList from '@/components/goods-reciepts-list';
-import MovementsList from '@/components/movements-list';
-import PageLinks from '@/components/page-links';
 import TransferList from '@/components/transfer-list';
-import { buttonVariants } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AppLayout from '@/layouts/app-layout';
-import { InventoryMovement } from '@/types';
 import { GoodsReceipt, Transfer } from '@/types/item';
-import { Link } from 'lucide-react';
 
 interface Props {
 
@@ -36,7 +31,6 @@ interface Props {
     };
 }
 const Index = ({ goodsReceipts,transfers }: Props) => {
-    console.log(transfers);
     
     return (
         <AppLayout breadcrumbs={[

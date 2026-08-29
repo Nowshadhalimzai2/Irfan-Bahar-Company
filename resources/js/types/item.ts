@@ -58,4 +58,5 @@ export interface TransferLine{
     id:number;
     item: Item;
     quantity:number;
+    unit_price:number;
 }

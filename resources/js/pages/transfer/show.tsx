@@ -51,9 +51,9 @@ const Show = ({ transfer }: Props) => {
                                             <TableHead className="text-center">
                                                 پر کارتن
                                             </TableHead>
-                                            {/*                                            <TableHead className="text-center">
-                                                واحد پول
-                                            </TableHead> */}
+                                            <TableHead className="text-center">
+                                                قیمت
+                                            </TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
@@ -64,7 +64,7 @@ const Show = ({ transfer }: Props) => {
                                                 <TableCell className="text-center">{getDariItemUnit(line.item.unit)}</TableCell>
                                                 <TableCell className="text-center">{line.item.product?.weight ?? 'N/A'}</TableCell>
                                                 <TableCell className="text-center">{line.item.product?.per_pack ?? 'N/A'}</TableCell>
-                                                {/*<TableCell className="text-center">{line.currency.name}</TableCell> */}
+                                                <TableCell className="text-center">{line.unit_price}</TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class TransferLine extends Model
 {
-    protected $fillable = ['transfer_id','item_id','quantity'];
+    protected $fillable = ['transfer_id','item_id','quantity','unit_price'];
 
     public function transfer() : BelongsTo{
 
