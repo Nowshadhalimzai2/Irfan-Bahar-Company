@@ -46,10 +46,10 @@ export const getDariItemUnit = (unit: string) => {
             return unit;
     }
 }
-export const getDariCurrency = (currency: string) => currency === 'AFG' ? 'افغانی' : currency === 'َUSD' ? 'دالر' : currency === 'PKR' ? 'کلداری' : currency;
+export const getDariCurrency = (currency: string) => currency === 'AFG' ? 'افغانی' : currency === 'PKR' ? 'کلداری' : currency === 'USD' ? 'دالر' : currency;
 export const getUnitOfMeasurements = () => [{ value: 'kg', label: 'کیلو' }, { value: 'gr', label: 'ګرام' }, { value: 'ltr', label: 'لیتر' }, { value: 'packet', label: 'پاکت' }, { value: 'carton', label: 'کارتن' }, { value: 'bundle', label: 'بسته' }, { value: 'pair', label: 'جوره' }, { value: 'unit', label: 'دانه' }, { value: 'bag', label: 'بوجی' }];
 
 
 export const getSingleUnitWeight = (weight: number, per_pack: number = 1) => (weight / per_pack).toFixed(3);
 export const getDariOrderStatus = (status: string) => status === 'pending' ? 'انتظار ' : status === 'progress' ? 'جریان' : status === 'completed' ? 'تکمیل شده' : status === 'cancelled' ? 'لغو شده' : status === 'drafted' ? 'پیش نویس شده' : status;
-export const getStatusColor = (status: string) => `${status === 'cancelled' ? 'text-red-500 bg-red-500/15' : status === 'drafted' ? 'text-blue-500 bg-blue-500/15' : status === 'completed' ? 'text-green-500 bg-green-500/15' : status ==='pending' ? 'text-yellow-500 bg-yellow-500/15' : status ==='progress' ? 'text-cyan-500 bg-cyan-500/15' : ''} `;
+export const getStatusColor = (status: string) => `${status === 'cancelled' ? 'text-red-500 bg-red-500/15' : status === 'drafted' ? 'text-blue-500 bg-blue-500/15' : status === 'completed' ? 'text-green-500 bg-green-500/15' : status === 'pending' ? 'text-yellow-500 bg-yellow-500/15' : status === 'progress' ? 'text-cyan-500 bg-cyan-500/15' : ''} `;

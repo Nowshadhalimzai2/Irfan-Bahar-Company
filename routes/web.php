@@ -18,6 +18,7 @@ use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\WasteController;
+use App\Models\Currency;
 use App\Models\Expense;
 use App\Models\Item;
 use App\Models\ProductionOrder;
@@ -51,9 +52,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $totalExpensesBasedOnCurrency = $todaysExpenses->groupBy('currency_id')->map(function ($expesnes) {
             return $expesnes->sum('amount');
         });
-        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency'));
+        // $thisMonthRevenue = Sale::with
+        $currencies = Currency::all(['id','name']);
+        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency','currencies'));
     })->name('dashboard');
 });
+
+Route::get('/total-revenue-and-expenses/{currency}',function(string $currency){
+    $today = Carbon::today(config('app.timezone'));
+    $startOftheDate = $today->startOfMonth()->subMonth(2);
+    $expenses = Expense::with('currency:id,name')
+    ->whereDate('date', '>', $startOftheDate)
+    ->whereHas('currency', function ($q) use ($currency) {
+            $q->where('name', $currency);
+    })
+    ->sum('amount');
+    // 100 30
+    //  X  Days
+    $currenyMonthDay = Carbon::today(config('app.timezone'))->dayOfMonth();
+    $currentMonthDatePercent = (100*$currenyMonthDay)/Carbon::today(config('app.timezone'))->daysInMonth();
+
+    $aveOfThreeMonths = $expenses/(2+($currentMonthDatePercent/100));
+    return response()->json($aveOfThreeMonths);    
+});
+
+// ---------------------------------------------------------------------------------
 
 Route::get('/register', function () {
 
