@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import {
     Popover,
     PopoverContent,
@@ -15,33 +15,35 @@ import { CurrencyIcon, LucideIcon } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { getDariCurrency } from '@/components/location-translator';
 import axios from 'axios';
+import { Transfer } from '@/types/item';
 
 interface Props {
     sa: Account[];
     totalExpensesBasedOnCurrency: Record<string, number>;
     currencies: Currency[];
+    transfersToShop: Transfer[];
 }
 
-export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies }: Props) {
+export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop }: Props) {
     const [currency, setCurrency] = useState<string>(currencies[0].name);
     const [totalRevenue, setTotalRevenue] = useState<number>(0);
     const [averageExpenses, setAverageExpenses] = useState<number>(0);
 
-    useEffect(()=>{
-        const getRevenueAndExpenses = async ()=>{
+    useEffect(() => {
+        const getRevenueAndExpenses = async () => {
             const response = await axios.get(`/total-revenue-and-expenses/${currency}`);
-            if(response.status===200){
-                console.log('success:',response.data);
+            if (response.status === 200) {
                 setAverageExpenses(response.data);
             }
-            else{
-                console.log('Errro: ',response.statusText);
-                
+            else {
+                console.log('Errro: ', response.statusText);
+
             }
         }
         getRevenueAndExpenses();
-    },[currency])
-
+    }, [currency])
+    console.log(transfersToShop);
+    
     const moreOptions: { name: string; url: string }[] = [
         { name: 'موقعیت ها', url: '/locations' },
         { name: 'تاریخچه اجرآات', url: '/logs' },
@@ -66,7 +68,7 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
                 <div className=''>
                     <section className='MONTHLYREVINEUE px-5 border  rounded-sm py-3'>
                         <div>
-                            <select name='currency' onChange={(e)=>setCurrency(e.target.value)} className='w-full border p-1.5 rounded-sm my-1'>
+                            <select name='currency' onChange={(e) => setCurrency(e.target.value)} className='w-full border p-1.5 rounded-sm my-1'>
                                 {currencies.map(currency => <option key={currency.id} value={currency.name}>{getDariCurrency(currency.name)}</option>)}
                             </select>
                         </div>
@@ -108,7 +110,28 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
                             </div>
                         </div>
                     </fieldset>
+                    <section className="RECENTS">
 
+                        <div className="flex justify-between items-center p-5">
+                            <div className="LEFT border">Left</div>
+                            <div className="RIGHT border p-2 rounded-sm w-2/5 shadow">
+                                <h5 className='text-lg text-accent font-medium text-center mb-2'>اجناس تازه امده به دوکان</h5>
+                                <div className='space-y-1'>
+                                    {
+                                        transfersToShop.map((transfer,ind) =>
+                                            <div onClick={()=>router.get(`transfers/${transfer.id}`)} key={transfer.id} className='flex px-3 justify-between bg-white/20 py-2 shadow hover:scale-102 duration-100 transition-all'>
+                                                <p>{ind+1}</p>
+                                                <p>{transfer.reference_no}</p>
+                                                <p>{transfer.transfer_lines[0]?.item.category.name}</p>
+                                                <p>{new Date(transfer.transferred_at).toDateString()}</p>
+                                            </div>
+                                        )
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                    </section>
                 </div>
 
             </div>

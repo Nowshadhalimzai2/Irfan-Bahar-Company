@@ -24,6 +24,7 @@ use App\Models\Item;
 use App\Models\ProductionOrder;
 use App\Models\Role;
 use App\Models\ShopAccount;
+use App\Models\Transfer;
 use App\Models\User;
 use App\Services\HighProductionService;
 use Carbon\Carbon;
@@ -52,9 +53,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $totalExpensesBasedOnCurrency = $todaysExpenses->groupBy('currency_id')->map(function ($expesnes) {
             return $expesnes->sum('amount');
         });
-        // $thisMonthRevenue = Sale::with
+
+        $transfersToShop = Transfer::with('destination:id,name','transferLines:id,tranfer_id,item_id','transferLines.item:id,category_id','transferLines.item.category:id,name')->whereHas('destination',function ($q) {
+            $q->where('name','shop');
+        })
+        ->orderBy('created_at','desc')
+        ->limit(3)
+        ->get();
         $currencies = Currency::all(['id','name']);
-        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency','currencies'));
+        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency','currencies','transfersToShop'));
     })->name('dashboard');
 });
 

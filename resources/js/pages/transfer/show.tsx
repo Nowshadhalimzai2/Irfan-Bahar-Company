@@ -1,4 +1,4 @@
-import LocationTranslator from '@/components/location-translator';
+import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
 import { SectionTitle } from '@/components/section-title';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
@@ -43,10 +43,10 @@ const Show = ({ transfer }: Props) => {
                                                 مقدار
                                             </TableHead>
                                             <TableHead className="text-center">
-                                                وزن
+                                                واحد جنس
                                             </TableHead>
                                             <TableHead className="text-center">
-                                                واحد جنس
+                                                وزن
                                             </TableHead>
                                             <TableHead className="text-center">
                                                 پر کارتن
@@ -61,8 +61,8 @@ const Show = ({ transfer }: Props) => {
                                             <TableRow key={ind}>
                                                 <TableCell className="text-center">{line.item.name}</TableCell>
                                                 <TableCell className="text-center">{line.quantity}</TableCell>
+                                                <TableCell className="text-center">{getDariItemUnit(line.item.unit)}</TableCell>
                                                 <TableCell className="text-center">{line.item.product?.weight ?? 'N/A'}</TableCell>
-                                                <TableCell className="text-center">{line.item.unit}</TableCell>
                                                 <TableCell className="text-center">{line.item.product?.per_pack ?? 'N/A'}</TableCell>
                                                 {/*<TableCell className="text-center">{line.currency.name}</TableCell> */}
                                             </TableRow>
