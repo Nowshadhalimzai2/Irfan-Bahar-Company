@@ -11,7 +11,7 @@ import { Calendar as CalenderUI } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
-import { CurrencyIcon, LucideIcon } from 'lucide-react';
+import { CurrencyIcon, Hammer, LucideIcon, UserCheck, UserX } from 'lucide-react';
 import { Icon } from '@/components/ui/icon';
 import { getDariCurrency } from '@/components/location-translator';
 import axios from 'axios';
@@ -22,9 +22,10 @@ interface Props {
     totalExpensesBasedOnCurrency: Record<string, number>;
     currencies: Currency[];
     transfersToShop: Transfer[];
+    emp_count:number;
 }
 
-export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop }: Props) {
+export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop,emp_count }: Props) {
     const [currency, setCurrency] = useState<string>(currencies[0].name);
     const [totalRevenue, setTotalRevenue] = useState<number>(0);
     const [averageExpenses, setAverageExpenses] = useState<number>(0);
@@ -43,7 +44,7 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
         getRevenueAndExpenses();
     }, [currency])
     console.log(transfersToShop);
-    
+
     const moreOptions: { name: string; url: string }[] = [
         { name: 'موقعیت ها', url: '/locations' },
         { name: 'تاریخچه اجرآات', url: '/logs' },
@@ -111,16 +112,53 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
                         </div>
                     </fieldset>
                     <section className="RECENTS">
+                        <div className="flex gap-2 justify-between items-start   p-5">
 
-                        <div className="flex justify-between items-center p-5">
-                            <div className="LEFT border">Left</div>
+                            {/* ========================== WORKERS STATUS  ======================== */}
+                            <div className="LEFT border p-2 rounded-sm w-3/5 shadow">
+                                <h5 className='text-lg text-accent font-medium text-center mb-2'>کارمندان</h5>
+                                <div className="ATTENDANCE flex justify-between px-5 items-center">
+                                    <div className='p-3 space-y-5 flex  gap-5 group duration-300 transition-all' onClick={()=>router.get('/stackholders')}>
+                                        <span className='p-3 bg-purple-50 rounded-sm group-hover:bg-purple-500'>
+                                            <Hammer className='text-purple-500 group-hover:text-purple-50' />
+                                        </span>
+                                        <div>
+                                            <h3 className='font-semibold text-2xl text-center'>{emp_count}</h3>
+                                            <small className='font-medium text-gray-400 text-center group-hover:text-purple-300'>کامندان  شرکت</small>
+                                        </div>
+                                    </div>
+                                    <div className=' gap-5 space-y-2'>
+                                        <div className='flex gap-3 justify-center items-start group'>
+                                            <div>
+                                                <h3 className='font-semibold text-2xl text-center '>15</h3>
+                                                <small className='font-medium text-gray-400 text-center group-hover:text-green-300'>حاضر</small>
+                                            </div>
+                                            <span className='p-3 bg-green-50 rounded-sm group-hover:bg-green-500'>
+                                                <UserCheck className='text-green-500 group-hover:text-green-50' />
+                                            </span>
+                                        </div>
+
+                                        <div className='flex gap-3 justify-center items-start pr-4 group'>
+                                            <div>
+                                                <h3 className='font-semibold text-2xl text-center'>3</h3>
+                                                <small className='font-medium text-gray-400 text-center group-hover:text-red-300'>غیر حاضر </small>
+                                            </div>
+                                            <span className='p-3 bg-red-50 rounded-sm group-hover:bg-red-500'>
+                                                <UserX className='text-red-500 group-hover:text-red-50' />
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* ========================== RECENTS TRANFERS TO SHOP  ======================== */}
                             <div className="RIGHT border p-2 rounded-sm w-2/5 shadow">
                                 <h5 className='text-lg text-accent font-medium text-center mb-2'>اجناس تازه امده به دوکان</h5>
                                 <div className='space-y-1'>
                                     {
-                                        transfersToShop.map((transfer,ind) =>
-                                            <div onClick={()=>router.get(`transfers/${transfer.id}`)} key={transfer.id} className='flex px-3 justify-between bg-white/20 py-2 shadow hover:scale-102 duration-100 transition-all'>
-                                                <p>{ind+1}</p>
+                                        transfersToShop.map((transfer, ind) =>
+                                            <div onClick={() => router.get(`transfers/${transfer.id}`)} key={transfer.id} className='flex px-3 justify-between bg-accent/5 text-accent/90 py-2 shadow hover:scale-102 duration-100 transition-all'>
+                                                <p>{ind + 1}</p>
                                                 <p>{transfer.reference_no}</p>
                                                 <p>{transfer.transfer_lines[0]?.item.category.name}</p>
                                                 <p>{new Date(transfer.transferred_at).toDateString()}</p>

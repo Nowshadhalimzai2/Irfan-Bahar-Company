@@ -19,6 +19,7 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\WasteController;
 use App\Models\Currency;
+use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Item;
 use App\Models\ProductionOrder;
@@ -37,6 +38,9 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 
+function getEmplyeesNumbers(){
+    return Employee::count();
+}
 Route::inertia('/', 'welcome')->name('home');
 // Route::inertia('/products',)->name('products.index');
 Route::inertia('/contact-us', 'contact-us')->name('contact-us');
@@ -53,7 +57,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $totalExpensesBasedOnCurrency = $todaysExpenses->groupBy('currency_id')->map(function ($expesnes) {
             return $expesnes->sum('amount');
         });
-
+        
+        //  get all emplyess length 
+        $emp_count = getEmplyeesNumbers();
         $transfersToShop = Transfer::with('destination:id,name','transferLines:id,tranfer_id,item_id','transferLines.item:id,category_id','transferLines.item.category:id,name')->whereHas('destination',function ($q) {
             $q->where('name','shop');
         })
@@ -61,7 +67,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->limit(3)
         ->get();
         $currencies = Currency::all(['id','name']);
-        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency','currencies','transfersToShop'));
+        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency','currencies','transfersToShop','emp_count'));
     })->name('dashboard');
 });
 
