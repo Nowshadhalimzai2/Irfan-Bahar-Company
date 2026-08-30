@@ -16,16 +16,17 @@ import { Icon } from '@/components/ui/icon';
 import { getDariCurrency } from '@/components/location-translator';
 import axios from 'axios';
 import { Transfer } from '@/types/item';
+import { bs } from 'date-fns/locale';
 
 interface Props {
     sa: Account[];
     totalExpensesBasedOnCurrency: Record<string, number>;
     currencies: Currency[];
     transfersToShop: Transfer[];
-    emp_count:number;
+    emp_count: number;
 }
 
-export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop,emp_count }: Props) {
+export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop, emp_count }: Props) {
     const [currency, setCurrency] = useState<string>(currencies[0].name);
     const [totalRevenue, setTotalRevenue] = useState<number>(0);
     const [averageExpenses, setAverageExpenses] = useState<number>(0);
@@ -112,47 +113,20 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
                         </div>
                     </fieldset>
                     <section className="RECENTS">
-                        <div className="flex gap-2 justify-between items-start   p-5">
+                        <div className="flex gap-2 md:flex-row flex-col-reverse justify-between items-start   py-5">
 
                             {/* ========================== WORKERS STATUS  ======================== */}
-                            <div className="LEFT border p-2 rounded-sm w-3/5 shadow">
-                                <h5 className='text-lg text-accent font-medium text-center mb-2'>کارمندان</h5>
-                                <div className="ATTENDANCE flex justify-between px-5 items-center">
-                                    <div className='p-3 space-y-5 flex  gap-5 group duration-300 transition-all' onClick={()=>router.get('/stackholders')}>
-                                        <span className='p-3 bg-purple-50 rounded-sm group-hover:bg-purple-500'>
-                                            <Hammer className='text-purple-500 group-hover:text-purple-50' />
-                                        </span>
-                                        <div>
-                                            <h3 className='font-semibold text-2xl text-center'>{emp_count}</h3>
-                                            <small className='font-medium text-gray-400 text-center group-hover:text-purple-300'>کامندان  شرکت</small>
-                                        </div>
-                                    </div>
-                                    <div className=' gap-5 space-y-2'>
-                                        <div className='flex gap-3 justify-center items-start group'>
-                                            <div>
-                                                <h3 className='font-semibold text-2xl text-center '>15</h3>
-                                                <small className='font-medium text-gray-400 text-center group-hover:text-green-300'>حاضر</small>
-                                            </div>
-                                            <span className='p-3 bg-green-50 rounded-sm group-hover:bg-green-500'>
-                                                <UserCheck className='text-green-500 group-hover:text-green-50' />
-                                            </span>
-                                        </div>
-
-                                        <div className='flex gap-3 justify-center items-start pr-4 group'>
-                                            <div>
-                                                <h3 className='font-semibold text-2xl text-center'>3</h3>
-                                                <small className='font-medium text-gray-400 text-center group-hover:text-red-300'>غیر حاضر </small>
-                                            </div>
-                                            <span className='p-3 bg-red-50 rounded-sm group-hover:bg-red-500'>
-                                                <UserX className='text-red-500 group-hover:text-red-50' />
-                                            </span>
-                                        </div>
-                                    </div>
+                            <div className="LEFT ATTENDANCE border p-5 rounded-sm w-full md:w-3/5 shadow">
+                                <h5 className='text-lg text-accent font-medium text-center mb-5'>کارمندان</h5>
+                                <div className=' gap-5 space-y-2  flex justify-between items-center'>
+                                    <EmployeeDashboardCard title='کارمندان' value={emp_count} Icon={Hammer} color='purple'/>
+                                    <EmployeeDashboardCard title='حاضر' value={2} Icon={UserCheck} color='green'/>                                                                   
+                                    <EmployeeDashboardCard title='غیر حاضر' value={1} Icon={UserX} color='red'/>                                                                   
                                 </div>
                             </div>
 
                             {/* ========================== RECENTS TRANFERS TO SHOP  ======================== */}
-                            <div className="RIGHT border p-2 rounded-sm w-2/5 shadow">
+                            <div className="RIGHT border p-2 rounded-sm md:w-2/5 w-full shadow">
                                 <h5 className='text-lg text-accent font-medium text-center mb-2'>اجناس تازه امده به دوکان</h5>
                                 <div className='space-y-1'>
                                     {
@@ -230,6 +204,27 @@ const BalanceCard = ({ className, totalExpensesBasedOnCurrency, account, LucideI
                     <span>رفت پول امروز: {totalExpensesBasedOnCurrency[account.currency.id]?.toLocaleString() || 0} </span><span>امد پول امروز: 120030</span>
                 </p>
             </div>
+        </div>
+    )
+}
+
+interface EMPCard{
+    value:number;
+    Icon:LucideIcon;
+    title:string;
+    color:string;
+}
+const EmployeeDashboardCard = ({value,Icon,title,color}:EMPCard) => {
+
+    return (
+        <div className='flex gap-3 justify-center items-start group' onClick={() => router.get('/stackholders')}>
+            <div>
+                <h3 className='font-semibold text-2xl text-center'>{value}</h3>
+                <small className={`font-medium text-gray-400 text-center group-hover:text-${color}-300`}>{title}</small>
+            </div>
+            <span className={`p-3 bg-${color}-50 rounded-sm group-hover:bg-${color}-500`}>
+                <Icon className={`text-${color}-500 group-hover:text-${color}-50`} />
+            </span>
         </div>
     )
 }

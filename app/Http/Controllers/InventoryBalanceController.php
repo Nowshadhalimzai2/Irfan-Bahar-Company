@@ -12,21 +12,40 @@ class InventoryBalanceController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $items = Item::with('inventoryBalances','inventoryBalances.location:id,name','product:item_id,per_pack,weight','category:id,name')->whereHas('inventoryBalances',function ($p0) {
-            $p0->whereNot('quanity_on_hand',0);
-        })->paginate(10);
-        
-        return Inertia::render('inventory-balance/index',compact('items'));
+        $query = Item::with('inventoryBalances', 'inventoryBalances.location:id,name', 'product:item_id,per_pack,weight', 'category:id,name')
+            ->whereHas('inventoryBalances', function ($balanceQuery) {
+                $balanceQuery->whereNot('quantity_on_hand', 0);
+            });
+
+        $itemType = $request->query('item_type');
+        if ($itemType) {
+            $itemTypes = is_array($itemType)
+                ? $itemType
+                : explode(',', (string) $itemType);
+
+            $itemTypes = array_values(array_filter(array_map('trim', $itemTypes)));
+            if ($itemTypes !== []) {
+                $query->whereIn('item_type', $itemTypes);
+            }
         }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+        $category = $request->query('category');
+        if ($category && $category !== 'all') {
+            $query->whereHas('category', function ($categoryQuery) use ($category) {
+                $categoryQuery->where('name', $category);
+            });
+        }
+
+        $items = $query->paginate(10)->withQueryString();
+
+        return Inertia::render('inventory-balance/index', compact('items'));
+    }
+
+    public function filterItems($filterData)
     {
-        //
+        return response()->json($filterData);
     }
 
     /**
