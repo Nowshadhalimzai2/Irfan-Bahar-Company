@@ -38,8 +38,13 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 
-function getEmplyeesNumbers(){
-    return Employee::count();
+function getEmployees(){
+   return Employee::with('attendances:id,employee_id,date,is_present')->whereHas('attendances',function ($query) {
+        $query->whereDate('date',Carbon::today(config('app.timezone')));
+    })
+    ->select('id','name')
+    ->get();
+     
 }
 Route::inertia('/', 'welcome')->name('home');
 // Route::inertia('/products',)->name('products.index');
@@ -59,7 +64,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
         
         //  get all emplyess length 
-        $emp_count = getEmplyeesNumbers();
+        $employees = getEmployees();
+
         $transfersToShop = Transfer::with('destination:id,name','transferLines:id,tranfer_id,item_id','transferLines.item:id,category_id','transferLines.item.category:id,name')->whereHas('destination',function ($q) {
             $q->where('name','shop');
         })
@@ -67,7 +73,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->limit(3)
         ->get();
         $currencies = Currency::all(['id','name']);
-        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency','currencies','transfersToShop','emp_count'));
+        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency','currencies','transfersToShop','employees'));
     })->name('dashboard');
 });
 

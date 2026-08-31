@@ -1,6 +1,6 @@
 import { dashboard } from "@/routes";
 import { NavItem } from "@/types";
-import { AlertCircle, BadgeMinus, BookOpen, Factory, FolderGit2, GroupIcon, LayoutGrid, PackageOpen, Store, Truck } from "lucide-react";
+import { AlertCircle, BadgeMinus, BookOpen, Factory, FolderGit2, GroupIcon, LayoutGrid, PackageOpen, Store, Truck, Users } from "lucide-react";
 
 export const mainNavItems: NavItem[] = [
     {
@@ -14,9 +14,9 @@ export const mainNavItems: NavItem[] = [
         icon: BadgeMinus,
     },
     {
-        title: 'کار کننده ګان',
+        title: 'کار مندان',
         href: "/stackholders",
-        icon: GroupIcon,
+        icon: Users,
     },
     {
         title: 'ستاک',

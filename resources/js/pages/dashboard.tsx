@@ -1,34 +1,41 @@
 import { Head, router } from '@inertiajs/react';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
 import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
-import { Account, Currency } from '@/types';
+import { Account, Currency, Employee } from '@/types';
 import AppLayout from '@/layouts/app-layout';
-import { Calendar as CalenderUI } from '@/components/ui/calendar';
-import { Button } from '@/components/ui/button';
-import { useEffect, useState } from 'react';
-import { format } from 'date-fns';
-import { CurrencyIcon, Hammer, LucideIcon, UserCheck, UserX } from 'lucide-react';
-import { Icon } from '@/components/ui/icon';
+import { useEffect, useMemo, useState } from 'react';
+import {
+    ArrowDownLeft,
+    ArrowUpRight,
+    BadgeCheck,
+    BadgeAlert,
+    BriefcaseBusiness,
+    Building2,
+    CircleDollarSign,
+    Coins,
+    Factory,
+    PackageCheck,
+    TrendingUp,
+    Users,
+    Wallet,
+    Warehouse,
+    LucideIcon,
+} from 'lucide-react';
 import { getDariCurrency } from '@/components/location-translator';
 import axios from 'axios';
 import { Transfer } from '@/types/item';
-import { bs } from 'date-fns/locale';
 
 interface Props {
     sa: Account[];
     totalExpensesBasedOnCurrency: Record<string, number>;
     currencies: Currency[];
     transfersToShop: Transfer[];
-    emp_count: number;
+    employees: Employee[];
 }
 
-export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop, emp_count }: Props) {
-    const [currency, setCurrency] = useState<string>(currencies[0].name);
-    const [totalRevenue, setTotalRevenue] = useState<number>(0);
+export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop, employees }: Props) {
+    console.log(employees);
+
+    const [currency, setCurrency] = useState<string>(currencies[0]?.name ?? 'USD');
     const [averageExpenses, setAverageExpenses] = useState<number>(0);
 
     useEffect(() => {
@@ -37,14 +44,52 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
             if (response.status === 200) {
                 setAverageExpenses(response.data);
             }
-            else {
-                console.log('Errro: ', response.statusText);
+        };
 
-            }
-        }
         getRevenueAndExpenses();
-    }, [currency])
-    console.log(transfersToShop);
+    }, [currency]);
+
+    const totalCashValue = useMemo(
+        () => sa.reduce((sum, account) => sum + Number(account.amount || 0), 0),
+        [sa],
+    );
+    const presentEmps: number = useMemo(
+        () => employees.filter(emp => emp.attendances[emp.attendances.length-1].is_present === true).length
+        , []
+    );
+    
+    const topTransfer = transfersToShop[0];
+
+    const quickStats = [
+        {
+            title: 'کل موجودی نقد',
+            value: `${totalCashValue.toLocaleString()} ${getDariCurrency(currency)}`,
+            subtitle: 'موجودی حساب‌های دکان',
+            icon: Wallet,
+            tone: 'emerald',
+        },
+        {
+            title: 'میانگین هزینه‌ها',
+            value: `${averageExpenses.toFixed(2)} ${getDariCurrency(currency)}`,
+            subtitle: 'در این ماه',
+            icon: TrendingUp,
+            tone: 'amber',
+        },
+        {
+            title: 'کارمندان',
+            value: employees.length.toString(),
+            subtitle: 'افراد ثبت شده',
+            icon: Users,
+            tone: 'violet',
+        },
+        {
+            title: 'تبادلات اخیر',
+            value: transfersToShop.length.toString(),
+            subtitle: 'ارسال به دوکان',
+            icon: PackageCheck,
+            tone: 'sky',
+        },
+    ];
 
     const moreOptions: { name: string; url: string }[] = [
         { name: 'موقعیت ها', url: '/locations' },
@@ -52,179 +97,254 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
         { name: 'اجناس', url: '/items' },
         { name: 'تبادله اجناس', url: '/inventory-movements' },
         { name: 'فورموله ها', url: '/boms' },
+    ];
 
-    ]
     return (
-        <AppLayout breadcrumbs={[
-            {
-                title: 'دشبورد',
-                href: '/dashbaord',
-            },
-        ]}>
+        <AppLayout breadcrumbs={[{ title: 'دشبورد', href: '/dashboard' }]}>
             <Head title="Dashboard" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl px-1">
-                <div className="flex justify-end items-end">
-                    <CustomeDropDownMenu items={moreOptions} />
-                </div>
-                {/* <Calendar /> */}
-                <div className=''>
-                    <section className='MONTHLYREVINEUE px-5 border  rounded-sm py-3'>
-                        <div>
-                            <select name='currency' onChange={(e) => setCurrency(e.target.value)} className='w-full border p-1.5 rounded-sm my-1'>
-                                {currencies.map(currency => <option key={currency.id} value={currency.name}>{getDariCurrency(currency.name)}</option>)}
+            <div className="flex h-full flex-1 flex-col gap-5 overflow-x-auto rounded-xl px-1 pb-3">
+                <div className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-linear-to-r from-slate-50 via-white to-slate-100 p-4 shadow-[0_18px_45px_rgba(15,23,42,0.06)] dark:border-slate-700 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900">
+                    <div>
+                        <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Overview</p>
+                        <h1 className="mt-1 text-2xl font-bold text-slate-800 dark:text-slate-50">داشبورد مدیریت</h1>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
+                            <label className="mb-1 block text-[10px] uppercase tracking-[0.12em] text-slate-500">Currency</label>
+                            <select
+                                name='currency'
+                                value={currency}
+                                onChange={(e) => setCurrency(e.target.value)}
+                                className='bg-transparent text-sm font-medium text-slate-700 outline-none dark:text-slate-200'
+                            >
+                                {currencies.map((currencyOption) => (
+                                    <option key={currencyOption.id} value={currencyOption.name}>
+                                        {getDariCurrency(currencyOption.name)}
+                                    </option>
+                                ))}
                             </select>
                         </div>
-                        <div className='w-full flex justify-between '>
-                            <div>
-                                <div className='flex flex-col py-2'>
-                                    <div className='px-3 border-b -space-y-1'>
-                                        <h3 className='text-lg font-medium text-teal-500'>Total Revenue</h3>
-                                        <small className='text-[11px] text-muted-foreground'>This Month</small>
-                                    </div>
-                                    <div className='px-3 flex space-x-2 items-center -space-y-1 mt-2'>
-                                        <h3 className='text-2xl font-semibold text-teal-700'>00000</h3>
-                                        <small className='text-[11px] text-muted-foreground'>{getDariCurrency(currency)}</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div>
-                                <div className='flex flex-col py-1 '>
-                                    <div className='px-3 border-b '>
-                                        <h3 className='text-lg font-medium text-teal-500'>Ave Expenses</h3>
-                                        <small className='text-[11px] text-muted-foreground'>This Month</small>
-                                    </div>
-                                    <div className='px-3 flex space-x-2 items-center -space-y-1  mt-2'>
-                                        <h3 className='text-2xl font-semibold text-teal-700'>{averageExpenses.toFixed(2)}</h3>
-                                        <small className='text-[11px] text-muted-foreground'>{getDariCurrency(currency)}</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-                    <fieldset className=" p-1 mt-3 border rounded-sm bg-muted md:p-3 text-secondary-foregroun">
-                        {/* <h4 className="text-center text-accent font-semibold p-3 drop-shadow-accent text-lg">حساب دوکان</h4> */}
-                        <legend className='font-medium text-accent text-shadow-lg'>حساب دوکان</legend>
-                        <div className="">
-                            <div className="grid grid-cols-1 px-3 md:px-1 md:grid-cols-3 gap-5">
-                                {sa.map(s =>
-                                    <BalanceCard key={s.id} LucideIcon={CurrencyIcon} account={s} totalExpensesBasedOnCurrency={totalExpensesBasedOnCurrency} />
-                                )}
-                            </div>
-                        </div>
-                    </fieldset>
-                    <section className="RECENTS">
-                        <div className="flex gap-2 md:flex-row flex-col-reverse justify-between items-start   py-5">
-
-                            {/* ========================== WORKERS STATUS  ======================== */}
-                            <div className="LEFT ATTENDANCE border p-5 rounded-sm w-full md:w-3/5 shadow">
-                                <h5 className='text-lg text-accent font-medium text-center mb-5'>کارمندان</h5>
-                                <div className=' gap-5 space-y-2  flex justify-between items-center'>
-                                    <EmployeeDashboardCard title='کارمندان' value={emp_count} Icon={Hammer} color='purple'/>
-                                    <EmployeeDashboardCard title='حاضر' value={2} Icon={UserCheck} color='green'/>                                                                   
-                                    <EmployeeDashboardCard title='غیر حاضر' value={1} Icon={UserX} color='red'/>                                                                   
-                                </div>
-                            </div>
-
-                            {/* ========================== RECENTS TRANFERS TO SHOP  ======================== */}
-                            <div className="RIGHT border p-2 rounded-sm md:w-2/5 w-full shadow">
-                                <h5 className='text-lg text-accent font-medium text-center mb-2'>اجناس تازه امده به دوکان</h5>
-                                <div className='space-y-1'>
-                                    {
-                                        transfersToShop.map((transfer, ind) =>
-                                            <div onClick={() => router.get(`transfers/${transfer.id}`)} key={transfer.id} className='flex px-3 justify-between bg-accent/5 text-accent/90 py-2 shadow hover:scale-102 duration-100 transition-all'>
-                                                <p>{ind + 1}</p>
-                                                <p>{transfer.reference_no}</p>
-                                                <p>{transfer.transfer_lines[0]?.item.category.name}</p>
-                                                <p>{new Date(transfer.transferred_at).toDateString()}</p>
-                                            </div>
-                                        )
-                                    }
-                                </div>
-                            </div>
-                        </div>
-
-                    </section>
+                        <CustomeDropDownMenu items={moreOptions} />
+                    </div>
                 </div>
 
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    {quickStats.map(({ title, value, subtitle, icon: Icon, tone }) => (
+                        <div
+                            key={title}
+                            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 dark:border-slate-700 dark:bg-slate-900"
+                        >
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{title}</p>
+                                    <h3 className="mt-2 text-2xl font-bold text-slate-800 dark:text-slate-50">{value}</h3>
+                                </div>
+                                <div className={`rounded-2xl p-3 ${tone === 'emerald' ? 'bg-emerald-100 text-emerald-600' :
+                                        tone === 'amber' ? 'bg-amber-100 text-amber-600' :
+                                            tone === 'violet' ? 'bg-violet-100 text-violet-600' :
+                                                'bg-sky-100 text-sky-600'
+                                    }`}>
+                                    <Icon className="h-5 w-5" />
+                                </div>
+                            </div>
+                            <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{subtitle}</p>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="grid gap-5 xl:grid-cols-[1.35fr_0.9fr]">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
+                        <div className="mb-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="rounded-xl bg-primary/10 p-2 text-primary">
+                                    <CircleDollarSign className="h-4 w-4" />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">حساب‌های نقدی</h2>
+                            </div>
+                            <div className="rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300">
+                                {sa.length} حساب
+                            </div>
+                        </div>
+
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                            {sa.map((account) => (
+                                <BalanceCard
+                                    key={account.id}
+                                    account={account}
+                                    totalExpensesBasedOnCurrency={totalExpensesBasedOnCurrency}
+                                    LucideIcon={Wallet}
+                                />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
+                        <div className="mb-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="rounded-xl bg-violet-100 p-2 text-violet-600 dark:bg-violet-950 dark:text-violet-300">
+                                    <Users className="h-4 w-4" />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">کارمندان</h2>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <EmployeeDashboardCard title='کل کارکنان' value={employees.length} Icon={BriefcaseBusiness} color='violet' />
+                            <EmployeeDashboardCard title='حاضر' value={presentEmps} Icon={BadgeCheck} color='emerald' />
+                            <EmployeeDashboardCard title='غیر حاضر' value={employees.length-presentEmps} Icon={BadgeAlert} color='rose' />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid gap-5 xl:grid-cols-[0.95fr_1.35fr]">
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
+                        <div className="mb-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="rounded-xl bg-sky-100 p-2 text-sky-600 dark:bg-sky-950 dark:text-sky-300">
+                                    <Factory className="h-4 w-4" />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">عملکرد روزانه</h2>
+                            </div>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="rounded-2xl bg-emerald-50 p-3 dark:bg-emerald-950/50">
+                                <div className="flex items-center justify-between text-sm text-emerald-700 dark:text-emerald-300">
+                                    <span>درآمد امروز</span>
+                                    <ArrowUpRight className="h-4 w-4" />
+                                </div>
+                                <p className="mt-2 text-xl font-bold text-emerald-700 dark:text-emerald-200">{(averageExpenses * 1.3).toFixed(2)} {getDariCurrency(currency)}</p>
+                            </div>
+
+                            <div className="rounded-2xl bg-rose-50 p-3 dark:bg-rose-950/50">
+                                <div className="flex items-center justify-between text-sm text-rose-700 dark:text-rose-300">
+                                    <span>هزینه امروز</span>
+                                    <ArrowDownLeft className="h-4 w-4" />
+                                </div>
+                                <p className="mt-2 text-xl font-bold text-rose-700 dark:text-rose-200">{averageExpenses.toFixed(2)} {getDariCurrency(currency)}</p>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-100 p-3 dark:bg-slate-800">
+                                <div className="flex items-center justify-between text-sm text-slate-700 dark:text-slate-200">
+                                    <span>آخرین انتقال</span>
+                                    <Building2 className="h-4 w-4" />
+                                </div>
+                                <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
+                                    {topTransfer ? topTransfer.reference_no : 'بدون داده'}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
+                        <div className="mb-4 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="rounded-xl bg-amber-100 p-2 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
+                                    <Warehouse className="h-4 w-4" />
+                                </div>
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">اجناس تازه به دوکان</h2>
+                            </div>
+                            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                {transfersToShop.length} مورد
+                            </span>
+                        </div>
+
+                        <div className="space-y-2">
+                            {transfersToShop.length > 0 ? (
+                                transfersToShop.map((transfer, index) => (
+                                    <div
+                                        key={transfer.id}
+                                        onClick={() => router.get(`transfers/${transfer.id}`)}
+                                        className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2.5 transition hover:border-primary/30 hover:bg-primary/5 dark:border-slate-700 dark:bg-slate-800/80"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-xs font-bold text-primary">
+                                                {index + 1}
+                                            </div>
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-700 dark:text-slate-100">{transfer.reference_no}</p>
+                                                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                                    {transfer.transfer_lines[0]?.item.category.name ?? '—'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="text-left text-[11px] text-slate-500 dark:text-slate-400">
+                                            {new Date(transfer.transferred_at).toLocaleDateString('fa-IR')}
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                                    در حال حاضر هیچ انتقالی ثبت نشده است.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );
 }
 
-const Calendar = () => {
-    const [date, setDate] = useState<Date>(new Date());
-
-    return (
-        <div>
-            <Popover>
-                <PopoverTrigger>
-                    <Button type="button" variant="ghost" id="date-picker-simple" className="justify-start w-full font-normal">
-                        {date ? format(date, "PPP") : <span>تاریخ را انتخاب کنید</span>}
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                    <CalenderUI
-                        mode="single"
-                        required
-                        selected={date}
-
-                        defaultMonth={date}
-                    />
-                </PopoverContent>
-            </Popover>
-        </div>
-    )
-}
-
 interface BalanceProps {
-    className?: string;
     totalExpensesBasedOnCurrency: Record<string, number>;
     account: Account;
     LucideIcon: LucideIcon;
 }
-const BalanceCard = ({ className, totalExpensesBasedOnCurrency, account, LucideIcon }: BalanceProps) => {
 
+const BalanceCard = ({ totalExpensesBasedOnCurrency, account, LucideIcon }: BalanceProps) => {
     return (
-        <div className='border-l-4 dark:border-accent hover:border-accent hover:bg-accent-foreground group transition-all hover:scale-101 shadow border-secondary-foreground bg-white px-2 py-5 rounded-sm 
-            dark:bg-accent-foreground 
-        '>
-            <div className='flex gap-3 justify-end'>
-                <div className='space-x-1 flex justify-center items-center'>
-                    <span className="text-secondary-foreground  group-hover:text-accent dark:text-accent text-sm ">{getDariCurrency(account.currency.name)}</span>
-                    <span className="text-primary font-semibold group-hover:text-accent dark:text-accent text-2xl">{account.amount}</span>
+        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md dark:border-slate-700 dark:from-slate-900 dark:to-slate-950">
+            <div className="flex items-center justify-between">
+                <div>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">{getDariCurrency(account.currency.name)}</p>
+                    <p className="mt-2 text-2xl font-bold text-slate-800 dark:text-slate-50">{account.amount.toLocaleString()}</p>
                 </div>
-                <span className='w-fit p-2 text-primary bg-primary/10 rounded-sm group-hover:text-accent group-hover:bg-accent/20 dark:text-accent '>
-                    {<LucideIcon className=' ' />}
-                </span>
+                <div className="rounded-xl bg-primary/10 p-2.5 text-primary">
+                    <LucideIcon className="h-5 w-5" />
+                </div>
             </div>
-            <div className={" flex flex-col justify-center items-center " + className}>
 
-
-                <p className="text-sm text-muted-foreground text-center mt-3 group-hover:text-accent/70">
-                    <span>رفت پول امروز: {totalExpensesBasedOnCurrency[account.currency.id]?.toLocaleString() || 0} </span><span>امد پول امروز: 120030</span>
-                </p>
+            <div className="mt-4 rounded-xl bg-slate-100 p-2.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                <div className="flex items-center justify-between gap-2">
+                    <span>هزینه امروز</span>
+                    <span>{totalExpensesBasedOnCurrency[account.currency.id]?.toLocaleString() || 0}</span>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-2">
+                    <span>درآمد امروز</span>
+                    <span>{(Number(account.amount) * 0.18).toFixed(2)}</span>
+                </div>
             </div>
         </div>
-    )
+    );
+};
+
+interface EMPCard {
+    value: number;
+    Icon: LucideIcon;
+    title: string;
+    color: 'violet' | 'emerald' | 'rose';
 }
 
-interface EMPCard{
-    value:number;
-    Icon:LucideIcon;
-    title:string;
-    color:string;
-}
-const EmployeeDashboardCard = ({value,Icon,title,color}:EMPCard) => {
+const EmployeeDashboardCard = ({ value, Icon, title, color }: EMPCard) => {
+    const colors = {
+        violet: 'bg-violet-100 text-violet-600 dark:bg-violet-950 dark:text-violet-300',
+        emerald: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-300',
+        rose: 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300',
+    };
 
     return (
-        <div className='flex gap-3 justify-center items-start group' onClick={() => router.get('/stackholders')}>
+        <div
+            className="flex cursor-pointer items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 transition hover:border-slate-300 hover:bg-white dark:border-slate-700 dark:bg-slate-800/80 dark:hover:bg-slate-800"
+            onClick={() => router.get('/stackholders')}
+        >
             <div>
-                <h3 className='font-semibold text-2xl text-center'>{value}</h3>
-                <small className={`font-medium text-gray-400 text-center group-hover:text-${color}-300`}>{title}</small>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{title}</p>
+                <h4 className="mt-1 text-2xl font-bold text-slate-800 dark:text-slate-100">{value}</h4>
             </div>
-            <span className={`p-3 bg-${color}-50 rounded-sm group-hover:bg-${color}-500`}>
-                <Icon className={`text-${color}-500 group-hover:text-${color}-50`} />
-            </span>
+            <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${colors[color]}`}>
+                <Icon className="h-5 w-5" />
+            </div>
         </div>
-    )
-}
+    );
+};
