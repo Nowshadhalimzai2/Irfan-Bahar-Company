@@ -6,10 +6,11 @@ interface Props {
         label: string;
         active: boolean;
     }[];
+    className?:string;
 }
-const PageLinks = ({ links }: Props) => {
+const PageLinks = ({ links,className }: Props) => {
     return (
-        <div className="flex justify-center items-center space-x-2">
+        <div className={`flex justify-center items-center space-x-2 ${className}`}>
             {links.map((link, index) => (
                 <a
                     key={index}

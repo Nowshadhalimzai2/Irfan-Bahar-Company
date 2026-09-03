@@ -38,13 +38,15 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 
-function getEmployees(){
-   return Employee::with('attendances:id,employee_id,date,is_present')->whereHas('attendances',function ($query) {
-        $query->whereDate('date',Carbon::today(config('app.timezone')));
-    })
-    ->select('id','name')
-    ->get();
-     
+if (! function_exists('getEmployees')) {
+    function getEmployees()
+    {
+        return Employee::with('attendances:id,employee_id,date,is_present')->whereHas('attendances', function ($query) {
+            $query->whereDate('date', Carbon::today(config('app.timezone')));
+        })
+            ->select('id', 'name')
+            ->get();
+    }
 }
 Route::inertia('/', 'welcome')->name('home');
 // Route::inertia('/products',)->name('products.index');

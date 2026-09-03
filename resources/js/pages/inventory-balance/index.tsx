@@ -37,11 +37,15 @@ interface Props {
             active: boolean;
         }[];
     };
+    locations: {
+        id: number;
+        name: string;
+    }[];
 }
 
 const itemTypeOptions: Item['item_type'][] = ['product', 'raw_material', 'packing'];
 
-const Index = ({ items }: Props) => {
+const Index = ({ items, locations }: Props) => {
     const [selectedItemTypes, setSelectedItemTypes] = useState<Item['item_type'][]>(() => {
         const params = new URLSearchParams(window.location.search);
         const itemTypeValue = params.get('item_type');
@@ -55,6 +59,7 @@ const Index = ({ items }: Props) => {
         );
     });
     const [selectedCategory, setSelectedCategory] = useState<string>(() => new URLSearchParams(window.location.search).get('category') ?? 'all');
+    const [selectedLocation, setSelectedLocation] = useState<string>(() => new URLSearchParams(window.location.search).get('location_id') ?? 'all');
     const [searchTerm, setSearchTerm] = useState<string>('');
 
     const categories = useMemo(
@@ -68,17 +73,18 @@ const Index = ({ items }: Props) => {
         return items.data.filter((item) => {
             const matchesItemType = selectedItemTypes.length === 0 || selectedItemTypes.includes(item.item_type);
             const matchesCategory = selectedCategory === 'all' || item.category?.name === selectedCategory;
+            const matchesLocation = selectedLocation === 'all' || item.inventory_balances.some((balance) => String(balance.location?.id ?? balance.location.id) === selectedLocation);
             const matchesSearch =
                 normalizedSearch === '' ||
                 [item.name, item.sku, item.code, item.product?.barcode ?? ''].some((value) =>
                     value.toLowerCase().includes(normalizedSearch),
                 );
 
-            return matchesItemType && matchesCategory && matchesSearch;
+            return matchesItemType && matchesCategory && matchesLocation && matchesSearch;
         });
-    }, [items.data, searchTerm, selectedCategory, selectedItemTypes]);
+    }, [items.data, searchTerm, selectedCategory, selectedItemTypes, selectedLocation]);
 
-    const applyFilters = (nextTypes: Item['item_type'][], nextCategory: string) => {
+    const applyFilters = (nextTypes: Item['item_type'][], nextCategory: string, nextLocation: string) => {
         const params = new URLSearchParams(window.location.search);
 
         if (nextTypes.length > 0) {
@@ -93,6 +99,12 @@ const Index = ({ items }: Props) => {
             params.set('category', nextCategory);
         }
 
+        if (nextLocation === 'all') {
+            params.delete('location_id');
+        } else {
+            params.set('location_id', nextLocation);
+        }
+
         router.get('/inventory-balances', Object.fromEntries(params.entries()), {
             preserveScroll: true,
             replace: true,
@@ -105,12 +117,17 @@ const Index = ({ items }: Props) => {
             : [...selectedItemTypes, type];
 
         setSelectedItemTypes(nextTypes);
-        applyFilters(nextTypes, selectedCategory);
+        applyFilters(nextTypes, selectedCategory, selectedLocation);
     };
 
     const handleCategoryChange = (category: string) => {
         setSelectedCategory(category);
-        applyFilters(selectedItemTypes, category);
+        applyFilters(selectedItemTypes, category, selectedLocation);
+    };
+
+    const handleLocationChange = (locationId: string) => {
+        setSelectedLocation(locationId);
+        applyFilters(selectedItemTypes, selectedCategory, locationId);
     };
 
     const totalStock = (item: ItemWithInventory) => {
@@ -142,7 +159,7 @@ const Index = ({ items }: Props) => {
                                             onClick={() => {
                                                 const nextTypes = itemTypeOptions;
                                                 setSelectedItemTypes(nextTypes);
-                                                applyFilters(nextTypes, selectedCategory);
+                                                applyFilters(nextTypes, selectedCategory, selectedLocation);
                                             }}
                                         >
                                             <Sparkles className="h-3 w-3" />
@@ -153,7 +170,7 @@ const Index = ({ items }: Props) => {
                                             className='inline-flex items-center gap-1 rounded-full border bg-white/80 px-2.5 py-1.5 shadow-sm transition hover:bg-slate-100 dark:bg-slate-900/70 dark:hover:bg-slate-800'
                                             onClick={() => {
                                                 setSelectedItemTypes([]);
-                                                applyFilters([], selectedCategory);
+                                                applyFilters([], selectedCategory, selectedLocation);
                                             }}
                                         >
                                             <Filter className="h-3 w-3" />
@@ -162,7 +179,7 @@ const Index = ({ items }: Props) => {
                                     </div>
                                 </div>
 
-                                <div className="grid gap-4 md:grid-cols-[1.35fr_0.95fr]">
+                                <div className="grid gap-4 md:grid-cols-[1.35fr_0.95fr_0.95fr]">
                                     <div className='space-y-3 rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-950/60'>
                                         <div className='flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200'>
                                             <Boxes className="h-4 w-4 text-primary" />
@@ -213,6 +230,25 @@ const Index = ({ items }: Props) => {
                                             ))}
                                         </select>
                                     </div>
+
+                                    <div className='space-y-3 rounded-2xl border border-slate-200 bg-white/80 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-950/60'>
+                                        <div className='flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-200'>
+                                            <Warehouse className="h-4 w-4 text-primary" />
+                                            مکان
+                                        </div>
+                                        <select
+                                            value={selectedLocation}
+                                            onChange={(event) => handleLocationChange(event.target.value)}
+                                            className='w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm shadow-inner outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 dark:border-slate-700 dark:bg-slate-900'
+                                        >
+                                            <option value='all'>همه مکان‌ها</option>
+                                            {locations.map((location) => (
+                                                <option key={location.id} value={String(location.id)}>
+                                                    {LocationTranslator(location.name)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
 
@@ -234,6 +270,7 @@ const Index = ({ items }: Props) => {
                                     onClick={() => {
                                         setSelectedItemTypes([]);
                                         setSelectedCategory('all');
+                                        setSelectedLocation('all');
                                         setSearchTerm('');
                                         router.get('/inventory-balances', {}, {
                                             preserveScroll: true,
@@ -287,7 +324,7 @@ const Index = ({ items }: Props) => {
                             </div>
 
                             {/*  ============================  PAGINATION SECTION ==================== */}
-                            <PageLinks links={items.links} />
+                            <PageLinks links={items.links} className='mt-5'/>
                         </div>
                     </div>
                 </section>

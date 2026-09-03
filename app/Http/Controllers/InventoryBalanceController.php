@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\InventoryBalance;
 use App\Models\Item;
+use App\Models\Location;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -38,9 +39,17 @@ class InventoryBalanceController extends Controller
             });
         }
 
-        $items = $query->paginate(10)->withQueryString();
+        $locationId = $request->query('location_id');
+        if ($locationId !== null && $locationId !== '' && $locationId !== 'all') {
+            $query->whereHas('inventoryBalances', function ($balanceQuery) use ($locationId) {
+                $balanceQuery->where('location_id', (int) $locationId);
+            });
+        }
 
-        return Inertia::render('inventory-balance/index', compact('items'));
+        $items = $query->paginate(10)->withQueryString();
+        $locations = Location::select('id', 'name')->whereNot('name','other')->orderBy('name')->get();
+
+        return Inertia::render('inventory-balance/index', compact('items', 'locations'));
     }
 
     public function filterItems($filterData)
