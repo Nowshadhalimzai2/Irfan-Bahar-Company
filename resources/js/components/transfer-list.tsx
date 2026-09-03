@@ -32,9 +32,8 @@ const TransferList = ({ transfers }: Props) => {
     const destinationLocations = useMemo(() => Array.from(new Set(transfers.data.map((transfer) => LocationTranslator(transfer.destination.name)))), [transfers.data]);
 
     const filteredTransfers = useMemo(() => transfers.data.filter((transfer) => {
-        const sourceLocation = LocationTranslator(transfer.source.name);
-        const destinationLocation = LocationTranslator(transfer.destination.name);
-        const searchable = `${transfer.reference_no} ${sourceLocation} ${destinationLocation}`.toLowerCase();
+       
+        const searchable = `${transfer.reference_no}`.toLowerCase();
         const transferredDate = new Date(transfer.transferred_at);
 
         return searchable.includes(search.toLowerCase())
