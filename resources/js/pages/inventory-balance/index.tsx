@@ -133,7 +133,7 @@ const Index = ({ items, locations }: Props) => {
                     <div>
                         <SectionTitle title='ستاک اجناس' description='تمام اجناس که مربوط شرکت است' />
                         <div className="max-w-5xl mx-auto p-5">
-                            <div className="rounded-2xl border bg-gradient-to-br from-white via-slate-50 to-slate-100 p-4 shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/80 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 dark:ring-slate-700/80">
+                            <div className="rounded-2xl border bg-linear-to-br from-white via-slate-50 to-slate-100 p-4 shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/80 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 dark:ring-slate-700/80">
                                 <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3 dark:border-slate-700/80">
                                     <div className="flex items-center gap-2 text-slate-700 dark:text-slate-200">
                                         <div className="rounded-xl bg-primary/10 p-2 text-primary">
@@ -275,9 +275,9 @@ const Index = ({ items, locations }: Props) => {
                             <div className={`grid grid-cols-1 ${filteredItems.length > 0 ? 'lg:grid-cols-3' : ' lg:grid-cols-1'} gap-5 md:gap-3 mt-5`}>
                                 {filteredItems.length > 0 ? filteredItems.map((item, ind) =>
                                     <div className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(15,23,42,0.12)] dark:border-slate-700 dark:bg-slate-900" key={ind}>
-                                        <div className="relative overflow-hidden bg-gradient-to-r from-primary/20 via-secondary/20 to-slate-200">
+                                        <div className="relative overflow-hidden bg-linear-to-r from-primary/20 via-secondary/20 to-slate-200">
                                             <img src={"https://picsum.photos/275/60"} alt="" className="h-24 w-full object-cover opacity-90" />
-                                            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 to-transparent" />
+                                            <div className="absolute inset-0 bg-linear-to-t from-slate-950/50 to-transparent" />
                                             <h2 className="absolute inset-x-4 bottom-3 text-center text-lg font-bold text-white drop-shadow-md">{item.name}</h2>
                                             <div className={`absolute right-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${totalStock(item) <= 10
                                                 ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
@@ -311,7 +311,7 @@ const Index = ({ items, locations }: Props) => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className='mt-4 flex items-center justify-between rounded-2xl bg-gradient-to-r from-slate-100 to-slate-50 px-3 py-2 text-xs font-medium text-slate-700 dark:from-slate-800 dark:to-slate-900 dark:text-slate-200'>
+                                            <div className='mt-4 flex items-center justify-between rounded-2xl bg-linear-to-r from-slate-100 to-slate-50 px-3 py-2 text-xs font-medium text-slate-700 dark:from-slate-800 dark:to-slate-900 dark:text-slate-200'>
                                                 <p>{(item.default_sale_price * totalStock(item)).toFixed(2)} جمله پول</p>
                                                 <p>{totalStock(item)} جمله {getDariItemUnit(item.unit)}</p>
                                             </div>

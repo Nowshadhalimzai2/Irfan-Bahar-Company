@@ -1,18 +1,18 @@
-import { SectionTitle } from '@/components/section-title';
-import AppLayout from '@/layouts/app-layout';
-import { useForm } from '@inertiajs/react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useForm, Link } from '@inertiajs/react';
+import axios from 'axios';
+import { ArrowLeft, CalendarDays, CheckCircle2, ClipboardList, PackageCheck, Route, Trash2, Truck } from 'lucide-react';
+import type { FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+import InputError from '@/components/input-error';
+import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import InputError from '@/components/input-error';
-import { InventoryBalance, Location } from '@/types';
-import { Item } from '@/types/item';
-import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
-import axios from 'axios';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DeleteIcon } from 'lucide-react';
+import AppLayout from '@/layouts/app-layout';
+import type { InventoryBalance, Location } from '@/types';
+import type { Item } from '@/types/item';
 
 interface Props {
     locations: Location[];
@@ -28,22 +28,25 @@ type TransferLine = {
 type TransferType = {
     source_id: number;
     destination_id: number;
+    transferred_at: string;
     notes: string;
     transferLines: TransferLine[];
 }
 
 const Create = ({ locations, items }: Props) => {
+     const [lineError, setLineError] = useState<string | null>(null);
     const [itemsInLoc, setItemInLoc] = useState<Item[]>(items);
     const [transferLine, setTransferLine] = useState<TransferLine[]>([]);
     const [currentLine, setCurrentLine] = useState<TransferLine>(() => ({
         item_id: items[0]?.id ?? 0,
         quantity: 1,
-        unit_price: items[0].default_sale_price ?? 1,
+        unit_price: items[0]?.default_sale_price ?? 1,
     }));
 
     const { data, setData, errors, post, processing } = useForm<TransferType>({
         'source_id': locations[0]?.id ?? 1,
         'destination_id': locations[1]?.id ?? 1,
+        'transferred_at': new Date().toISOString().slice(0, 10),
         'notes': '',
         'transferLines': [],
     });
@@ -62,11 +65,11 @@ const Create = ({ locations, items }: Props) => {
 
         const getItemBalance = async () => {
             const response = await axios.get(`/transfers/${data.source_id}/items/${currentLine.item_id}`);
+
             if (response.status === 200) {
                 setBalance(response.data);
                 // console.log(response.data);
-            }
-            else {
+            } else {
                 console.log('failed fetching Item data : ', response.statusText);
             }
         }
@@ -76,6 +79,7 @@ const Create = ({ locations, items }: Props) => {
     useEffect(() => {
         const getAvailableItems = async () => {
             const response = await axios.get(`/transfers/${data.source_id}/create`);
+
             if (response.status === 200) {
                 const availableItems = response.data as Item[];
                 setItemInLoc(availableItems);
@@ -84,8 +88,7 @@ const Create = ({ locations, items }: Props) => {
                     quantity: 1,
                     unit_price: availableItems[0].default_sale_price ?? 0,
                 });
-            }
-            else {
+            } else {
                 console.log('failed fetching Item data : ', response.statusText);
             }
         }
@@ -114,7 +117,22 @@ const Create = ({ locations, items }: Props) => {
             return;
         }
 
+        if (transferLine.some((line) => line.item_id === currentLine.item_id)) {
+            setLineError('این جنس قبلاً به لیست اضافه شده است.');
+
+            return;
+        }
+
+        const available = balance ? balance.quantity_on_hand - balance.reserved : 0;
+
+        if (currentLine.quantity > available) {
+            setLineError(`مقدار قابل انتقال فقط ${available} ${getDariItemUnit(itemUnit)} است.`);
+
+            return;
+        }
+
         setTransferLine((prev) => [...prev, currentLine]);
+        setLineError(null);
         setCurrentLine((prev) => ({
             ...prev,
             quantity: 1,
@@ -125,10 +143,10 @@ const Create = ({ locations, items }: Props) => {
         setTransferLine((prev) => prev.filter((_, i) => i !== index));
     };
 
-    const itemUnit = useMemo(() => {
-        return itemsInLoc.find(item => item.id === currentLine.item_id)?.unit ?? 'unit';
+    const itemUnit = itemsInLoc.find(item => item.id === currentLine.item_id)?.unit ?? 'unit';
+    const totalQuantity = transferLine.reduce((total, line) => total + line.quantity, 0);
+    const totalValue = transferLine.reduce((total, line) => total + line.quantity * line.unit_price, 0);
 
-    }, [currentLine.item_id, itemsInLoc]);
     return (
         <AppLayout
             breadcrumbs={[
@@ -136,18 +154,19 @@ const Create = ({ locations, items }: Props) => {
                 { title: 'انتقال جنس', href: '/transfers/create' },
             ]}
         >
-            <div className="">
-                <section>
-                    <div className="max-w-3xl mx-auto p-5">
-                        <SectionTitle
-                            title="فورم اجناس انتقال "
-                            description="لطفا دقت نماید. این فورم برای اجناس که نو امده برای شرکت، است"
-                        />
-                        <div className="section">
-                            <form onSubmit={handleTransfer} className='' name="receipt" id="receipt">
+            <div className="min-h-screen space-y-6 bg-linear-to-b from-slate-50 via-background to-background p-3 md:p-6 dark:from-slate-950">
+                <div>
+                    <div className="mx-auto max-w-5xl">
+                        <div className="relative mb-6 overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl shadow-slate-900/10 md:px-10">
+                            <div className="absolute -left-12 -top-16 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl" />
+                            <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div className="space-y-3"><div className="flex items-center gap-2 text-sm font-medium text-cyan-300"><Truck className="size-4" /> مرکز جابه‌جایی اجناس</div><h1 className="text-3xl font-bold tracking-tight md:text-4xl">ثبت انتقال جدید</h1><p className="text-sm text-slate-300">مبدأ، مقصد و اجناس را بررسی کنید تا انتقال با موجودی واقعی هماهنگ باشد.</p></div><Route className="size-8 text-cyan-300" /></div>
+                        </div>
+                        <form onSubmit={handleTransfer} className="space-y-6" name="receipt" id="receipt">
+                            <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
+                                <div className="mb-6 flex items-center gap-3 border-b border-border/60 pb-4"><div className="rounded-xl bg-primary/10 p-2 text-primary"><ClipboardList className="size-5" /></div><div><h2 className="font-semibold">جزئیات انتقال</h2><p className="text-xs text-muted-foreground">مسیر و زمان جابه‌جایی را مشخص کنید.</p></div></div>
                                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="source_id">مرجع</Label>
+                                        <Label htmlFor="source_id">مرجع <span className="text-destructive">*</span></Label>
                                         <select
                                             className="border p-1.5 rounded-md"
                                             name="source_id"
@@ -169,7 +188,7 @@ const Create = ({ locations, items }: Props) => {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="destination_id">مقصود</Label>
+                                        <Label htmlFor="destination_id">مقصود <span className="text-destructive">*</span></Label>
                                         <select
                                             className="border p-1.5 rounded-md"
                                             tabIndex={2}
@@ -188,12 +207,12 @@ const Create = ({ locations, items }: Props) => {
                                         </select>
                                         <InputError message={errors.destination_id} className="mt-2" />
                                     </div>
-
                                 </div>
-                                <div className="grid gap-2 mt-5">
-                                    <Label htmlFor="notes">نوت</Label>
+                                <div className="mt-5 grid gap-2 md:grid-cols-2">
+                                    <div className="grid gap-2"><Label htmlFor="transferred_at">تاریخ انتقال <span className="text-destructive">*</span></Label><div className="relative"><CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input id="transferred_at" type="date" value={data.transferred_at} onChange={(e) => setData('transferred_at', e.target.value)} className="h-11 pr-10" /></div><InputError message={errors.transferred_at} /></div>
+                                    <div className="grid gap-2"><Label htmlFor="notes">یادداشت</Label>
                                     <textarea
-                                        className="border p-1.5 rounded-md text-sm"
+                                        className="min-h-11 rounded-md border bg-transparent p-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
                                         tabIndex={2}
                                         name="notes"
                                         value={data.notes}
@@ -204,19 +223,22 @@ const Create = ({ locations, items }: Props) => {
                                     />
 
                                     <InputError message={errors.notes} className="mt-2" />
+                                    </div>
                                 </div>
+                            </div>
 
-                                {balance?.id !== undefined && <section className="ITEMSection mt-8">
+                                {balance?.id !== undefined ? <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
                                     <div>
                                         {/* ============ STOCK MONITOR ========== */}
                                         {balance && <div>
-                                            <BalanceMonitor balance={balance} location={locations[data.source_id - 1]} />
+                                            <BalanceMonitor balance={balance} location={locations.find((location) => location.id === data.source_id) ?? locations[0]} />
                                         </div>}
 
-                                        <div className="grid gap-6   grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                        <div className="mb-5 flex items-center justify-between"><div className="flex items-center gap-2"><PackageCheck className="size-5 text-primary" /><div><h2 className="font-semibold">اقلام انتقال</h2><p className="text-xs text-muted-foreground">فقط مقدار قابل انتقال از مرجع را وارد کنید.</p></div></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{transferLine.length} جنس</span></div>
+                                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 
                                             <div className="grid gap-2">
-                                                <Label htmlFor="item_id">جنس</Label>
+                                                    <Label htmlFor="item_id">جنس <span className="text-destructive">*</span></Label>
                                                 <select
                                                     className="border p-1.5 rounded-md"
                                                     name="item_id"
@@ -240,8 +262,7 @@ const Create = ({ locations, items }: Props) => {
                                             </div>
 
                                             <div className="grid gap-2">
-                                                <Label htmlFor="quantity" className="flex justify-between">
-                                                    <span>  مقدار  </span>
+                                                    <Label htmlFor="quantity" className="flex justify-between"><span>مقدار <span className="text-destructive">*</span></span>
                                                     <span className="text-sm text-muted-foreground">
                                                         {currentLine.quantity} {getDariItemUnit(itemUnit)}
                                                     </span>
@@ -266,7 +287,7 @@ const Create = ({ locations, items }: Props) => {
                                             </div>
                                             <div className="grid gap-2">
                                                 <Label htmlFor="unit_price" className="flex justify-between">
-                                                    <span>  قیمت  </span>
+                                                    <span>قیمت واحد</span>
                                                     <span className="text-sm text-muted-foreground">
                                                         {currentLine.unit_price* currentLine.quantity}
                                                     </span>
@@ -300,18 +321,19 @@ const Create = ({ locations, items }: Props) => {
                                                 tabIndex={6}
                                                 onClick={handleAddLine}
                                             >
-                                                اضافه کردن جنس
+                                                <PackageCheck className="size-4" /> اضافه کردن جنس
                                             </Button>
                                         </div>
+                                        {lineError && <InputError message={lineError} className="mt-3" />}
                                     </div>
-                                </section>}
+                                </section> : null}
 
 
 
                                 {/* ================================  RESULTS  =============================================== */}
                                 {transferLine.length > 0 && <>
 
-                                    <h3 className='text-xl font-medium text-center p-3 text-accent mt-3'>لیست اجناس انتقال دهی</h3>
+                                    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">خلاصه انتقال</h3><span className="text-sm text-muted-foreground">{transferLine.length} قلم</span></div>
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -326,42 +348,42 @@ const Create = ({ locations, items }: Props) => {
                                             {transferLine.length > 0 && (
                                                 transferLine.map((transfer, ind) =>
                                                     <TableRow key={ind}>
-                                                        <TableCell className='text-center'>{ind}</TableCell>
-                                                        <TableCell className='text-center'>{items.filter(item => item.id === transfer.item_id)[0].name}</TableCell>
+                                                        <TableCell className='text-center'>{ind + 1}</TableCell>
+                                                        <TableCell className='text-center'>{itemsInLoc.find(item => item.id === transfer.item_id)?.name ?? transfer.item_id}</TableCell>
                                                         <TableCell className='text-center'>{transfer.quantity}</TableCell>
                                                         <TableCell className='text-center'>{transfer.unit_price}</TableCell>
                                                         <TableCell className='flex justify-center items-center'>
-                                                            <DeleteIcon onClick={() => removeItem(ind)} className='text-destructive' />
+                                                            <button type="button" aria-label="حذف جنس" onClick={() => removeItem(ind)}><Trash2 className='size-4 text-destructive' /></button>
                                                         </TableCell>
                                                     </TableRow>
                                                 )
                                             )}
                                         </TableBody>
                                     </Table>
-
-                                    <div className="mt-6">
+                                    <div className="mt-4 flex flex-col gap-2 border-t border-border/60 pt-4 text-sm sm:flex-row sm:justify-between"><span>{totalQuantity} جمله مقدار</span><strong>{totalValue.toLocaleString()} جمله قیمت</strong></div>
+                                    </div>
+                                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                        <Link href="/receipts" className={`${buttonVariants({ variant: 'outline' })} gap-2`}><ArrowLeft className="size-4" /> انصراف</Link>
                                         <Button
                                             type="submit"
-                                            className="w-full"
+                                            className="w-full gap-2 bg-slate-950 hover:bg-slate-800 sm:w-auto"
                                             tabIndex={7}
                                             data-test="register-employee-button"
                                         >
                                             {processing && <Spinner />}
-                                            ثبت کنید
+                                            <CheckCircle2 className="size-4" /> ثبت انتقال
                                         </Button>
                                     </div>
 
                                 </>}                            </form>
                         </div>
                     </div>
-                </section>
-            </div>
+                </div>
         </AppLayout>
     );
 };
 
-const BalanceMonitor = ({ balance, location }: { balance: InventoryBalance, location: Location }) => {
-    console.log(balance);
+const BalanceMonitor = ({ balance, location }: { balance: InventoryBalance, location?: Location }) => {
 
     return (
         <div className='mb-5 grid grid-cols-2'>
@@ -371,7 +393,7 @@ const BalanceMonitor = ({ balance, location }: { balance: InventoryBalance, loca
                     <li className='list-none font-semibold text-2xl '> {balance.quantity_on_hand} {getDariItemUnit(balance.item?.unit ?? '')}</li>
                     <li className='list-none font-medium text-muted-foreground text-sm'><span className=''>حفظ شده</span>{balance.reserved}</li>
                 </div>
-                <small className='text-center w-full text-muted-foreground text-sm'>موجوده مقدار در {LocationTranslator(location.name) ?? 'جنس موجود نیست'}</small>
+                <small className='text-center w-full text-muted-foreground text-sm'>موجوده مقدار در {location ? LocationTranslator(location.name) : 'موقعیت انتخاب نشده'}</small>
             </div>
         </div>
     )

@@ -297,7 +297,7 @@ interface BalanceProps {
 
 const BalanceCard = ({ totalExpensesBasedOnCurrency, account, LucideIcon }: BalanceProps) => {
     return (
-        <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md dark:border-slate-700 dark:from-slate-900 dark:to-slate-950">
+        <div className="rounded-2xl border border-slate-200 bg-linear-to-b from-white to-slate-50 p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md dark:border-slate-700 dark:from-slate-900 dark:to-slate-950">
             <div className="flex items-center justify-between">
                 <div>
                     <p className="text-xs text-slate-500 dark:text-slate-400">{getDariCurrency(account.currency.name)}</p>

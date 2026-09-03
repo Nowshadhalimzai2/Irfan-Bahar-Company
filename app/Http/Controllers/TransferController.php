@@ -34,7 +34,7 @@ class TransferController extends Controller
         $locations = Location::select('id', 'name')->get();
         if ($location instanceof Location) {
             if ($request->expectsJson()) {
-                $items = Item::with('inventoryBalances:id,location_id,item_id,quanity_on_hand,reserved')
+                $items = Item::with('inventoryBalances:id,location_id,item_id,quantity_on_hand,reserved')
                     ->whereHas(
                         'inventoryBalances',
                         fn($query) =>
@@ -61,11 +61,12 @@ class TransferController extends Controller
         $data = $request->validate([
             'source_id' => 'required|integer|exists:locations,id',
             'destination_id' => 'required|integer|exists:locations,id',
+            'transferred_at' => 'required|date',
             'notes' => 'string|nullable|max:255',
             'transferLines' => 'required|array|min:1',
 
             // each line validation
-            'transferLines.*.item_id' => 'required|integer|exists:items,id',
+            'transferLines.*.item_id' => 'required|integer|exists:items,id|distinct',
             'transferLines.*.quantity' => 'required|integer|gt:0',
             'transferLines.*.unit_price' => 'required|numeric|gt:0',
         ]);
@@ -83,7 +84,7 @@ class TransferController extends Controller
                 'source_id' => $data['source_id'],
                 'destination_id' => $data['destination_id'],
                 'notes' => $data['notes'] ?? '',
-                'transferred_at' => Carbon::now(config('app.timezone')),
+                'transferred_at' => $data['transferred_at'],
                 'reference_no' => '',
             ]);
 
@@ -92,6 +93,16 @@ class TransferController extends Controller
 
             // ===== CREATE THE GOODS RECEIPE LINES =====
             foreach ($data['transferLines'] as $line) {
+
+                $balance = InventoryBalance::where('location_id', $data['source_id'])
+                    ->where('item_id', $line['item_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                $available = ($balance?->quantity_on_hand ?? 0) - ($balance?->reserved ?? 0);
+                if ($available < $line['quantity']) {
+                    throw new Error('مقدار قابل انتقال برای این جنس کافی نیست.');
+                }
 
                 $transfer->transferLines()->create($line);
                 //  ======== RECORD THE INVENTORY MOVEMENT ===

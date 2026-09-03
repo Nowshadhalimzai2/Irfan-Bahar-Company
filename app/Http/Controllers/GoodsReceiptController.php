@@ -45,11 +45,12 @@ class GoodsReceiptController extends Controller
         $data = $request->validate([
             'supplier_id' => 'required|integer|exists:suppliers,id',
             'destination_location_id' => 'required|integer|exists:locations,id',
+            'received_at' => 'required|date',
             'notes' => 'nullable|string|max:255',
             'receiptLines' => 'required|array|min:1',
 
             // each line validation
-            'receiptLines.*.item_id' => 'required|integer|exists:items,id',
+            'receiptLines.*.item_id' => 'required|integer|exists:items,id|distinct',
             'receiptLines.*.quantity' => 'required|integer|gt:0',
             'receiptLines.*.unit_cost' => 'required|numeric|gt:0',
             'receiptLines.*.currency_id' => 'required|integer|exists:currencies,id',
@@ -62,7 +63,7 @@ class GoodsReceiptController extends Controller
                 'supplier_id' => $data['supplier_id'],
                 'destination_location_id' => $data['destination_location_id'],
                 'notes' => $data['notes'] ?? '',
-                'received_at' => Carbon::now(config('app.timezone')),
+                'received_at' => $data['received_at'],
                 'reference_no' => '',
             ]);
 

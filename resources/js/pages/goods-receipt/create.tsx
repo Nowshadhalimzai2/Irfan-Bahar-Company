@@ -1,16 +1,16 @@
-import { SectionTitle } from '@/components/section-title';
-import AppLayout from '@/layouts/app-layout';
-import { useForm } from '@inertiajs/react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { Link, useForm } from '@inertiajs/react';
+import { CalendarDays, CheckCircle2, ClipboardList, PackagePlus, Trash2, Warehouse } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import type { FormEvent } from 'react';
+import InputError from '@/components/input-error';
+import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import InputError from '@/components/input-error';
-import { Currency, Location, Supplier } from '@/types';
-import { GoodsReceiptLine, Item } from '@/types/item';
-import { LineChart } from 'lucide-react';
-import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
+import AppLayout from '@/layouts/app-layout';
+import type { Currency, Location, Supplier } from '@/types';
+import type { Item } from '@/types/item';
 
 interface Props {
     suppliers: Supplier[];
@@ -29,6 +29,7 @@ type ReceiptLine = {
 type GoodReceiptType = {
     supplier_id: number;
     destination_location_id: number;
+    received_at: string;
     notes: string;
     receiptLines: ReceiptLine[];
 }
@@ -42,9 +43,10 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
         currency_id: currencies[0]?.id ?? 0,
     }));
 
-    const { data, setData, errors, reset, post, processing } = useForm<GoodReceiptType>({
+    const { data, setData, errors, post, processing } = useForm<GoodReceiptType>({
         supplier_id: suppliers[0]?.id ?? 0,
         destination_location_id: locations[0]?.id ?? 0,
+        received_at: new Date().toISOString().slice(0, 10),
         notes: '',
         receiptLines,
     });
@@ -75,6 +77,10 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
             return;
         }
 
+        if (receiptLines.some((line) => line.item_id === currentLine.item_id)) {
+            return;
+        }
+
         setReceiptLines((prev) => [...prev, currentLine]);
         setCurrentLine((prev) => ({
             ...prev,
@@ -88,9 +94,13 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
     };
 
     const itemUnit = useMemo(() => {
-        return items.filter(item => item.id === currentLine.item_id)[0].unit;
+        return items.find((item) => item.id === currentLine.item_id)?.unit ?? 'unit';
 
-    }, [currentLine])
+    }, [currentLine.item_id, items]);
+
+    const totalQuantity = receiptLines.reduce((total, line) => total + line.quantity, 0);
+    const totalValue = receiptLines.reduce((total, line) => total + line.quantity * line.unit_cost, 0);
+
     return (
         <AppLayout
             breadcrumbs={[
@@ -98,18 +108,19 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                 { title: 'جنس نو را ثبت کنید', href: '/receipts/create' },
             ]}
         >
-            <div className="section">
+            <div className="min-h-screen space-y-6 bg-linear-to-b from-slate-50 via-background to-background p-3 md:p-6 dark:from-slate-950">
                 <section>
-                    <div className="max-w-3xl mx-auto p-5">
-                        <SectionTitle
-                            title="فورم اجناس نو "
-                            description="لطفا دقت نماید. این فورم برای اجناس که نو امده برای شرکت، است"
-                        />
-                        <div className="section">
-                            <form onSubmit={handleReceipt} name="receipt" id="receipt">
+                    <div className="mx-auto max-w-5xl">
+                        <div className="relative mb-6 overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl shadow-slate-900/10 md:px-10">
+                            <div className="absolute -left-12 -top-16 h-48 w-48 rounded-full bg-amber-400/20 blur-3xl" />
+                            <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div className="space-y-3"><div className="flex items-center gap-2 text-sm font-medium text-amber-300"><Warehouse className="size-4" /> مدیریت موجودی ورودی</div><h1 className="text-3xl font-bold tracking-tight md:text-4xl">ثبت رسید جدید</h1><p className="text-sm text-slate-300">اطلاعات تأمین‌کننده و اجناس آمده را دقیق ثبت کنید.</p></div><ClipboardList className="size-8 text-amber-300" /></div>
+                        </div>
+                        <form onSubmit={handleReceipt} name="receipt" id="receipt" className="space-y-6">
+                            <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
+                                <div className="mb-6 flex items-center gap-3 border-b border-border/60 pb-4"><div className="rounded-xl bg-primary/10 p-2 text-primary"><ClipboardList className="size-5" /></div><div><h2 className="font-semibold">جزئیات رسید</h2><p className="text-xs text-muted-foreground">منبع خرید و محل ذخیره‌سازی را مشخص کنید.</p></div></div>
                                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="supplier_id">نام تأمین کننده</Label>
+                                        <Label htmlFor="supplier_id">نام تأمین کننده <span className="text-destructive">*</span></Label>
                                         <select
                                             className="border p-1.5 rounded-md"
                                             name="supplier_id"
@@ -128,7 +139,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="destination_location_id">موقعیت</Label>
+                                        <Label htmlFor="destination_location_id">موقعیت دریافت <span className="text-destructive">*</span></Label>
                                         <select
                                             className="border p-1.5 rounded-md"
                                             tabIndex={2}
@@ -149,10 +160,11 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                     </div>
 
                                 </div>
-                                <div className="grid gap-2 mt-5">
-                                    <Label htmlFor="notes">نوت</Label>
+                                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                                    <div className="grid gap-2"><Label htmlFor="received_at">تاریخ دریافت <span className="text-destructive">*</span></Label><div className="relative"><CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input id="received_at" type="date" value={data.received_at} onChange={(e) => setData('received_at', e.target.value)} className="h-11 pr-10" /></div><InputError message={errors.received_at} /></div>
+                                    <div className="grid gap-2"><Label htmlFor="notes">یادداشت</Label>
                                     <textarea
-                                        className="border p-1.5 rounded-md text-sm"
+                                        className="min-h-11 rounded-md border bg-transparent p-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
                                         tabIndex={2}
                                         name="notes"
                                         value={data.notes}
@@ -163,13 +175,16 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                     />
 
                                     <InputError message={errors.notes} className="mt-2" />
+                                    </div>
                                 </div>
+                            </div>
 
-                                <section className="section ITEMSection mt-8">
+                                <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
                                     <div>
+                                        <div className="mb-6 flex items-center justify-between gap-3 border-b border-border/60 pb-4"><div className="flex items-center gap-2"><PackagePlus className="size-5 text-primary" /><div><h2 className="font-semibold">اقلام دریافتی</h2><p className="text-xs text-muted-foreground">قیمت و مقدار هر جنس را اضافه کنید.</p></div></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{receiptLines.length} قلم</span></div>
                                         <div className="grid gap-6   grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                                             <div className="grid gap-2">
-                                                <Label htmlFor="currency_id">پولی واحد</Label>
+                                                    <Label htmlFor="currency_id">واحد پول <span className="text-destructive">*</span></Label>
                                                 <select
                                                     className="border p-1.5 rounded-md"
                                                     name="currency_id"
@@ -194,7 +209,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                             </div>
 
                                             <div className="grid gap-2">
-                                                <Label htmlFor="item_id">جنس</Label>
+                                                    <Label htmlFor="item_id">جنس <span className="text-destructive">*</span></Label>
                                                 <select
                                                     className="border p-1.5 rounded-md"
                                                     name="item_id"
@@ -218,8 +233,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                             </div>
 
                                             <div className="grid gap-2">
-                                                <Label htmlFor="quantity" className="flex justify-between">
-                                                    <span>  مقدار  </span>
+                                                    <Label htmlFor="quantity" className="flex justify-between"><span>مقدار <span className="text-destructive">*</span></span>
                                                     <span className="text-sm text-muted-foreground">
                                                         {currentLine.quantity}   {getDariItemUnit(itemUnit)}
                                                     </span>
@@ -243,7 +257,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                             </div>
 
                                             <div className="grid gap-2">
-                                                <Label htmlFor="unit_cost">قیمت واحد</Label>
+                                                    <Label htmlFor="unit_cost">قیمت واحد <span className="text-destructive">*</span></Label>
                                                 <Input
                                                     id="unit_cost"
                                                     type="number"
@@ -272,7 +286,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                 tabIndex={6}
                                                 onClick={handleAddLine}
                                             >
-                                                اضافه کردن جنس
+                                                <PackagePlus className="size-4" /> اضافه کردن جنس
                                             </Button>
                                         </div>
                                     </div>
@@ -282,10 +296,8 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
 
                                 {/* ================================  RESULTS  =============================================== */}
                                 {receiptLines.length > 0 && (
-                                    <div className="mt-6 overflow-hidden rounded-lg border">
-                                        <div className="bg-slate-50 px-4 py-3 text-sm font-medium">
-                                            خطوط حواله
-                                        </div>
+                                    <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+                                        <div className="flex items-center justify-between bg-muted/50 px-4 py-3 text-sm font-medium"><span>خلاصه رسید</span><span className="text-xs text-muted-foreground">{receiptLines.length} قلم</span></div>
                                         <div className="divide-y">
                                             {receiptLines.map((line, index) => (
                                                 <div
@@ -293,47 +305,45 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                     className="flex flex-col gap-2 border-b px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                                                 >
                                                     <div>
-                                                        <div className="space-y-1 gap-3 text-sm grid grid-cols-3">
-                                                            <div className=" p-5 border rounded-sm bg-white">جنس: {items.find((item) => item.id === line.item_id)?.name || line.item_id}</div>
-                                                            <div className=" p-5 border rounded-sm bg-white">پولی واحد: {currencies.find((cur) => cur.id === line.currency_id)?.name || line.currency_id}</div>
-                                                            <div className=" p-5 border rounded-sm bg-white">مقدار: {line.quantity}</div>
-                                                            <div className=" p-5 border rounded-sm bg-white">قیمت واحد: {line.unit_cost}</div>
+                                                            <div className="grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
+                                                            <div className="rounded-lg border bg-background p-3">جنس: {items.find((item) => item.id === line.item_id)?.name || line.item_id}</div>
+                                                            <div className="rounded-lg border bg-background p-3">پولی واحد: {currencies.find((cur) => cur.id === line.currency_id)?.name || line.currency_id}</div>
+                                                            <div className="rounded-lg border bg-background p-3">مقدار: {line.quantity}</div>
+                                                            <div className="rounded-lg border bg-background p-3">قیمت واحد: {line.unit_cost}</div>
 
                                                         </div>
-                                                        <div className="p-5 text-end font-medium">توتل : {line.unit_cost * line.quantity}</div>
+                                                        <div className="p-3 text-end text-sm font-medium">مجموع این قلم: { (line.unit_cost * line.quantity).toLocaleString() }</div>
                                                     </div>
                                                     <Button
                                                         type="button"
                                                         variant="destructive"
                                                         onClick={() => handleRemoveLine(index)}
                                                     >
-                                                        حذف
+                                                        <Trash2 className="size-4" /> حذف
                                                     </Button>
                                                 </div>
                                             ))}
-                                            <div className="p-3 text-end">
-                                                <div>
-                                                    {receiptLines.reduce((acc, line) => acc += (line.quantity * line.unit_cost), 0)}  :جمله
-                                                </div>
+                                            <div className="flex flex-col gap-2 border-t border-border/60 p-4 text-sm sm:flex-row sm:justify-between">
+                                                <span>{totalQuantity} جمله مقدار</span><strong>{totalValue.toLocaleString()} جمله قیمت</strong>
                                             </div>
                                         </div>
                                     </div>
                                 )}
 
-                                <div className="mt-6">
+                                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                    <Link href="/receipts" className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm hover:bg-muted">انصراف</Link>
                                     <Button
                                         type="submit"
-                                        className="w-full"
+                                        className="w-full gap-2 bg-slate-950 hover:bg-slate-800 sm:w-auto"
                                         tabIndex={7}
                                         data-test="register-employee-button"
                                     >
                                         {processing && <Spinner />}
-                                        ثبت کنید
+                                        <CheckCircle2 className="size-4" /> ثبت رسید
                                     </Button>
                                 </div>
                             </form>
                         </div>
-                    </div>
                 </section>
             </div>
         </AppLayout>

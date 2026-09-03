@@ -133,7 +133,7 @@ const Create = ({ boms }: Props) => {
       { title: 'لیست حواله جات', href: '/factory/production-orders' },
       { title: 'حواله جدید', href: '/factory/production-orders/create' },
     ]}>
-      <div className="min-h-screen space-y-6 bg-gradient-to-b from-slate-50 via-background to-background p-3 md:p-6 dark:from-slate-950">
+      <div className="min-h-screen space-y-6 bg-linear-to-b from-slate-50 via-background to-background p-3 md:p-6 dark:from-slate-950">
         <section>
           <div className="mx-auto max-w-5xl">
             <div className="relative mb-6 overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl shadow-slate-900/10 md:px-10">
