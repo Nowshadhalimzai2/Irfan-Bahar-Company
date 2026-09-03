@@ -10,12 +10,12 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { router } from '@inertiajs/core';
 import { getDariCategory, getDariOrderStatus, getStatusColor } from '@/components/location-translator';
 import { buttonVariants } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Recycle } from 'lucide-react';
 import { statusController } from '@/components/status-controller';
+import { router } from '@inertiajs/react';
 
 interface Props {
     junkOrders: ProductionOrder[];

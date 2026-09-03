@@ -75,7 +75,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->limit(3)
         ->get();
         $currencies = Currency::all(['id','name']);
-        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency','currencies','transfersToShop','employees'));
+
+        $items = Item::with('inventoryBalances:id,item_id,location_id,quantity_on_hand,reserved')
+        ->get();
+        $reorderItemsCount = $items->sum(function ($item) {
+            return $item->inventoryBalances()->where('quantity_on_hand', '<', 10)->count();
+        });
+        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency','currencies','transfersToShop','employees','items','reorderItemsCount'));
     })->name('dashboard');
 });
 
@@ -206,7 +212,6 @@ Route::middleware(['auth'])->group(function () {
             $highProductionService = new HighProductionService();
             $productionByCategory = $highProductionService->getCategoryByProduction();
 
-
             $topProductionCategories = $highProductionService->topProductionCategory($productionByCategory);
 
             $productionChart = $highProductionService->GenerateProductionChart($productionByCategory,$topProductionCategories);
@@ -218,6 +223,8 @@ Route::middleware(['auth'])->group(function () {
             return Inertia::render('factory/home', compact('items', 'pendingOrders', 'productionChart', 'topProductionCategories'));
         })->name('factory');
         Route::get('/production-orders/junks', [ProductionOrderController::class, 'junks'])->name('orders.junks');
+        Route::get('/proudction-orders/{production_order}', [ProductionOrderController::class, 'show'])
+            ->name('orders.show-typo');
 
         Route::get('/production-orders/{production_order}/{status}/confirm-order-inputs', [ProductionInputController::class, 'confirmInputs'])->name('orders.confirm-inputs');
         Route::put('/production-inputs/{production_order}', [ProductionInputController::class, 'update'])->name('order-inputs.update');

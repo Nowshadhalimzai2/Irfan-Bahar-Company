@@ -1,24 +1,13 @@
-import { SectionTitle } from '@/components/section-title';
-import AppLayout from '@/layouts/app-layout';
-import { InventoryBalance } from '@/types';
-import LocationTranslator, { getDariCategory, getDariItemType, getDariItemUnit, locationColor } from '@/components/location-translator';
 import { router } from '@inertiajs/react';
+import { AlertTriangle, Boxes, CheckCircle2, Filter, PackageOpen, Search, SearchX, SlidersHorizontal, Sparkles, Warehouse } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Input } from '@/components/ui/input';
-import {
-    Boxes,
-    Filter,
-    PackageOpen,
-    Search,
-    SearchX,
-    SlidersHorizontal,
-    Sparkles,
-    Warehouse,
-} from 'lucide-react';
-import { Item } from '@/types/item';
+import LocationTranslator, { getDariCategory, getDariItemType, getDariItemUnit, locationColor } from '@/components/location-translator';
 import PageLinks from '@/components/page-links';
-import { Label } from '@/components/ui/label';
-import { FieldLabel } from '@/components/ui/field';
+import { SectionTitle } from '@/components/section-title';
+import { Input } from '@/components/ui/input';
+import AppLayout from '@/layouts/app-layout';
+import type { InventoryBalance } from '@/types';
+import type { Item } from '@/types/item';
 
 
 type ItemWithInventory = Item & {
@@ -290,6 +279,13 @@ const Index = ({ items, locations }: Props) => {
                                             <img src={"https://picsum.photos/275/60"} alt="" className="h-24 w-full object-cover opacity-90" />
                                             <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 to-transparent" />
                                             <h2 className="absolute inset-x-4 bottom-3 text-center text-lg font-bold text-white drop-shadow-md">{item.name}</h2>
+                                            <div className={`absolute right-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${totalStock(item) <= 10
+                                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                            }`}>
+                                                {totalStock(item) <= 10 ? <AlertTriangle className="h-3.5 w-3.5" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
+                                                {totalStock(item) <= 10 ? 'موجودی کم' : 'موجودی کافی'}
+                                            </div>
                                         </div>
                                         <div className="flex flex-1 flex-col p-4">
                                             <div className="space-y-3">
