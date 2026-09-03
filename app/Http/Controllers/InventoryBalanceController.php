@@ -17,7 +17,10 @@ class InventoryBalanceController extends Controller
     {
         $query = Item::with('inventoryBalances', 'inventoryBalances.location:id,name', 'product:item_id,per_pack,weight', 'category:id,name')
             ->whereHas('inventoryBalances', function ($balanceQuery) {
-                $balanceQuery->whereNot('quantity_on_hand', 0);
+                $balanceQuery->whereNot('quantity_on_hand', 0)
+                    ->whereHas('location', function ($locationQuery) {
+                        $locationQuery->whereIn('name', ['factory', 'warehouse', 'shop']);
+                    });
             });
 
         $itemType = $request->query('item_type');
@@ -47,15 +50,14 @@ class InventoryBalanceController extends Controller
         }
 
         $items = $query->paginate(10)->withQueryString();
-        $locations = Location::select('id', 'name')->whereNot('name','other')->orderBy('name')->get();
+        $locations = Location::select('id', 'name')
+            ->whereIn('name', ['factory', 'warehouse', 'shop'])
+            ->orderBy('name')->get();
 
         return Inertia::render('inventory-balance/index', compact('items', 'locations'));
     }
 
-    public function filterItems($filterData)
-    {
-        return response()->json($filterData);
-    }
+   
 
     /**
      * Store a newly created resource in storage.

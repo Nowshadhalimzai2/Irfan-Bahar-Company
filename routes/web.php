@@ -178,7 +178,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/transfers/{location}/create',[TransferController::class,'create']);
     Route::get('/transfers/{location}/items/{item}',[TransferController::class,'getItemBalance']);
     Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
-    Route::get('/inventory-balances/filter/{filterData}',[InventoryBalanceController::class,'filterItems'])->name('inventory-balances.filter');
     Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])->name('movements.index');
     Route::resource('boms', BOMController::class)->names('boms');
 });
