@@ -225,6 +225,7 @@ class ProductionOrderController extends Controller
         return $request->validate([
             'ordered_by' => 'required|string|max:55',
             'bom_id' => 'required|integer|exists:boms,id',
+            'order_date' => 'required|date',
             'notes' => 'nullable|string|max:255',
             'productionOutputs' => 'required|array|min:1',
 
@@ -239,8 +240,8 @@ class ProductionOrderController extends Controller
         return ProductionOrder::create([
             'ordered_by' => $data['ordered_by'],
             'bom_id' => $data['bom_id'],
+            'order_date' => $data['order_date'],
             'notes' => $data['notes'],
-            'order_date' => Carbon::now(config('app.timezone')),
             'status' => 'pending',
             'reference_no' => '',
         ]);

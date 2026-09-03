@@ -1,31 +1,32 @@
-import AppLayout from '@/layouts/app-layout';
-import { Button } from '@/components/ui/button';
+import { Link, useForm } from '@inertiajs/react';
+import axios from 'axios';
+import { ArrowLeft, CalendarDays, ClipboardList, Factory, PackagePlus, Sparkles } from 'lucide-react';
+import type { FormEvent} from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import InputError from '@/components/input-error';
+import { getDariItemUnit } from '@/components/location-translator';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import InputError from '@/components/input-error';
+import AppLayout from '@/layouts/app-layout';
 
-import LocationTranslator, { getDariCategory, getDariItemUnit } from '@/components/location-translator';
-import { Product } from '@/types/item';
-import { BOM, ProductionInput } from '@/types';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { useForm } from '@inertiajs/react';
-import { SectionTitle } from '@/components/section-title';
-import axios from 'axios';
+import type { BOM } from '@/types';
+import type { Product } from '@/types/item';
 
 interface Props {
   boms: BOM[];
-  products: Product[];
 }
 
 type ProductionOutput = {
-  product_id: number;
+  product_id: number | undefined;
   quantity_produced: number;
 }
 
 type ProductionOrder = {
   ordered_by: string;
   bom_id: number;
+  order_date: string;
   notes?: string;
   productionOutputs: ProductionOutput[];
 }
@@ -40,6 +41,7 @@ const Create = ({ boms }: Props) => {
   const { data, setData, errors, post, processing } = useForm<ProductionOrder>({
     'ordered_by': '',
     'bom_id': boms[0].id,
+    'order_date': new Date().toISOString().slice(0, 10),
     'notes': '',
     'productionOutputs': [],
   });
@@ -47,26 +49,33 @@ const Create = ({ boms }: Props) => {
     setData('productionOutputs', productionOutput);
   }, [productionOutput, setData]);
 
-
-
   useEffect(() => {
-    async function getRelatedProduts() {
-      const pds = await axios.get('/factory/production-orders/get-related-products/' + boms.filter(bom => bom.id === data.bom_id)[0].category.id);
+    async function getRelatedProducts() {
+      const selectedBom = boms.find((bom) => bom.id === data.bom_id);
+
+      if (!selectedBom) {
+        setRelatedProducts([]);
+
+        return;
+      }
+
+      const pds = await axios.get('/factory/production-orders/get-related-products/' + selectedBom.category.id);
+
       if (pds.status == 200) {
         setRelatedProducts(pds.data);
-      }
-      else {
+      } else {
         console.log('error fetching data' + pds.statusText);
 
       }
     }
-    getRelatedProduts();
-  }, [data.bom_id]);
+    getRelatedProducts();
+  }, [boms, data.bom_id]);
 
   const [currentLine, setCurrentLine] = useState<ProductionOutput>(() => ({
     product_id: relatedProducts[0]?.item_id,
     quantity_produced: 1,
   }));
+
   const handleOrders = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -74,7 +83,7 @@ const Create = ({ boms }: Props) => {
       onFinish: () => {
         setProductionOutput([]);
         setCurrentLine({
-          product_id: relatedProducts[0]?.id,
+          product_id: relatedProducts[0]?.item_id,
           quantity_produced: 1,
         });
       },
@@ -83,18 +92,20 @@ const Create = ({ boms }: Props) => {
 
 
   const handleAddLine = () => {
+    const productId = currentLine.product_id ?? relatedProducts[0]?.item_id;
 
-    if (!currentLine.product_id || currentLine.quantity_produced <= 0) {
+    if (!productId || currentLine.quantity_produced <= 0) {
       return;
     }
 
     // prevent adding the same item twice
-    if (productionOutput.some((l) => l.product_id === currentLine.product_id)) {
+    if (productionOutput.some((l) => l.product_id === productId)) {
       setLineError('مقدار از این جنس قبلا تعین شده است');
+
       return;
     }
 
-    setProductionOutput((prev) => [...prev, currentLine]);
+    setProductionOutput((prev) => [...prev, { ...currentLine, product_id: productId }]);
     setCurrentLine((prev) => ({
       ...prev,
       quantity_produced: 1,
@@ -107,11 +118,13 @@ const Create = ({ boms }: Props) => {
   };
 
   const itemUnit = useMemo(() => {
-    if (relatedProducts.length === 0)
-      return 'unit';
-    return relatedProducts.filter(product => product.item_id === currentLine.product_id)[0].item.unit;
+    const selectedProduct = relatedProducts.find((product) => product.item_id === (currentLine.product_id ?? relatedProducts[0]?.item_id));
 
-  }, [currentLine]);
+    return selectedProduct?.item.unit ?? 'unit';
+
+  }, [currentLine, relatedProducts]);
+
+  const selectedBom = boms.find((bom) => bom.id === data.bom_id);
 
 
   return (
@@ -120,16 +133,22 @@ const Create = ({ boms }: Props) => {
       { title: 'لیست حواله جات', href: '/factory/production-orders' },
       { title: 'حواله جدید', href: '/factory/production-orders/create' },
     ]}>
-      <div className="section">
+      <div className="min-h-screen space-y-6 bg-gradient-to-b from-slate-50 via-background to-background p-3 md:p-6 dark:from-slate-950">
         <section>
-          <div className="max-w-3xl mx-auto p-5">
-            <SectionTitle title='فورم سفارش' />
-            <div className="">
-              <h4 className='text-center text-xl font-semibold p-5 text-secondary-foreground'>مشخصات سفارش کننده</h4>
-              <form onSubmit={handleOrders} name="orders" id="orders">
-                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
+          <div className="mx-auto max-w-5xl">
+            <div className="relative mb-6 overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl shadow-slate-900/10 md:px-10">
+              <div className="absolute -left-12 -top-16 h-48 w-48 rounded-full bg-emerald-400/20 blur-3xl" />
+              <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                <div className="space-y-3"><div className="flex items-center gap-2 text-sm font-medium text-emerald-300"><Factory className="size-4" /> مرکز عملیات تولید</div><h1 className="text-3xl font-bold tracking-tight md:text-4xl">ثبت حواله تولید</h1><p className="text-sm text-slate-300">جزئیات سفارش را کامل کنید تا تیم کارخانه بتواند آن را دقیق اجرا کند.</p></div>
+                <div className="flex items-center gap-2 text-sm text-slate-300"><ClipboardList className="size-4" /> مرحله ۱ از ۱</div>
+              </div>
+            </div>
+            <form onSubmit={handleOrders} name="orders" id="orders" className="space-y-6">
+              <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
+                <div className="mb-6 flex items-center gap-3 border-b border-border/60 pb-4"><div className="rounded-xl bg-primary/10 p-2 text-primary"><ClipboardList className="size-5" /></div><div><h2 className="font-semibold">اطلاعات اصلی سفارش</h2><p className="text-xs text-muted-foreground">مسؤول، فورمول و زمان اجرای سفارش</p></div></div>
+                <div className="grid gap-5 grid-cols-1 md:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="ordered_by">حواله از طرف</Label>
+                      <Label htmlFor="ordered_by">حواله از طرف <span className="text-destructive">*</span></Label>
                     <Input
                       className="border p-1.5 rounded-md text-sm"
                       tabIndex={2}
@@ -144,7 +163,7 @@ const Create = ({ boms }: Props) => {
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="bom_id">فورمول</Label>
+                      <Label htmlFor="bom_id">فورمول تولید <span className="text-destructive">*</span></Label>
                     <select
                       className="border p-1.5 rounded-md"
                       tabIndex={2}
@@ -162,13 +181,20 @@ const Create = ({ boms }: Props) => {
                       ))}
                     </select>
                     <InputError message={errors.bom_id} className="mt-2" />
+                    {selectedBom && <p className="rounded-md bg-primary/5 px-3 py-2 text-xs text-muted-foreground">ظرفیت مورد انتظار فورمول: {selectedBom.min_exp_qty} تا {selectedBom.max_exp_qty}</p>}
                   </div>
 
 
-                  <div className="grid gap-2 mt-5">
+                    <div className="grid gap-2">
+                    <Label htmlFor="order_date">تاریخ سفارش <span className="text-destructive">*</span></Label>
+                    <div className="relative"><CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input id="order_date" type="date" value={data.order_date} onChange={(e) => setData('order_date', e.target.value)} className="pr-10" /></div>
+                    <InputError message={errors.order_date} className="mt-2" />
+                  </div>
+
+                  <div className="grid gap-2 md:col-span-2">
                     <Label htmlFor="notes">نوت</Label>
                     <textarea
-                      className="border p-1.5 rounded-md text-sm"
+                      className="min-h-24 rounded-md border bg-transparent p-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
                       tabIndex={2}
                       name="notes"
                       value={data.notes}
@@ -181,20 +207,21 @@ const Create = ({ boms }: Props) => {
                     <InputError message={errors.notes} className="mt-2" />
                   </div>
                 </div>
+              </div>
 
-                <section className=" border-t-2 rounded-b-md p-5 bg-secondary ITEMSection mt-8">
+                <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
                   <div>
-                    <h4 className='text-center text-xl font-semibold p-5 text-secondary-foreground'>اجناس</h4>
+                    <div className="mb-6 flex items-center justify-between gap-3 border-b border-border/60 pb-4"><div><div className="flex items-center gap-2"><PackagePlus className="size-5 text-primary" /><h2 className="font-semibold">محصولات مورد نیاز</h2></div><p className="mt-1 text-xs text-muted-foreground">یک یا چند محصول خروجی را به حواله اضافه کنید.</p></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{productionOutput.length} محصول</span></div>
 
                     <div className="grid gap-6   grid-cols-1 md:grid-cols-2 ">
 
                       <div className="grid gap-2">
                         <Label htmlFor="product_id">جنس که سفارش میشه</Label>
                         <select
-                          className="border p-1.5 rounded-md dark:bg-secondary-foreground dark:text-accent"
+                          className="h-11 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           name="product_id"
                           tabIndex={5}
-                          value={currentLine.product_id}
+                          value={currentLine.product_id ?? ''}
                           onChange={(e) =>
                             setCurrentLine((prev) => ({
                               ...prev,
@@ -203,7 +230,7 @@ const Create = ({ boms }: Props) => {
                           }
                         >
                           {relatedProducts.map((product) => (
-                            <option value={product.item_id} key={product.item_id} className='dark:bg-secondary dark:text-accent'>
+                            <option value={product.item_id} key={product.item_id}>
                               {product.item.name} {(product.weight / product.per_pack) * 1000}
                             </option>
                           ))}
@@ -232,7 +259,7 @@ const Create = ({ boms }: Props) => {
                             }))
                           }
                           placeholder="مقدار"
-                          className="border p-1.5 rounded-md"
+                          className="h-11 rounded-md border bg-background"
                         />
                         <InputError message={errors.productionOutputs} className="mt-2" />
 
@@ -244,12 +271,12 @@ const Create = ({ boms }: Props) => {
                     <div className="mt-4">
                       <Button
                         type="button"
-                        className="w-full"
+                        className="w-full gap-2"
                         variant={'outline'}
                         tabIndex={6}
                         onClick={handleAddLine}
                       >
-                        اضافه کردن جنس
+                        <Sparkles className="size-4" /> اضافه کردن محصول
                       </Button>
                     </div>
                     {lineError && <div className="mt-2"><InputError message={lineError} /></div>}
@@ -260,10 +287,8 @@ const Create = ({ boms }: Props) => {
 
                 {/* ================================  RESULTS  =============================================== */}
                 {productionOutput.length > 0 && (
-                  <div className="mt-6 overflow-hidden rounded-lg border">
-                    <div className="bg-slate-50 px-4 py-3 text-sm font-medium">
-                      اجناس
-                    </div>
+                  <div className="mt-6 overflow-hidden rounded-xl border border-border/70">
+                    <div className="bg-muted/50 px-4 py-3 text-sm font-medium">محصولات انتخاب شده</div>
                     <div className="divide-y">
                       {productionOutput.map((line, index) => (
                         <div
@@ -272,9 +297,9 @@ const Create = ({ boms }: Props) => {
                         >
                           <div>
                             <div className="space-y-1 gap-3 text-sm grid grid-cols-3">
-                              <div className=" p-5 border rounded-sm bg-white">جنس: {relatedProducts.find((product) => product.item_id === line.product_id)?.item.name || line.product_id}</div>
+                              <div className="rounded-lg border bg-background p-3">جنس: {relatedProducts.find((product) => product.item_id === line.product_id)?.item.name || line.product_id}</div>
 
-                              <div className=" p-5 border rounded-sm bg-white">مقدار: {line.quantity_produced}</div>
+                              <div className="rounded-lg border bg-background p-3">مقدار: {line.quantity_produced}</div>
 
                               {/* <div className=" p-5 border rounded-sm bg-white">قیمت واحد: {line.unit_cost}</div> */}
 
@@ -299,20 +324,20 @@ const Create = ({ boms }: Props) => {
                   </div>
                 )}
 
-                <div className="mt-6">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end mt-6">
+                  <Link href="/factory/production-orders" className={`${buttonVariants({ variant: 'outline' })} gap-2`}><ArrowLeft className="size-4" /> انصراف</Link>
                   <Button
                     type="submit"
-                    className="w-full"
+                    className="w-full gap-2 bg-slate-950 hover:bg-slate-800 sm:w-auto"
                     tabIndex={7}
                     data-test="register-employee-button"
                   >
                     {processing && <Spinner />}
-                    ثبت کنید
+                    ثبت حواله
                   </Button>
                 </div>
-              </form>
+            </form>
             </div>
-          </div>
         </section>
       </div>
     </AppLayout>
