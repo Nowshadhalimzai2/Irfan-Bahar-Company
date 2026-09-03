@@ -19,10 +19,11 @@ import {
     Wallet,
     Warehouse,
     LucideIcon,
+    AlertTriangle,
 } from 'lucide-react';
 import { getDariCurrency } from '@/components/location-translator';
 import axios from 'axios';
-import { Transfer } from '@/types/item';
+import { Item, Transfer } from '@/types/item';
 
 interface Props {
     sa: Account[];
@@ -30,10 +31,11 @@ interface Props {
     currencies: Currency[];
     transfersToShop: Transfer[];
     employees: Employee[];
+    items:Item[];
+    reorderItemsCount:number;
 }
 
-export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop, employees }: Props) {
-    console.log(employees);
+export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop, employees,items,reorderItemsCount }: Props) {
 
     const [currency, setCurrency] = useState<string>(currencies[0]?.name ?? 'USD');
     const [averageExpenses, setAverageExpenses] = useState<number>(0);
@@ -76,16 +78,16 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
             tone: 'amber',
         },
         {
-            title: 'کارمندان',
-            value: employees.length.toString(),
-            subtitle: 'افراد ثبت شده',
-            icon: Users,
-            tone: 'violet',
+            title: 'نیازمند بررسی',
+            value: reorderItemsCount.toString(),
+            subtitle: 'اجناس کم در شدکت',
+            icon: AlertTriangle,
+            tone: 'red',
         },
         {
-            title: 'تبادلات اخیر',
-            value: transfersToShop.length.toString(),
-            subtitle: 'ارسال به دوکان',
+            title: 'موجوده اجناس در شرکت',
+            value: items.length.toString(),
+            subtitle: 'موجوده قلم اجناس',
             icon: PackageCheck,
             tone: 'sky',
         },
@@ -142,7 +144,8 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
                                 <div className={`rounded-2xl p-3 ${tone === 'emerald' ? 'bg-emerald-100 text-emerald-600' :
                                         tone === 'amber' ? 'bg-amber-100 text-amber-600' :
                                             tone === 'violet' ? 'bg-violet-100 text-violet-600' :
-                                                'bg-sky-100 text-sky-600'
+                                                
+                                                tone === 'red' ? 'bg-red-50 text-red-600' : 'bg-sky-100 text-sky-600'
                                     }`}>
                                     <Icon className="h-5 w-5" />
                                 </div>
