@@ -41,6 +41,17 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'notifications' => fn () => $request->user() ? [
+                'unread_count' => $request->user()->unreadNotifications()->count(),
+                'recent' => $request->user()->notifications()->latest()->limit(6)->get()->map(fn ($notification) => [
+                    'id' => $notification->id,
+                    'title' => $notification->data['title'] ?? 'اعلان جدید',
+                    'message' => $notification->data['message'] ?? '',
+                    'url' => $notification->data['url'] ?? '/dashboard',
+                    'read_at' => $notification->read_at,
+                    'created_at' => $notification->created_at,
+                ]),
+            ] : ['unread_count' => 0, 'recent' => []],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

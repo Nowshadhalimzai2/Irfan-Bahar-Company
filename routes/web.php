@@ -12,6 +12,7 @@ use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\LogController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProductionInputController;
 use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\SalaryController;
@@ -189,6 +190,10 @@ Route::middleware('auth')->group(function () {
 });
 
 Route::middleware(['auth'])->group(function () {
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+
     Route::prefix('factory')->group(function () {
         Route::get('/home', function () {
 

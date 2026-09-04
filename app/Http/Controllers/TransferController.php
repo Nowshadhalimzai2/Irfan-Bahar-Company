@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Models\InventoryBalance;
+use App\Notifications\TransferCreated;
 use Error;
 use Inertia\Inertia;
 use Monolog\Processor\LoadAverageProcessor;
@@ -114,9 +115,11 @@ class TransferController extends Controller
                 $inventory->move($data['destination_id'], $line['item_id'], $line['quantity'], 'transferred_in', $data['notes']);
                 // ======== UPDATE INVENTORY BALANCE =======
             }
-            $des = 'اجناس از {$transfer->source->name} به ${$transfer->destination->name} انتقال شد';
+            $des = 'اجناس از '.$transfer->source->name.' به '.$transfer->destination->name.' انتقال شد';
             $log->create('insert', $des);
             DB::commit();
+            $transfer->load('source:id,name', 'destination:id,name');
+            $request->user()?->notifyNow(new TransferCreated($transfer));
             Inertia::flash('toast', ['type' => 'success', 'message' => 'جنس نو امد به کارخانه .']);
 
             // BOTH RECEIPTS AND TRANSFERS ARE IN SINGLE TABL       
@@ -126,7 +129,7 @@ class TransferController extends Controller
             if ($th instanceof ValidationException) {
                 throw $th;
             }
-            $des = 'اجناس از {$transfer->source->name} به ${$transfer->destination->name} انتقال نشد';
+            $des = 'اجناس از '.$transfer->source->name.' به '.$transfer->destination->name.' انتقال نشد';
             $log->create('insert', $des);
             DB::rollBack();
             Inertia::flash('toast', ['type' => 'error', 'message' => 'جنس نو وارد نشد .' . $th->getMessage()]);

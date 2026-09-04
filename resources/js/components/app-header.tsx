@@ -1,5 +1,5 @@
-import { Link, usePage } from '@inertiajs/react';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { Bell, BookOpen, Folder, LayoutGrid, Menu, Search } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import AppLogoIcon from '@/components/app-logo-icon';
 import { Breadcrumbs } from '@/components/breadcrumbs';
@@ -39,6 +39,20 @@ type Props = {
     breadcrumbs?: BreadcrumbItem[];
 };
 
+type NotificationItem = {
+    id: string;
+    title: string;
+    message: string;
+    url: string;
+    read_at: string | null;
+    created_at: string;
+};
+
+type NotificationProps = {
+    unread_count: number;
+    recent: NotificationItem[];
+};
+
 const mainNavItems: NavItem[] = [
     {
         title: 'Dashboard',
@@ -66,6 +80,7 @@ const activeItemStyles =
 export function AppHeader({ breadcrumbs = [] }: Props) {
     const page = usePage();
     const { auth } = page.props;
+    const notifications = page.props.notifications as NotificationProps;
     const getInitials = useInitials();
     const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 
@@ -80,7 +95,7 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="mr-2 h-[34px] w-[34px]"
+                                    className="mr-2 h-8.5 w-8.5"
                                 >
                                     <Menu className="h-5 w-5" />
                                 </Button>
@@ -178,12 +193,27 @@ export function AppHeader({ breadcrumbs = [] }: Props) {
 
                     <div className="ml-auto flex items-center space-x-2">
                         <div className="relative flex items-center space-x-1">
+                            <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="relative h-9 w-9" aria-label="اعلان‌ها">
+                                        <Bell className="size-5! opacity-80" />
+                                        {notifications.unread_count > 0 && <span className="absolute -right-0.5 -top-0.5 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">{notifications.unread_count > 99 ? '99+' : notifications.unread_count}</span>}
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-80 p-2">
+                                    <div className="flex items-center justify-between border-b px-2 pb-2"><Link href="/notifications" className="font-semibold hover:text-primary">اعلان‌ها</Link>{notifications.unread_count > 0 && <button type="button" onClick={() => router.post('/notifications/read-all')} className="text-xs text-primary hover:underline">خوانده شد همه</button>}</div>
+                                    <div className="max-h-80 overflow-y-auto py-1">
+                                        {notifications.recent.length > 0 ? notifications.recent.map((notification) => <button type="button" key={notification.id} onClick={() => router.post(`/notifications/${notification.id}/read`)} className={`w-full border-b px-2 py-3 text-right transition-colors last:border-0 hover:bg-muted ${notification.read_at ? 'opacity-65' : 'bg-primary/5'}`}><div className="flex items-start gap-2"><Bell className="mt-0.5 size-4 shrink-0 text-primary" /><span className="min-w-0"><strong className="block text-sm">{notification.title}</strong><span className="mt-1 block text-xs leading-5 text-muted-foreground">{notification.message}</span><span className="mt-1 block text-[10px] text-muted-foreground">{new Date(notification.created_at).toLocaleString()}</span></span></div></button>) : <p className="p-6 text-center text-sm text-muted-foreground">اعلانی وجود ندارد.</p>}
+                                    </div>
+                                    <Link href="/notifications" className="block border-t px-2 pt-2 text-center text-xs text-primary hover:underline">مشاهده همه اعلان‌ها</Link>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 className="group h-9 w-9 cursor-pointer"
                             >
-                                <Search className="!size-5 opacity-80 group-hover:opacity-100" />
+                                <Search className="size-5! opacity-80 group-hover:opacity-100" />
                             </Button>
                             <div className="ml-1 hidden gap-1 lg:flex">
                                 {rightNavItems.map((item) => (

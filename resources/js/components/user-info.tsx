@@ -6,7 +6,17 @@ export function UserInfo({
     user,
     showEmail = false,
 }: {
-    user: User;
+    user: {
+        [key: string]: unknown;
+        id: number;
+        name: string;
+        email: string;
+        avatar?: string;
+        email_verified_at: string | null;
+        two_factor_enabled?: boolean;
+        created_at: string;
+        updated_at: string;
+    };
     showEmail?: boolean;
 }) {
     const getInitials = useInitials();
