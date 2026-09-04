@@ -6,16 +6,15 @@ use App\Custome\Log;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\Expense;
-use App\Models\Role;
 use App\Models\Salary;
 use App\Models\ShopAccount;
-use App\Models\User;
+use App\Notifications\EmployeeCreated;
 use Carbon\Carbon;
 use App\Services\SalaryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 
 class
@@ -80,6 +79,8 @@ EmployeeController extends Controller
                 ...$validated,
                 'recruitment_date' => now(),
             ]);
+            // create notification for the admin user about the new employee
+            $request->user()?->notifyNow(new EmployeeCreated($emp));
             $log = new Log();
             $log->create('insert', " کارکن جدید ", $emp->name);
             DB::commit();
