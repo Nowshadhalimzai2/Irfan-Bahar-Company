@@ -65,16 +65,16 @@ const Home = ({ pendingOrders, items, productionChart, topProductionCategories }
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-sm font-medium text-emerald-300"><Factory className="size-4" /> مرکز عملیات تولید</div>
               <h1 className="text-3xl font-bold tracking-tight md:text-4xl">داشبورد کارخانه</h1>
-              <p className="max-w-xl text-sm leading-6 text-slate-300">وضعیت موجودی، حوالات تولید و عملکرد کارخانه را یکجا بررسی کنید.</p>
+              <p className="max-w-xl text-sm leading-6 text-slate-300">وضعیت موجودی، سفارش تولید و عملکرد کارخانه را یکجا بررسی کنید.</p>
             </div>
-            <Link href="/factory/production-orders/create" className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-emerald-400 text-slate-950 hover:bg-emerald-300`}><ClipboardList className="size-4" /> حواله جدید</Link>
+            <Link href="/factory/production-orders/create" className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-emerald-400 text-slate-950 hover:bg-emerald-300`}><ClipboardList className="size-4" /> سفارش جدید</Link>
           </div>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs text-muted-foreground">اجناس قابل استفاده</p><Package className="size-4 text-primary" /></div><p className="mt-2 text-2xl font-bold text-primary">{totalAvailable.toLocaleString()}</p></div>
           <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs text-muted-foreground">اجناس محفوظ شده</p><ClipboardList className="size-4 text-amber-500" /></div><p className="mt-2 text-2xl font-bold text-amber-600">{totalReserved.toLocaleString()}</p></div>
-          <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs text-muted-foreground">حوالات منتظر</p><Activity className="size-4 text-sky-500" /></div><p className="mt-2 text-2xl font-bold text-sky-600">{pendingOrders.length}</p></div>
+          <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs text-muted-foreground">سفارش منتظر</p><Activity className="size-4 text-sky-500" /></div><p className="mt-2 text-2xl font-bold text-sky-600">{pendingOrders.length}</p></div>
           <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs text-muted-foreground">نیازمند بررسی</p><AlertTriangle className="size-4 text-rose-500" /></div><p className="mt-2 text-2xl font-bold text-rose-600">{lowStockItems.length}</p></div>
         </div>
 
@@ -103,7 +103,7 @@ const Home = ({ pendingOrders, items, productionChart, topProductionCategories }
 
           <section className="space-y-6">
               <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm md:p-5">
-                <div className="mb-4 flex items-center justify-between"><div><div className="flex items-center gap-2"><ClipboardList className="size-4 text-primary" /><h2 className="font-semibold">حوالات در انتظار</h2></div><p className="mt-1 text-xs text-muted-foreground">صف بررسی تولید</p></div><span className="rounded-full bg-sky-100 px-2 py-1 text-xs text-sky-700 dark:bg-sky-950 dark:text-sky-300">{pendingOrders.length} مورد</span></div>
+                <div className="mb-4 flex items-center justify-between"><div><div className="flex items-center gap-2"><ClipboardList className="size-4 text-primary" /><h2 className="font-semibold">سفارشات در انتظار</h2></div><p className="mt-1 text-xs text-muted-foreground">صف بررسی تولید</p></div><span className="rounded-full bg-sky-100 px-2 py-1 text-xs text-sky-700 dark:bg-sky-950 dark:text-sky-300">{pendingOrders.length} مورد</span></div>
                   <div className="space-y-2">
                       {pendingOrders.length > 0 ? pendingOrders.map(order =>
                         <div key={order.id} className="rounded-lg border border-border/70 bg-background p-3">
@@ -113,7 +113,7 @@ const Home = ({ pendingOrders, items, productionChart, topProductionCategories }
                       ) :
                         <p className="text-center text-sm text-muted-foreground">کدام حواله در حال منتظر موجود نیست!</p>
                       }
-                      <Link href="/factory/production-orders" className="flex items-center justify-center gap-1 pt-3 text-sm text-primary hover:underline">مشاهده همه حوالات <ArrowLeft className="size-3" /></Link>
+                      <Link href="/factory/production-orders" className="flex items-center justify-center gap-1 pt-3 text-sm text-primary hover:underline">مشاهده همه سفارشات <ArrowLeft className="size-3" /></Link>
                     </div>
               </div>
               <HighProductionChart

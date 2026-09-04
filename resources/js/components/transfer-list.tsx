@@ -107,7 +107,7 @@ const TransferList = ({ transfers }: Props) => {
                                     <TableCell className='text-center'>{LocationTranslator(transfer.source.name)}</TableCell>
                                     <TableCell className='text-center' >{LocationTranslator(transfer.destination.name)}</TableCell>
                                     <TableCell className='text-center'>{transfer.reference_no}</TableCell>
-                                    <TableCell className='text-center text-sm text-muted-foreground'>{new Date(transfer.transferred_at).toLocaleDateString()}</TableCell>
+                                    <TableCell className='text-center text-sm text-muted-foreground'>{new Date(transfer.transferred_at).toLocaleDateString('fa-IR')}</TableCell>
                                     <TableCell className='text-center font-semibold'>{transfer.transfer_lines.reduce((acc,line)=>acc + Number(line.unit_price),0).toLocaleString()}</TableCell>
                                     <TableCell className="w-8"><ArrowRight className="size-4 text-muted-foreground" /></TableCell>
                                 </TableRow>

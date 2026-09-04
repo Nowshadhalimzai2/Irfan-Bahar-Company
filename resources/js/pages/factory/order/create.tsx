@@ -130,8 +130,8 @@ const Create = ({ boms }: Props) => {
   return (
     <AppLayout breadcrumbs={[
       { title: 'کارخانه', href: '/factory/home' },
-      { title: 'لیست حواله جات', href: '/factory/production-orders' },
-      { title: 'حواله جدید', href: '/factory/production-orders/create' },
+      { title: 'لیست سفارش جات', href: '/factory/production-orders' },
+      { title: 'سفارش جدید', href: '/factory/production-orders/create' },
     ]}>
       <div className="min-h-screen space-y-6 bg-linear-to-b from-slate-50 via-background to-background p-3 md:p-6 dark:from-slate-950">
         <section>
@@ -139,7 +139,7 @@ const Create = ({ boms }: Props) => {
             <div className="relative mb-6 overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl shadow-slate-900/10 md:px-10">
               <div className="absolute -left-12 -top-16 h-48 w-48 rounded-full bg-emerald-400/20 blur-3xl" />
               <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div className="space-y-3"><div className="flex items-center gap-2 text-sm font-medium text-emerald-300"><Factory className="size-4" /> مرکز عملیات تولید</div><h1 className="text-3xl font-bold tracking-tight md:text-4xl">ثبت حواله تولید</h1><p className="text-sm text-slate-300">جزئیات سفارش را کامل کنید تا تیم کارخانه بتواند آن را دقیق اجرا کند.</p></div>
+                <div className="space-y-3"><div className="flex items-center gap-2 text-sm font-medium text-emerald-300"><Factory className="size-4" /> مرکز عملیات تولید</div><h1 className="text-3xl font-bold tracking-tight md:text-4xl">ثبت سفارش تولید</h1><p className="text-sm text-slate-300">جزئیات سفارش را کامل کنید تا تیم کارخانه بتواند آن را دقیق اجرا کند.</p></div>
                 <div className="flex items-center gap-2 text-sm text-slate-300"><ClipboardList className="size-4" /> مرحله ۱ از ۱</div>
               </div>
             </div>
@@ -148,7 +148,7 @@ const Create = ({ boms }: Props) => {
                 <div className="mb-6 flex items-center gap-3 border-b border-border/60 pb-4"><div className="rounded-xl bg-primary/10 p-2 text-primary"><ClipboardList className="size-5" /></div><div><h2 className="font-semibold">اطلاعات اصلی سفارش</h2><p className="text-xs text-muted-foreground">مسؤول، فورمول و زمان اجرای سفارش</p></div></div>
                 <div className="grid gap-5 grid-cols-1 md:grid-cols-2">
                   <div className="grid gap-2">
-                      <Label htmlFor="ordered_by">حواله از طرف <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="ordered_by">سفارش از طرف <span className="text-destructive">*</span></Label>
                     <Input
                       className="border p-1.5 rounded-md text-sm"
                       tabIndex={2}
@@ -157,7 +157,7 @@ const Create = ({ boms }: Props) => {
                       onChange={(e) =>
                         setData('ordered_by', e.target.value)
                       }
-                      placeholder="حواله توسط که شده؟"
+                      placeholder="سفارش توسط که شده؟"
                     />
                     <InputError message={errors.ordered_by} className="mt-2" />
                   </div>
@@ -211,7 +211,7 @@ const Create = ({ boms }: Props) => {
 
                 <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
                   <div>
-                    <div className="mb-6 flex items-center justify-between gap-3 border-b border-border/60 pb-4"><div><div className="flex items-center gap-2"><PackagePlus className="size-5 text-primary" /><h2 className="font-semibold">محصولات مورد نیاز</h2></div><p className="mt-1 text-xs text-muted-foreground">یک یا چند محصول خروجی را به حواله اضافه کنید.</p></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{productionOutput.length} محصول</span></div>
+                    <div className="mb-6 flex items-center justify-between gap-3 border-b border-border/60 pb-4"><div><div className="flex items-center gap-2"><PackagePlus className="size-5 text-primary" /><h2 className="font-semibold">محصولات مورد نیاز</h2></div><p className="mt-1 text-xs text-muted-foreground">یک یا چند محصول خروجی را به سفارش اضافه کنید.</p></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{productionOutput.length} محصول</span></div>
 
                     <div className="grid gap-6   grid-cols-1 md:grid-cols-2 ">
 
@@ -333,7 +333,7 @@ const Create = ({ boms }: Props) => {
                     data-test="register-employee-button"
                   >
                     {processing && <Spinner />}
-                    ثبت حواله
+                    ثبت سفارش
                   </Button>
                 </div>
             </form>

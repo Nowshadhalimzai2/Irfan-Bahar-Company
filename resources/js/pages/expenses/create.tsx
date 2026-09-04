@@ -216,7 +216,7 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                         <div>
                             <h1 className="text-center w-full text-accent font-semibold text-xl py-5">ریکورد مصارف امروز</h1>
                             <Table>
-                                <TableCaption> مصارف تاریخ {new Date().toLocaleDateString()} را اینجا دیده میتانی</TableCaption>
+                                <TableCaption> مصارف تاریخ {new Date().toLocaleDateString('fa-IR')} را اینجا دیده میتانی</TableCaption>
                                 <TableHeader>
                                     <TableRow>
                                         {role.name === "shop_clerk" && <TableHead>قابل ویرایش است؟ </TableHead>}
