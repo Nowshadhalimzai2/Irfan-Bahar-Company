@@ -1,7 +1,8 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, Bell, CheckCheck, Inbox } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import PageLinks from '@/components/page-links';
 
 type NotificationItem = {
     id: string;
@@ -23,7 +24,7 @@ type Props = {
 
 const Index = ({ notifications }: Props) => {
     const unreadCount = notifications.data.filter((notification) => !notification.read_at).length;
-
+    
     return (
         <AppLayout breadcrumbs={[{ title: 'اعلان‌ها', href: '/notifications' }]}>
             <div className="min-h-screen space-y-6 bg-linear-to-b from-slate-50 via-background to-background p-3 md:p-6 dark:from-slate-950">
@@ -41,6 +42,9 @@ const Index = ({ notifications }: Props) => {
                     </div>
 
                     {notifications.last_page > 1 && <div className="mt-4 flex flex-wrap justify-center gap-2">{notifications.links.map((link, index) => <Link key={index} href={link.url ?? '#'} className={`rounded-md border px-3 py-1.5 text-sm ${link.active ? 'bg-primary text-primary-foreground' : 'bg-card hover:bg-muted'}`} dangerouslySetInnerHTML={{ __html: link.label }} />)}</div>}
+                </div>
+                <div>
+                    <PageLinks links={notifications.links} />
                 </div>
             </div>
         </AppLayout>

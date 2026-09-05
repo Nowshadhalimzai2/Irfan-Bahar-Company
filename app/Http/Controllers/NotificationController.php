@@ -29,7 +29,7 @@ class NotificationController extends Controller
         abort_unless($notification->notifiable_id === Auth::id(), 403);
 
         $notification->markAsRead();
-
+            
         return redirect()->to($notification->data['url'] ?? '/dashboard');
     }
 
