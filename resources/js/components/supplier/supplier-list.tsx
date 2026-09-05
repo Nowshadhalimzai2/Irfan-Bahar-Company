@@ -10,21 +10,32 @@ import {
 } from "@/components/ui/table"; import { Supplier } from '@/types';
 import React from 'react'
 import { SectionTitle } from '../section-title';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { route } from 'ziggy-js';
 import { buttonVariants } from "../ui/button";
 import { CustomeDropDownMenu } from "../customer-dropdwon";
+import PageHead from "../page-head";
+import { Users2Icon } from "lucide-react";
 
 interface Props {
     suppliers: Supplier[];
 }
 const SupplierList = ({ suppliers }: Props) => {
-    console.log(suppliers);
-
+ const { auth, roles }= usePage().props;
+  const canAddEmployee = ['admin', 'super_admin', 'shop_clerk'].includes(
+    roles[auth.user.role_id]?.name,
+  );
     return (
-        <div className="section">
-            <div>
-                <SectionTitle title="لیست تامین کنندگان" />
+        <div className="py-5">
+            <PageHead
+                HeadIcon={Users2Icon}
+                title="تأمین کنندگان"
+                subtitle="لیست تأمین کنندگان"
+                description="در اینجا میتوانید لیست تمام تأمین کنندگان که در سیستم ثبت شده‌اند را مشاهده کنید."
+                actionTitle={canAddEmployee ? 'ایجاد تأمین کننده جدید' : ''}
+                actionURL={canAddEmployee ? '/suppliers/create' : ''}
+            />
+            <div className="p-2 border mt-6 bg-white shadow-2xl rounded-lg">
                 <div>
                     <Table>
                         <TableCaption className="text-accent">همه تأمین کننده ګان در سیستم</TableCaption>
@@ -51,11 +62,11 @@ const SupplierList = ({ suppliers }: Props) => {
                                         <TableCell>{supplier.address}</TableCell>
                                         <TableCell>{supplier.status ? 'Active' : 'Inactive'}</TableCell>
                                         <TableCell>
-                                            <CustomeDropDownMenu 
-                                            items={[
-                                                { name: "Edit", url: `/suppliers/${supplier.id}/edit` },
-                                            ]} 
-                                            deletion={{id:supplier.id,url:`/suppliers/${supplier.id}`}}
+                                            <CustomeDropDownMenu
+                                                items={[
+                                                    { name: "Edit", url: `/suppliers/${supplier.id}/edit` },
+                                                ]}
+                                                deletion={{ id: supplier.id, url: `/suppliers/${supplier.id}` }}
                                             />
                                         </TableCell>
 

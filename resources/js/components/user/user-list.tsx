@@ -17,20 +17,30 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button, buttonVariants } from "../ui/button";
-import { MoreHorizontalIcon } from "lucide-react";
+import { MoreHorizontalIcon, User2Icon, Users2Icon } from "lucide-react";
 import { Link, router, usePage } from "@inertiajs/react";
 import axios from "axios";
 import { register } from "@/routes";
+import PageHead from "../page-head";
 interface Props {
     users: User[];
-    roles: Role[]
 }
-function UserList({ users, roles }: Props) {
-    const { auth } = usePage().props;
-    return (
-        <section className="section">
-            <div>
-                <SectionTitle title="System User List" description="Here you can see the list of all users have accounts in the system." />
+function UserList({ users }: Props) {
+    const { auth, roles } = usePage().props;
+    const canAddUser = ['admin', 'super_admin'].includes(
+        roles[auth.user.role_id]?.name,
+    ); return (
+        <section className="py-5">
+            <PageHead
+                HeadIcon={Users2Icon}
+                title="کاربران سیستم"
+                subtitle="لیست کاربران سیستم"
+                description="در اینجا میتوانید لیست تمام کاربران که اکانت در سیستم دارند را مشاهده کنید."
+                actionTitle={canAddUser ? 'ایجاد کاربر جدید' : ''}
+                actionURL={canAddUser ? '/register' : ''}
+
+            />
+            <div className="p-2 border mt-6 bg-white shadow-2xl rounded-lg">
                 <Table>
                     <TableCaption>You can manage the users.</TableCaption>
                     <TableHeader>
@@ -40,7 +50,7 @@ function UserList({ users, roles }: Props) {
                             <TableHead>Email</TableHead>
                             <TableHead >Status</TableHead>
                             <TableHead >Role</TableHead>
-                            {(auth.user.id === 1 || auth.user.id ===2) && <TableHead >Action</TableHead>}
+                            {(auth.user.id === 1 || auth.user.id === 2) && <TableHead >Action</TableHead>}
 
                         </TableRow>
                     </TableHeader>
@@ -53,7 +63,7 @@ function UserList({ users, roles }: Props) {
                                 <TableCell className={` rounded-md ${user.status ? "text-green-500  border-primary/30" : "text-destructive  border-destructive/30"}`}>{user.status ? "Activted" : "Deactiveted"}</TableCell>
 
                                 <TableCell>{user.role.name.replace("_", " ")}</TableCell>
-                                  {(auth.user.id === 1 || auth.user.id ===2) && <TableCell>
+                                {(auth.user.id === 1 || auth.user.id === 2) && <TableCell>
                                     <DropdownMenu>
                                         <DropdownMenuTrigger>
                                             <Button variant="ghost" size="icon" className="size-8"><MoreHorizontalIcon /><span className="sr-only">Open menu</span></Button>
@@ -76,7 +86,7 @@ function UserList({ users, roles }: Props) {
                                                     </DropdownMenuItem>
                                                 ))
                                             }
-                                             <DropdownMenuItem variant="destructive" className=" py-0 mt-1 border-t">
+                                            <DropdownMenuItem variant="destructive" className=" py-0 mt-1 border-t">
                                                 <Button variant={'ghost'} className={`${!user.status ? "text-green-500" : "text-red-500"}`} onClick={() => router.put('/users/' + user.id + `${user.status ? "/false" : "/true"}`)} disabled={user.id === auth.user.id}>{user.status ? "Deactivate" : "Activate"}</Button>
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>

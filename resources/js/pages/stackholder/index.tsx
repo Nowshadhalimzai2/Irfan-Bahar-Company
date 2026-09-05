@@ -19,11 +19,10 @@ import { Employee, Role, Supplier, User } from "@/types";
 import { usePage } from "@inertiajs/react";
 interface Props {
     users: User[];
-    roles: Role[];
     employees: Employee[];
     suppliers: Supplier[];
 }
-export default function Index({ users, roles, employees, suppliers }: Props) {
+export default function Index({ users, employees, suppliers }: Props) {
     const { auth } = usePage().props;
     return (
         <AppLayout breadcrumbs={[
@@ -48,7 +47,7 @@ export default function Index({ users, roles, employees, suppliers }: Props) {
                                 <EmployeeList employees={employees} />
                             </TabsContent>
                             <TabsContent value="users">
-                                <UserList users={users} roles={roles} />
+                                <UserList users={users} />
                             </TabsContent>
                             <TabsContent value="tellers">
                                 <Card>

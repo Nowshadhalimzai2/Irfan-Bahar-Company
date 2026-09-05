@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import AppLayout from '@/layouts/app-layout';
 import type { ProductionOrder, StatusType } from '@/types';
+import PageHead from '@/components/page-head';
 
 interface Props {
     production_orders: ProductionOrder[];
@@ -94,20 +95,14 @@ const Index = ({ production_orders }: Props) => {
             ]}
         >
             <div className="space-y-6 p-3 md:p-6">
-                <div className="relative overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl shadow-slate-900/10 md:px-10">
-                    <div className="absolute -left-12 -top-16 h-48 w-48 rounded-full bg-emerald-400/20 blur-3xl" />
-                    <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-sm font-medium text-emerald-300"><Factory className="size-4" /> مرکز عملیات تولید</div>
-                            <h1 className="text-3xl font-bold tracking-tight md:text-4xl">سفارشات تولید</h1>
-                            <p className="max-w-xl text-sm leading-6 text-slate-300">سفارش‌ها را اولویت‌بندی کنید و پیشرفت تولید را از همین‌جا کنترل کنید.</p>
-                        </div>
-                        <div className="flex gap-2">
-                            <CustomeDropDownMenu items={options} />
-                            <Link href="/factory/production-orders/create" className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-emerald-400 text-slate-950 hover:bg-emerald-300`}><Plus className="size-4" /> سفارش جدید</Link>
-                        </div>
-                    </div>
-                </div>
+                <PageHead 
+                    title="سفارشات تولید"
+                    subtitle="مدیریت و ردیابی سفارشات"
+                    description="سفارش‌ها را اولویت‌بندی کنید و پیشرفت تولید را از همین‌جا کنترل کنید."
+                    HeadIcon={Factory}
+                    actionTitle="سفارش جدید"
+                    menuItems={options}
+                />
 
                 <div className="grid gap-3 sm:grid-cols-3">
                     <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs text-muted-foreground">همه سفارشات</p><ClipboardList className="size-4 text-primary" /></div><p className="mt-2 text-2xl font-bold">{production_orders.length}</p></div>

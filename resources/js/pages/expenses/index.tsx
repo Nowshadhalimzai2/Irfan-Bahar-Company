@@ -18,6 +18,8 @@ import { SectionTitle } from '@/components/section-title';
 import { Popover, PopoverContent, PopoverDescription, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
+import PageHead from '@/components/page-head';
+import { Coins } from 'lucide-react';
 
 interface Props {
     expenses: Expense[];
@@ -69,7 +71,7 @@ const Index = ({ expenses }: Props) => {
             ]
         }>
             <div className="section">
-                <SectionTitle title="ریکورد مصارف " description="مصارف امروز اینجا دیده میتانی" />
+               
                 <div className="max-w-3xl mx-auto flex justify-center items-center w-full p-5">
                     <Popover>
                         <PopoverTrigger className="w-full"><Button variant={'outline'} className="w-full">{new Date(dateRange?.from ?? '').toDateString()} - to - {new Date(dateRange?.to ?? '').toDateString()}</Button></PopoverTrigger>

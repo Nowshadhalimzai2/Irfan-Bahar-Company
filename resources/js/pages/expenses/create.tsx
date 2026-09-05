@@ -18,9 +18,10 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Menu } from "lucide-react";
+import { Coins, Menu } from "lucide-react";
 import { CustomeDropDownMenu } from "@/components/customer-dropdwon";
 import axios from "axios";
+import PageHead from "@/components/page-head";
 
 
 type ExpenseType = {
@@ -130,12 +131,17 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
         <AppLayout breadcrumbs={[
             { title: 'فورم مصرف', href: '/expenses/create' }
         ]}>
-            <div className="pb-5 mb-12 w-full px-5 ">
-                <div className="flex justify-end items-end w-full p-5">
-                    <CustomeDropDownMenu items={[{ name: 'ریکورد مصارف', url: '/expenses' }]} />
-                </div>
-                <SectionTitle title="فورم مصرف روزمره" description="مصرف رزومره اینجا ثبت کنید" />
-                <div className={`grid grid-cols-1 ${role.name === 'shop_clerk' && "md:grid-cols-2"} gap-5`}>
+            <div className="pb-5 space-y-5 mb-12 w-full px-5 ">
+                <PageHead
+                    title="ریکوردمصارف"
+                    description="در این صفحه میتانی مصارف خود را دیده و مدیریت نمایی"
+                    subtitle="مصارف"
+                    HeadIcon={Coins}
+                    // actionTitle="مصارف جدید"
+                    menuItems={[{ name: 'ریکورد مصارف', url: '/expenses' }]}
+                />
+
+                <div className={` grid grid-cols-1 ${role.name === 'shop_clerk' && "md:grid-cols-2"} gap-5`}>
                     {role.name === "shop_clerk" && <div>
                         <form onSubmit={handleExpense}>
                             <div className="grid gap-6">
@@ -212,7 +218,7 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                             </div>
                         </form>
                     </div>}
-                    <div className="border p-3 rounded-md bg-muted">
+                    <div className="border p-3 shadow-2xl rounded-lg bg-muted">
                         <div>
                             <h1 className="text-center w-full text-accent font-semibold text-xl py-5">ریکورد مصارف امروز</h1>
                             <Table>
