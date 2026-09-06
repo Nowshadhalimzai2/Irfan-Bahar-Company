@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Role;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -43,10 +44,11 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => Auth::user(),
             ],
-            'roles' =>Role::all(),
-            'notifications' => fn () => $request->user() ? [
+            'roles' => Role::all(),
+            'logo' => Storage::url('public/logo/nobg.png'),
+            'notifications' => fn() => $request->user() ? [
                 'unread_count' => $request->user()->unreadNotifications()->count(),
-                'recent' => $request->user()->notifications()->latest()->limit(6)->get()->map(fn ($notification) => [
+                'recent' => $request->user()->notifications()->latest()->limit(6)->get()->map(fn($notification) => [
                     'id' => $notification->id,
                     'title' => $notification->data['title'] ?? 'اعلان جدید',
                     'message' => $notification->data['message'] ?? '',
