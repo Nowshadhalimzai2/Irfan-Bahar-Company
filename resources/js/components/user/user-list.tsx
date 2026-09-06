@@ -17,7 +17,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Button, buttonVariants } from "../ui/button";
-import { MoreHorizontalIcon, User2Icon, Users2Icon } from "lucide-react";
+import { MoreHorizontalIcon, User2Icon, UserIcon, Users2Icon } from "lucide-react";
 import { Link, router, usePage } from "@inertiajs/react";
 import axios from "axios";
 import { register } from "@/routes";
@@ -40,6 +40,7 @@ function UserList({ users }: Props) {
                 actionURL={canAddUser ? '/register' : ''}
 
             />
+          
             <div className="p-2 border mt-6 bg-white shadow-2xl rounded-lg">
                 <Table>
                     <TableCaption>You can manage the users.</TableCaption>

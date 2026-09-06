@@ -12,7 +12,7 @@ import { SectionTitle } from "../section-title";
 import { Auth, Employee, Role } from "@/types";
 import { Link, router, usePage } from "@inertiajs/react";
 import { buttonVariants } from "../ui/button";
-import { UserCheck2Icon, Users, Users2Icon, UserX } from "lucide-react";
+import { UserCheck, UserCheck2Icon, UserIcon, Users, Users2Icon, UserX } from "lucide-react";
 import PageHead from "../page-head";
 import { User } from "@/types/auth";
 
@@ -21,11 +21,11 @@ interface Props {
 }
 
 function EmployeeList({ employees }: Props) {
-  const { auth, roles }= usePage().props;
+  const { auth, roles } = usePage().props;
   const canAddEmployee = ['admin', 'super_admin', 'shop_clerk'].includes(
     roles[auth.user.role_id]?.name,
   );
-  
+
   const toggleAttendance = async (employee: Employee) => {
 
     router.post('/employees/' + employee.id + '/attendance-toggle', { employee: employee.id });
@@ -34,10 +34,39 @@ function EmployeeList({ employees }: Props) {
   return (
     <section className="py-5">
       <PageHead title='کارمندان' subtitle="کارمندان شرکت " HeadIcon={Users2Icon} description="کارمندان ثبت ګردیده در سیستم را اینجا دیده میتانی"
-          actionTitle={canAddEmployee ? 'کارمند جدید' : ''}
-          actionURL={canAddEmployee ? '/employees/create' : ''}
+        actionTitle={canAddEmployee ? 'کارمند جدید' : ''}
+        actionURL={canAddEmployee ? '/employees/create' : ''}
       />
-      <div className="p-2 border mt-6 bg-white shadow-2xl rounded-lg">
+      <div id="Summery" className="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-5 lg:grid-cols-3 ">
+        <div className="p-4 mt-5 rounded-xl shadow-lg   border bg-white">
+          <div className="flex justify-between">
+            <small className="text-muted-foreground text-sm">تعداد کل کارمندان</small>
+            <span className="bg-blue-50 p-2 rounded-md">
+              <UserIcon className="text-blue-500" />
+            </span>
+          </div>
+          <p className="font-semibold text-2xl mt-3">{employees.length}</p>
+        </div>
+        <div className="p-4 mt-5 rounded-xl shadow-lg  border bg-white">
+          <div className="flex justify-between">
+            <small className="text-muted-foreground text-sm"> حاضر</small>
+            <span className="bg-green-50 p-2 rounded-md">
+              <UserCheck className="text-green-500" />
+            </span>
+          </div>
+          <p className="font-semibold text-2xl mt-3">{employees.filter(emp=>emp.today_attendance?.is_present).length}</p>
+        </div>
+        <div className="p-4 mt-5 rounded-xl shadow-lg  border bg-white">
+          <div className="flex justify-between">
+            <small className="text-muted-foreground text-sm">غیر حاضر</small>
+            <span className="bg-red-50 p-2 rounded-md">
+              <UserX className="text-red-500" />
+            </span>
+          </div>
+          <p className="font-semibold text-2xl mt-3">{employees.filter(emp=>!emp.today_attendance?.is_present).length}</p>
+        </div>
+      </div>
+      <div className="p-2 border mt-6 bg-white shadow-xl rounded-lg">
         <Table>
           <TableCaption>A list of your recent attendance.</TableCaption>
           <TableHeader>
