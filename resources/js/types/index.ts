@@ -81,6 +81,15 @@ export interface Supplier{
     address:string;
     status:boolean;
 }
+export interface Customer{
+    id:number;
+    name:string;
+    nick_name?:string;
+    phone:string;
+    email?:string;
+    address:string;
+    is_active:boolean;
+}
 
 export interface Location{
     id:number;

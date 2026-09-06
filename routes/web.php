@@ -4,6 +4,7 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Custome\Log;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BOMController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\GoodsReceiptController;
@@ -167,6 +168,7 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
     Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
     Route::resource('expenses', ExpenseController::class)->names('expenses');
+    Route::resource('customers',CustomerController::class)->except('index')->names('customers');
 });
 
 Route::middleware(['auth'])->group(function () {
