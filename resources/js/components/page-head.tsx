@@ -12,8 +12,9 @@ interface Props {
     menuItems?: { name: string; url: string }[];
     actionTitle?: string;
     actionURL?:string;
+    ActionIcon?:LucideIcon;
 }
-const PageHead = ({ title, subtitle, description, HeadIcon, menuItems, actionTitle,actionURL }: Props) => {
+const PageHead = ({ title, subtitle, description, HeadIcon, menuItems, actionTitle,actionURL,ActionIcon=Plus }: Props) => {
     return (
         <div className="relative overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl shadow-slate-900/10 md:px-10">
             <div className={`absolute -left-12 -top-16 h-48 w-48 rounded-full bg-emerald-400/60 blur-3xl`} />
@@ -25,7 +26,7 @@ const PageHead = ({ title, subtitle, description, HeadIcon, menuItems, actionTit
                 </div>
                 <div className="flex gap-2">
                     {menuItems && <CustomeDropDownMenu items={menuItems} />}
-                    {actionTitle && <Link href={actionURL} className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-emerald-400 text-slate-950 hover:bg-emerald-300`}><Plus className="size-4" /> {actionTitle}</Link>}
+                    {actionTitle && <Link href={actionURL} className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-emerald-400 text-slate-950 hover:bg-emerald-300`}><ActionIcon className="size-4" /> {actionTitle}</Link>}
                 </div>
             </div>
         </div>

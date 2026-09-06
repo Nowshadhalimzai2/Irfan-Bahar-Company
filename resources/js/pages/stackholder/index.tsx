@@ -1,13 +1,7 @@
 import CustomerList from "@/components/customer/customer-list";
 import EmployeeList from "@/components/employee/employee-list";
 import SupplierList from "@/components/supplier/supplier-list";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+
 import {
     Tabs,
     TabsContent,
@@ -16,7 +10,7 @@ import {
 } from "@/components/ui/tabs";
 import UserList from "@/components/user/user-list";
 import AppLayout from "@/layouts/app-layout";
-import { Customer, Employee, Role, Supplier, User } from "@/types";
+import { Customer, Employee, Supplier, User } from "@/types";
 import { usePage } from "@inertiajs/react";
 interface Props {
     users: User[];
@@ -26,8 +20,7 @@ interface Props {
 }
 export default function Index({ users, employees, suppliers, customers }: Props) {
     const { auth } = usePage().props;
-    console.log(customers);
-    
+
     return (
         <AppLayout breadcrumbs={[
             {

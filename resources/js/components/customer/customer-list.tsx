@@ -2,8 +2,8 @@ import PageHead from "@/components/page-head";
 import { SectionTitle } from "@/components/section-title";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Customer } from "@/types";
-import { Link } from "@inertiajs/react";
-import { Coins, DollarSign, Recycle, UserCheck, UserIcon, UsersIcon, UserSquareIcon, UserX } from "lucide-react";
+import { Link, router } from "@inertiajs/react";
+import { Coins, DollarSign, Recycle, ScanEye, UserCheck, UserIcon, UsersIcon, UserSquareIcon, UserX } from "lucide-react";
 
 interface Props {
     customers: Customer[]
@@ -50,6 +50,12 @@ const CustomerList = ({ customers }: Props) => {
                     </div>
                 </div>
             </div>
+
+            {/* ========== FILTER SECTION ============== */}
+            <div id="FILTER-SECTION" className="">
+                
+            </div>
+
             <div id="CUSTOMER-LIST" className="bg-white shadow-md rounded-2xl">
                 <div className="p-5">
                     <SectionTitle title="لیست مشتریان" />
@@ -57,25 +63,25 @@ const CustomerList = ({ customers }: Props) => {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>شماره</TableHead>
-                                    <TableHead>اسم</TableHead>
-                                    <TableHead>تخلص</TableHead>
-                                    <TableHead>شماره تماس</TableHead>
-                                    <TableHead>حساب</TableHead>
-                                    <TableHead>اجراآت</TableHead>
+                                    <TableHead className="text-center">شماره</TableHead>
+                                    <TableHead className="text-center">اسم</TableHead>
+                                    <TableHead className="text-center">تخلص</TableHead>
+                                    <TableHead className="text-center">شماره تماس</TableHead>
+                                    <TableHead className="text-center">حساب</TableHead>
+                                    <TableHead className="text-center">اجراآت</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {
                                    customers.length>0 ? customers.map((customer, ind) =>
                                         <TableRow key={ind}>
-                                            <TableCell>{ind + 1}</TableCell>
-                                            <TableCell>{customer.name}</TableCell>
-                                            <TableCell>{customer.nick_name ?? 'N/A'}</TableCell>
-                                            <TableCell>{customer.phone} تماس</TableCell>
-                                            <TableCell>{1200}</TableCell>
-                                            <TableCell>
-                                                <Recycle />
+                                            <TableCell className="text-center">{ind + 1}</TableCell>
+                                            <TableCell className="text-center">{customer.name}</TableCell>
+                                            <TableCell className="text-center">{customer.nick_name ?? 'N/A'}</TableCell>
+                                            <TableCell className="text-center">{customer.phone}</TableCell>
+                                            <TableCell className="text-center">{1200}</TableCell>
+                                            <TableCell className="flex justify-center">
+                                                <ScanEye className="text-emerald-500" onClick={()=>router.get(`/customers/${customer.id}`)}/>
                                             </TableCell>
                                         </TableRow>
                                     ):

@@ -89,6 +89,7 @@ export interface Customer{
     email?:string;
     address:string;
     is_active:boolean;
+    created_at:Date;
 }
 
 export interface Location{

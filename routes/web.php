@@ -169,6 +169,7 @@ Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
     Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
     Route::resource('expenses', ExpenseController::class)->names('expenses');
     Route::resource('customers',CustomerController::class)->except('index')->names('customers');
+    Route::put('/customers/status/{customer}',[CustomerController::class,'status'])->name('custoemrs.status');
 });
 
 Route::middleware(['auth'])->group(function () {
