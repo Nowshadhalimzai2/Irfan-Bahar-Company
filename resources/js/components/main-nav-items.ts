@@ -1,6 +1,6 @@
 import { dashboard } from "@/routes";
 import { NavItem } from "@/types";
-import { AlertCircle, BadgeMinus, BookOpen, Factory, FolderGit2, GroupIcon, LayoutGrid, PackageOpen, Store, Truck, Users } from "lucide-react";
+import { AlertCircle, BadgeMinus, BookOpen, Factory, FolderGit2, GroupIcon, LayoutGrid, PackageOpen, ShoppingCart, Store, Truck, Users } from "lucide-react";
 
 export const mainNavItems: NavItem[] = [
     {
@@ -8,6 +8,12 @@ export const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
+    {
+        title: 'خرڅلاو',
+        href: '/sales',
+        icon: ShoppingCart,
+    },
+
     {
         title: 'مصارف',
         href: '/expenses/create',

@@ -17,6 +17,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProductionInputController;
 use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\SalaryController;
+use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\WasteController;
@@ -170,6 +171,8 @@ Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
     Route::resource('expenses', ExpenseController::class)->names('expenses');
     Route::resource('customers',CustomerController::class)->except('index')->names('customers');
     Route::put('/customers/status/{customer}',[CustomerController::class,'status'])->name('custoemrs.status');
+
+    Route::resource('sales',SaleController::class)->names('sales');
 });
 
 Route::middleware(['auth'])->group(function () {

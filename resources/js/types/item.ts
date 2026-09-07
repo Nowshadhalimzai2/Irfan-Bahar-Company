@@ -98,6 +98,7 @@ export interface SaleLine {
 export interface Invoice {
     id: number;
     sale: Sale;
+    payments: Payment[];
 
     invoice_number: string;
     status: 'draft' | 'issued' | 'partially_paid' | 'paid' | 'over_due' | 'partially_refunded' | 'refunded';
@@ -106,14 +107,57 @@ export interface Invoice {
     due_on: Date;
     paid_at?: Date;
 
-    bill_to_name:string;
-    bill_to_address?:string;
-    bill_to_phone?:string;
+    bill_to_name: string;
+    bill_to_address?: string;
+    bill_to_phone?: string;
 
-    currency:string;
-    subtotal:number;
-    discount_total:number;
-    total:number;
-    pdf_path?:string;
-    notes?:string;
+    currency: string;
+    subtotal: number;
+    discount_total: number;
+    total: number;
+    pdf_path?: string;
+    notes?: string;
 }
+
+export interface Payment {
+    id: number;
+    invoice: Invoice;
+    amount: number;
+    method: "cash" | 'bank_transfer' | "office" | "teller";
+    reference_no?: string;
+    paid_at: Date;
+    notes?: string;
+}
+
+export interface SaleReturn {
+    id: number;
+    sale: Sale;
+    invoice: Invoice;
+    created_by: string;
+    return_no: string;
+    status: string;
+    reason: string;
+    currency: "AFG" | "PKR" | "USD";
+    total: number;
+    refund_amount: number;
+    refund_method: "cash" | "office" | "bank_transfer" | "teller";
+    refund_reference_no: string;
+
+    notes?: string;
+}
+
+export interface SaleReturnLine {
+    id: number;
+    sale_return: SaleReturn;
+    sale_line: SaleLine;
+    item: Item;
+    quantity: number;
+    unit_price: number;
+    line_total: number;
+    condition: string;
+    restock_action: string;
+    notes?: string;
+}
+
+
+
