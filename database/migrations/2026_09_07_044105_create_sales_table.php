@@ -53,7 +53,7 @@ return new class extends Migration
             $table->decimal('unit_price', 15, 2);
 
             $table->decimal('discount', 15, 2)->default(0);
-            $table->decimal('discount_amount', 15, 2)->default(0);
+            $table->decimal('discount_total', 15, 2)->default(0);
             $table->decimal('line_total', 15, 2);
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
@@ -76,7 +76,7 @@ return new class extends Migration
 
             // Legal/billing snapshots: do not rely on a mutable customer record.
             $table->string('bill_to_name')->default('unknown');
-            $table->string('bill_to_email')->nullable();
+            $table->string('bill_to_phone',10)->nullable();
             $table->text('bill_to_address')->nullable();
 
             // Snapshot totals used for the issued document.

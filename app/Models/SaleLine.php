@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SaleLine extends Model
 {
-    protected $fillable = ['sale_id','item_id','unit','quantity','unit_cost','unit_price','discount','discount_amount','line_total','sort_order'];
+    protected $fillable = ['sale_id','item_id','unit','quantity','unit_cost','unit_price','discount','discount_total','line_total','sort_order'];
 
     public function sale():BelongsTo{
         return $this->belongsTo(Sale::class);
