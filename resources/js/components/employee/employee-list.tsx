@@ -15,6 +15,7 @@ import { buttonVariants } from "../ui/button";
 import { UserCheck, UserCheck2Icon, UserIcon, Users, Users2Icon, UserX } from "lucide-react";
 import PageHead from "../page-head";
 import { User } from "@/types/auth";
+import { getDariEmpPosition } from "../location-translator";
 
 interface Props {
   employees: Employee[];
@@ -88,7 +89,7 @@ function EmployeeList({ employees }: Props) {
                 <TableRow key={employee.id} className="hover:bg-secondary hover:border" onClick={() => router.get("/employees/" + employee.id)}>
                   <TableCell>{ind + 1}</TableCell>
                   <TableCell className="font-medium">{employee.name}</TableCell>
-                  <TableCell>{employee.position.replace('_', ' ')}</TableCell>
+              <TableCell>{getDariEmpPosition(employee.position)}</TableCell>
                   <TableCell>{employee.salary}</TableCell>
                   <TableCell>{employee.present_days}</TableCell>
                   <TableCell>{employee.absent_days}</TableCell>

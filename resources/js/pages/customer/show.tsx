@@ -13,6 +13,7 @@ import {
     DollarSign,
     Edit3,
     HandCoins,
+    HandHelping,
     Mail,
     MapPin,
     Phone,
@@ -86,9 +87,9 @@ const Show = ({ customer }: Props) => {
                     </div>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    <AccountCard currency="AFG" icon={<DollarSign size={21}/>} value={500000}/>
-                    <AccountCard currency="PKR" icon={<DollarSign size={21}/>} value={210000}/>
-                    <AccountCard currency="USD" icon={<DollarSign size={21}/>} value={335}/>
+                    <AccountCard currency="AFG" icon={<CreditCard size={21}/>} value={500000}/>
+                    <AccountCard currency="PKR" icon={<CreditCard size={21}/>} value={210000}/>
+                    <AccountCard currency="USD" icon={<CreditCard size={21}/>} value={335}/>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <InfoCard
@@ -98,9 +99,9 @@ const Show = ({ customer }: Props) => {
                         color="blue"
                     />
                     <InfoCard
-                        title="حساب مشتری"
+                        title="بالاترین قرض"
                         value={getDariCurrency("AFG") + " 54,609"}
-                        icon={<CreditCard size={21} />}
+                        icon={<HandHelping size={21} />}
                         color="emerald"
                     />
                     <InfoCard
@@ -110,7 +111,7 @@ const Show = ({ customer }: Props) => {
                         color="amber"
                     />
                     <InfoCard
-                        title="تاریخ عضویت"
+                        title="تاریخ آخرین پرداخت"
                         value={createdDate}
                         icon={<CalendarDays size={21} />}
                         color="violet"
@@ -149,7 +150,7 @@ const Show = ({ customer }: Props) => {
                             />
                             <Detail
                                 icon={<CalendarDays />}
-                                label="تاریخ ثبت"
+                                label="تاریخ عضویت"
                                 value={createdDate}
                             />
                         </div>
