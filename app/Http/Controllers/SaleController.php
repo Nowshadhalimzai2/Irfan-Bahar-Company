@@ -12,6 +12,8 @@ use App\Models\Item;
 use App\Models\Location;
 use App\Models\Sale;
 use App\Models\SaleLine;
+use App\Models\User;
+use App\Notifications\HighDiscountAlert;
 use Carbon\Carbon;
 use Error;
 use Illuminate\Http\RedirectResponse;
@@ -29,7 +31,7 @@ class SaleController extends Controller
         $previousMonthEnd = $monthStart->copy()->subSecond();
 
         $sales = Sale::query()
-            ->with(['customer:id,name', 'currency:id,name', 'saleLines.item:id,name,category_id', 'saleLines.item.category:id,name', 'invoice:id,sale_id,invoice_number,status'])
+            ->with(['customer:id,name', 'currency:id,name', 'saleLines.item:id,name,category_id,unit', 'saleLines.item.category:id,name', 'invoice:id,sale_id,invoice_number,status'])
             ->where(function ($query) use ($monthStart, $now) {
                 $query->whereBetween('sold_at', [$monthStart, $now])
                     ->orWhereBetween('created_at', [$monthStart, $now]);
@@ -74,6 +76,7 @@ class SaleController extends Controller
                     'category' => $line->item?->category?->name ?? 'بدون دسته‌بندی',
                     'sales' => round((float) $lines->sum('line_total'), 2),
                     'units' => round((float) $lines->sum('quantity'), 3),
+                    'unit' =>$line->item?->unit ?? 'unit',
                 ];
             })->sortByDesc('sales')->values()->take(5)->values();
 
@@ -218,6 +221,8 @@ class SaleController extends Controller
                     $sa = new SHA();
                     $sa->credit($afterDiscount, $data['currency_id']);
                 }
+
+                $this->ensureDiscountIsEnough($sale);
             });
             Inertia::flash('toast', ['type' => "success", "message" => "فروشات تکمیل شد"]);
             // return redirect()->route('sales.index')->with('success', 'فروش با موفقیت ثبت شد.');
@@ -243,5 +248,19 @@ class SaleController extends Controller
         $afterItemDiscount = max(0, $item['line_total'] - $itemDiscountAmount);
 
         return [(float) $itemDiscountPercent, (float) $afterItemDiscount];
+    }
+
+    private function ensureDiscountIsEnough(Sale $sale){
+        $total = $sale->total;
+        $discountTotal = $sale->discount_total;
+        $discount = ($discountTotal*100)/$total;
+        if($discount>10){
+            $admins = User::query()->with('role')->whereHas('role',function ($query) {
+                $query->whereIn('name',['admin','super_admin']);
+            })->get();
+            foreach($admins as $user){
+                $user->notify(new HighDiscountAlert($sale));
+            }
+        }
     }
 }
