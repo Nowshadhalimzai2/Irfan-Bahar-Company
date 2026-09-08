@@ -57,7 +57,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
     const [period, setPeriod] = useState('این ماه');
 
     return (
-        <AppLayout breadcrumbs={[{ title: 'خرڅلاو', href: '/sales' }]}>
+        <AppLayout breadcrumbs={[{ title: 'فروشات', href: '/sales' }]}>
             <Head title="داشبورد فروش" />
             <div
                 dir="rtl"
@@ -96,7 +96,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                 <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <KpiCard
                         title="درآمد خالص"
-                        value={stats.revenue.toLocaleString('fa-AF')}
+                        value={stats.revenue.toString()}
                         unit={stats.currency}
                         change={`${stats.revenueGrowth}٪`}
                         detail="در مقایسه با ماه قبل"
@@ -105,7 +105,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                     />
                     <KpiCard
                         title="تعداد سفارش‌ها"
-                        value={stats.orders.toLocaleString('fa-AF')}
+                        value={stats.orders.toString()}
                         unit="سفارش"
                         change={`${stats.ordersGrowth}٪`}
                         detail="در ۳۰ روز گذشته"
@@ -114,7 +114,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                     />
                     <KpiCard
                         title="میانگین ارزش سفارش"
-                        value={stats.averageOrder.toLocaleString('fa-AF')}
+                        value={stats.averageOrder.toString()}
                         unit={stats.currency}
                         change="واقعی"
                         detail="میانگین سفارش‌های تکمیل‌شده"
@@ -123,7 +123,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                     />
                     <KpiCard
                         title="مشتریان فعال"
-                        value={stats.customers.toLocaleString('fa-AF')}
+                        value={stats.customers.toString()}
                         unit="نفر"
                         change="فعال"
                         detail="مشتری ثبت‌شده این ماه"

@@ -9,7 +9,7 @@ export const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
-        title: 'خرڅلاو',
+        title: 'فروشات',
         href: '/sales',
         icon: ShoppingCart,
     },
