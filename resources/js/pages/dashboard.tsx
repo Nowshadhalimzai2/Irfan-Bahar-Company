@@ -20,6 +20,8 @@ import {
     Warehouse,
     LucideIcon,
     AlertTriangle,
+    ShoppingCart,
+    DollarSignIcon,
 } from 'lucide-react';
 import { getDariCurrency } from '@/components/location-translator';
 import axios from 'axios';
@@ -31,11 +33,15 @@ interface Props {
     currencies: Currency[];
     transfersToShop: Transfer[];
     employees: Employee[];
-    items:Item[];
-    reorderItemsCount:number;
+    items: Item[];
+    reorderItemsCount: number;
+    totalAmountShopOwes: number;
+    totalAmountOfAvailableItems: number;
+    totalExpenses: Record<number, number>;
 }
 
-export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop, employees,items,reorderItemsCount }: Props) {
+export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop, employees, items, reorderItemsCount, totalAmountShopOwes, totalAmountOfAvailableItems, totalExpenses }: Props) {
+    console.log('expsss: ', totalExpenses);
 
     const [currency, setCurrency] = useState<string>(currencies[0]?.name ?? 'USD');
     const [averageExpenses, setAverageExpenses] = useState<number>(0);
@@ -56,20 +62,20 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
         [sa],
     );
     const presentEmps: number = useMemo(
-        () => employees.filter(emp => emp.attendances[emp.attendances.length-1].is_present === true).length
+        () => employees.filter(emp => emp.attendances[emp.attendances.length - 1].is_present === true).length
         , []
     );
-    
+
     const topTransfer = transfersToShop[0];
 
     const quickStats = [
-        {
-            title: 'کل موجودی نقد',
-            value: `${totalCashValue.toLocaleString()} ${getDariCurrency(currency)}`,
-            subtitle: 'موجودی حساب‌های دکان',
-            icon: Wallet,
-            tone: 'emerald',
-        },
+        // {
+        //     title: 'کل موجودی نقد',
+        //     value: `${totalCashValue.toLocaleString()} ${getDariCurrency(currency)}`,
+        //     subtitle: 'موجودی حساب‌های دکان',
+        //     icon: Wallet,
+        //     tone: 'emerald',
+        // },
         {
             title: 'میانگین هزینه‌ها',
             value: `${averageExpenses.toFixed(2)} ${getDariCurrency(currency)}`,
@@ -91,6 +97,15 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
             icon: PackageCheck,
             tone: 'sky',
         },
+
+        {
+            title: 'پول اجناس موجوده',
+            value: totalAmountOfAvailableItems.toString(),
+            subtitle: 'پول اجناس موجود در دوکان',
+            icon: DollarSignIcon,
+            tone: 'emerald',
+        },
+
     ];
 
     const moreOptions: { name: string; url: string }[] = [
@@ -142,10 +157,10 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
                                     <h3 className="mt-2 text-2xl font-bold text-slate-800 dark:text-slate-50">{value}</h3>
                                 </div>
                                 <div className={`rounded-2xl p-3 ${tone === 'emerald' ? 'bg-emerald-100 text-emerald-600' :
-                                        tone === 'amber' ? 'bg-amber-100 text-amber-600' :
-                                            tone === 'violet' ? 'bg-violet-100 text-violet-600' :
-                                                
-                                                tone === 'red' ? 'bg-red-50 text-red-600' : 'bg-sky-100 text-sky-600'
+                                    tone === 'amber' ? 'bg-amber-100 text-amber-600' :
+                                        tone === 'violet' ? 'bg-violet-100 text-violet-600' :
+
+                                            tone === 'red' ? 'bg-red-50 text-red-600' : 'bg-sky-100 text-sky-600'
                                     }`}>
                                     <Icon className="h-5 w-5" />
                                 </div>
@@ -194,7 +209,7 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
                         <div className="space-y-3">
                             <EmployeeDashboardCard title='کل کارکنان' value={employees.length} Icon={BriefcaseBusiness} color='violet' />
                             <EmployeeDashboardCard title='حاضر' value={presentEmps} Icon={BadgeCheck} color='emerald' />
-                            <EmployeeDashboardCard title='غیر حاضر' value={employees.length-presentEmps} Icon={BadgeAlert} color='rose' />
+                            <EmployeeDashboardCard title='غیر حاضر' value={employees.length - presentEmps} Icon={BadgeAlert} color='rose' />
                         </div>
                     </div>
                 </div>
@@ -284,6 +299,38 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
                         </div>
                     </div>
                 </div>
+                <div className="">
+                    <div className='grid grid-cols-1 gap-2 md:gap-5  md:grid-cols-2 '>
+                        <div className=" gap-3 flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
+                            <div className="flex justify-between">
+                                <div className="flex gap-2 text-indigo-500">
+                                    <Coins />
+                                    <h4 className="text-xl font-semibold">{totalAmountShopOwes}</h4>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    پول اجناس
+                                </p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                جمله پول اجناس انتقال شده به دوکان
+                            </p>
+                        </div>
+                        <div className=" gap-3 flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
+                            <div className="flex justify-between">
+                                <div className="flex gap-2 text-fuchsia-500">
+                                    <Coins />
+                                    <h4 className="text-xl font-semibold">{totalExpenses[currencies.filter(cur => cur.name == currency)[0].id] ?? 0}</h4>
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                    پول پرداخت شده
+                                </p>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                جمله پول پرداخت شده به دفتر
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </AppLayout>
     );
@@ -309,7 +356,7 @@ const BalanceCard = ({ totalExpensesBasedOnCurrency, account, LucideIcon }: Bala
             </div>
 
             <div className="mt-4 rounded-xl bg-slate-100 p-2.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-2 ">
                     <span>هزینه امروز</span>
                     <span>{totalExpensesBasedOnCurrency[account.currency.id]?.toLocaleString() || 0}</span>
                 </div>

@@ -64,46 +64,84 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->whereDate('date', Carbon::today(config('app.timezone')))
             ->orderBy('id', 'desc')
             ->get();
-        $totalExpensesBasedOnCurrency = $todaysExpenses->groupBy('currency_id')->map(function ($expesnes) {
-            return $expesnes->sum('amount');
-        });
-        
+        $totalExpensesBasedOnCurrency = Expense::query()
+            ->selectRaw('currency_id, SUM(amount) as total_amount')
+            ->groupBy('currency_id')
+            ->pluck('total_amount', 'currency_id');
+
         //  get all emplyess length 
         $employees = getEmployees();
 
-        $transfersToShop = Transfer::with('destination:id,name','transferLines:id,tranfer_id,item_id','transferLines.item:id,category_id','transferLines.item.category:id,name')->whereHas('destination',function ($q) {
-            $q->where('name','shop');
+        $transfersToShop = Transfer::with('destination:id,name', 'transferLines:id,transfer_id,item_id,unit_price,quantity', 'transferLines.item:id,category_id', 'transferLines.item.category:id,name')->whereHas('destination', function ($q) {
+            $q->where('name', 'shop');
         })
-        ->orderBy('created_at','desc')
-        ->limit(3)
-        ->get();
-        $currencies = Currency::all(['id','name']);
+            ->orderBy('created_at', 'desc')
+            ->limit(3)
+            ->get();
+        $currencies = Currency::all(['id', 'name']);
 
         $items = Item::with('inventoryBalances:id,item_id,location_id,quantity_on_hand,reserved')
-        ->get();
+            ->get();
         $reorderItemsCount = $items->sum(function ($item) {
             return $item->inventoryBalances()->where('quantity_on_hand', '<', 10)->count();
         });
-        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency','currencies','transfersToShop','employees','items','reorderItemsCount'));
+
+        //  PRICE OF OVERALL PRODUCTS TRANSFERRED TO SHOP SINCE
+        $totalAmountShopOwes = 0;
+
+        foreach ($transfersToShop as $transfer) {
+            foreach ($transfer->transferLines as $line) {
+                $totalAmountShopOwes += ($line->unit_price * $line->quantity);
+            }
+        }
+
+        // Total Price of Available Items In Shop
+        $totalAmountOfAvailableItems = 0;
+        $items = Item::query()
+            ->with([
+                'inventoryBalances' => function ($query) {
+                    $query->select('id', 'item_id', 'location_id', 'quantity_on_hand', 'reserved')
+                        ->whereHas('location', function ($q) {
+                            $q->where('name', 'shop');
+                        });
+                },
+            ])
+            ->whereHas('inventoryBalances.location', function ($q) {
+                $q->where('name', 'shop');
+            })
+            ->get();
+
+        foreach ($items as $item) {
+            foreach ($item->inventoryBalances as $inventoryBalance) {
+                $totalAmountOfAvailableItems += ($item->default_sale_price * $inventoryBalance->quantity_on_hand);
+            }
+        }
+        // TOTAL EXPENSES SO FAR
+        $totalExpenses = Expense::query()
+            ->selectRaw('currency_id, SUM(amount) as total_amount')
+            ->groupBy('currency_id')
+            ->pluck('total_amount', 'currency_id');
+
+        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses'));
     })->name('dashboard');
 });
 
-Route::get('/total-revenue-and-expenses/{currency}',function(string $currency){
+Route::get('/total-revenue-and-expenses/{currency}', function (string $currency) {
     $today = Carbon::today(config('app.timezone'));
     $startOftheDate = $today->startOfMonth()->subMonth(2);
     $expenses = Expense::with('currency:id,name')
-    ->whereDate('date', '>', $startOftheDate)
-    ->whereHas('currency', function ($q) use ($currency) {
+        ->whereDate('date', '>', $startOftheDate)
+        ->whereHas('currency', function ($q) use ($currency) {
             $q->where('name', $currency);
-    })
-    ->sum('amount');
+        })
+        ->sum('amount');
     // 100 30
     //  X  Days
     $currenyMonthDay = Carbon::today(config('app.timezone'))->dayOfMonth();
-    $currentMonthDatePercent = (100*$currenyMonthDay)/Carbon::today(config('app.timezone'))->daysInMonth();
+    $currentMonthDatePercent = (100 * $currenyMonthDay) / Carbon::today(config('app.timezone'))->daysInMonth();
 
-    $aveOfThreeMonths = $expenses/(2+($currentMonthDatePercent/100));
-    return response()->json($aveOfThreeMonths);    
+    $aveOfThreeMonths = $expenses / (2 + ($currentMonthDatePercent / 100));
+    return response()->json($aveOfThreeMonths);
 });
 
 // ---------------------------------------------------------------------------------
@@ -169,10 +207,10 @@ Route::middleware(['auth'])->group(function () {
 Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
     Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
     Route::resource('expenses', ExpenseController::class)->names('expenses');
-    Route::resource('customers',CustomerController::class)->except('index')->names('customers');
-    Route::put('/customers/status/{customer}',[CustomerController::class,'status'])->name('custoemrs.status');
+    Route::resource('customers', CustomerController::class)->except('index')->names('customers');
+    Route::put('/customers/status/{customer}', [CustomerController::class, 'status'])->name('custoemrs.status');
 
-    Route::resource('sales',SaleController::class)->names('sales');
+    Route::resource('sales', SaleController::class)->names('sales');
 });
 
 Route::middleware(['auth'])->group(function () {
@@ -188,8 +226,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('receipts', GoodsReceiptController::class)->names('receipts');
     Route::resource('items', ItemController::class)->names('items');
     Route::resource('transfers', TransferController::class)->names('items');
-    Route::get('/transfers/{location}/create',[TransferController::class,'create']);
-    Route::get('/transfers/{location}/items/{item}',[TransferController::class,'getItemBalance']);
+    Route::get('/transfers/{location}/create', [TransferController::class, 'create']);
+    Route::get('/transfers/{location}/items/{item}', [TransferController::class, 'getItemBalance']);
     Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
     Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])->name('movements.index');
     Route::resource('boms', BOMController::class)->names('boms');
@@ -225,11 +263,11 @@ Route::middleware(['auth'])->group(function () {
 
             $topProductionCategories = $highProductionService->topProductionCategory($productionByCategory);
 
-            $productionChart = $highProductionService->GenerateProductionChart($productionByCategory,$topProductionCategories);
+            $productionChart = $highProductionService->GenerateProductionChart($productionByCategory, $topProductionCategories);
 
             $pendingOrders = ProductionOrder::with('bom:id,category_id', 'bom.category:id,name', 'productionOutputs:id,production_order_id,quantity_produced')
                 ->select('id', 'ordered_by', 'order_date', 'status', 'bom_id')
-                ->where('status','pending')
+                ->where('status', 'pending')
                 ->get();
             return Inertia::render('factory/home', compact('items', 'pendingOrders', 'productionChart', 'topProductionCategories'));
         })->name('factory');
