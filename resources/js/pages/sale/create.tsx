@@ -28,6 +28,7 @@ import SaleItem from '@/components/sale-item';
 import SaleItemList from '@/components/sale/sale-item-list';
 import SaleDetail from '@/components/sale/sale-detail';
 import custoemrs from '@/routes/custoemrs';
+import SalePayment from '@/components/sale/sale-payment';
 
 type Balance = {
     location_id: number;
@@ -56,9 +57,6 @@ type Props = {
     customers: Customer[];
 
 };
-
-// const money = (value: number, currency: string) =>
-//     `${value.toLocaleString('fa-AF', { maximumFractionDigits: 2 })} ${currency}`;
 
 
 export default function Create({
@@ -244,6 +242,7 @@ export default function Create({
                     <form
                         onSubmit={submit}
                         className="grid gap-5 xl:grid-cols-[1fr_380px]"
+                        name='sale'
                     >
                         <div className="space-y-5">
                             <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900">
@@ -319,7 +318,66 @@ export default function Create({
                                     />
                                 </div>
                                 {search && (
-                                    <div className="mt-2 divide-y rounded-xl border bg-white shadow-lg dark:bg-slate-900">
+                                    <SearchSuggesstion 
+                                        addItem={addItem}
+                                        currency={currency}
+                                        filteredItems={filteredItems}
+                                        getStock={getStock}
+                                    />
+                                  
+                                )}
+                            </section>
+                            {/* ============== SALE ITEM LIST  */}
+                            <SaleItemList
+                                currency={currency}
+                                getStock={getStock}
+                                items={items}
+                                lines={lines}
+                                setLines={setLines}
+                                removeLine={removeLine}
+                                updateLine={updateLine}
+
+                            />
+
+                        </div>
+                        <aside className="space-y-5">
+                            {/* =========== DETAIL OF SALE (CUSTOMER, CURRENCY, SHOP ,...) */}
+                            <SaleDetail
+                                currencies={currencies}
+                                customers={customers}
+                                locations={locations}
+                                data={data}
+                                setData={setData}
+                                errors={errors}
+                            />
+                                <SalePayment 
+                                    currency={currency}                                    
+                                    data={data}
+                                    errors={errors}
+                                    grandTotal={grandTotal}
+                                    lines={lines}
+                                    processing={processing}
+                                    setData={setData}
+                                    subtotal={subtotal}
+
+                                />
+                        </aside>
+                    </form>
+                </div>
+            </div>
+        </AppLayout>
+    );
+}
+
+interface SuggestProps{
+    filteredItems:Item[];
+    addItem: (item:Item)=>void;
+    getStock:(item:Item)=>number;
+    currency:{id:number;name:string;}
+}
+function SearchSuggesstion({filteredItems, addItem, getStock,currency}:SuggestProps){
+    return (
+         <div className="mt-2 divide-y rounded-xl border bg-white shadow-lg dark:bg-slate-900">
                                         {filteredItems.map((item) => (
                                             <button
                                                 type="button"
@@ -360,138 +418,5 @@ export default function Create({
                                             </p>
                                         )}
                                     </div>
-                                )}
-                            </section>
-                            {/* ============== SALE ITEM LIST  */}
-                            <SaleItemList
-                                currency={currency}
-                                getStock={getStock}
-                                items={items}
-                                lines={lines}
-                                setLines={setLines}
-                                removeLine={removeLine}
-                                updateLine={updateLine}
-
-                            />
-
-                        </div>
-                        <aside className="space-y-5">
-                            {/* =========== DETAIL OF SALE (CUSTOMER, CURRENCY, SHOP ,...) */}
-                            <SaleDetail
-                                currencies={currencies}
-                                customers={customers}
-                                locations={locations}
-                                data={data}
-                                setData={setData}
-                                errors={errors}
-                            />
-
-                            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                                <div className="space-y-3 text-sm">
-                                    <div className="mb-5 flex items-center gap-3">
-                                        <Wallet className="size-5 text-emerald-600" />
-                                        <div>
-                                            <h2 className="font-bold">
-                                                جزئیات پرداخت
-                                            </h2>
-                                            <p className="text-xs text-slate-500">
-                                                اطلاعات فاکتور را تکمیل کنید.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between text-slate-500">
-                                        <span>جمله پول</span>
-                                        <b>
-                                            {subtotal
-                                            }
-                                            {currency?.name ??
-                                                currency.name ?? ''}
-                                        </b>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-3">
-                                        <span className="text-slate-500">
-                                            تخفیف
-                                        </span>
-                                        <Input
-                                            type="number"
-                                            min="0"
-                                            value={data.discount_total}
-                                            dir="ltr"
-                                            onChange={(event) =>
-                                                setData(
-                                                    'discount_total',
-                                                    Number(event.target.value),
-                                                )
-                                            }
-                                            className="h-8 w-28 text-left"
-                                        />
-                                    </div>
-                                    <div className="flex justify-between border-t pt-3 text-base font-bold">
-                                        <span>قابل پرداخت</span>
-                                        <span className="text-primary">
-                                            {grandTotal.toFixed(2)
-                                            }
-                                            {getDariCurrency(currency?.name) ?? ''}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-3">
-                                        <span className="text-slate-500">
-                                            پرداخت‌شده
-                                        </span>
-                                        <Input
-                                            type="number"
-                                            min="0"
-                                            max={grandTotal}
-                                            value={data.amount_paid}
-
-                                            onChange={(event) =>
-                                                setData(
-                                                    'amount_paid',
-                                                    Number(event.target.value),
-                                                )
-                                            }
-                                            className="h-8 w-28"
-                                            dir="ltr"
-                                        />
-                                    </div>
-                                </div>
-                                <div className="mt-5 grid gap-2">
-                                    <Label htmlFor="notes">یادداشت فروش</Label>
-                                    <textarea
-                                        id="notes"
-                                        value={data.notes}
-                                        onChange={(event) =>
-                                            setData('notes', event.target.value)
-                                        }
-                                        placeholder="یادداشت اختیاری..."
-                                        className="min-h-20 rounded-lg border p-3 text-sm"
-                                    />
-                                </div>
-                                <InputError
-                                    message={errors.saleLines}
-                                    className="mt-3"
-                                />
-                                <Button
-                                    disabled={processing || lines.length === 0}
-                                    type="submit"
-                                    className="mt-5 h-9 w-full bg-emerald-600 text-base hover:bg-emerald-700"
-                                >
-                                    <Check className="size-5" />
-                                    {processing ? 'در حال ثبت...' : 'ثبت فروش'}
-                                </Button>
-                                <Button
-                                    asChild
-                                    variant="ghost"
-                                    type="button"
-                                    className="w-full h-7"
-                                >
-                                    <Link href="/sales">انصراف</Link>
-                                </Button>
-                            </section>
-                        </aside>
-                    </form>
-                </div>
-            </div>
-        </AppLayout>
-    );
+    )
 }
