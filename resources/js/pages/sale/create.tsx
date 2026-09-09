@@ -3,11 +3,13 @@ import {
     Barcode,
     Check,
     CircleAlert,
+    File,
     Minus,
     Package,
     Plus,
     ScanLine,
     Search,
+    Sheet,
     ShoppingCart,
     Trash2,
     UserRound,
@@ -21,7 +23,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { getDariCurrency } from '@/components/location-translator';
+import { getDariCurrency, getDariItemUnit } from '@/components/location-translator';
+import SaleItem from '@/components/sale-item';
+import SaleItemList from '@/components/sale/sale-item-list';
+import SaleDetail from '@/components/sale/sale-detail';
+import custoemrs from '@/routes/custoemrs';
 
 type Balance = {
     location_id: number;
@@ -35,39 +41,31 @@ type Item = {
     sku: string;
     unit: string;
     default_sale_price: number;
-    product?: { barcode: string };
+    product?: { barcode: string, weight: number, per_pack: number };
     inventory_balances?: Balance[];
 };
-type Customer = { id: number; name: string; phone?: string };
 type Currency = { id: number; name: string };
 type Location = { id: number; name: string; address: string };
 type SaleLine = { item_id: number; quantity: number; unit_price: number };
+type Customer = { id: number; name: string; phone?: string };
+
 type Props = {
     items: Item[];
-    customers: Customer[];
     currencies: Currency[];
     locations: Location[];
+        customers: Customer[];
+
 };
 
 // const money = (value: number, currency: string) =>
 //     `${value.toLocaleString('fa-AF', { maximumFractionDigits: 2 })} ${currency}`;
-const units: Record<string, string> = {
-    kg: 'کیلو',
-    gr: 'گرام',
-    ltr: 'لیتر',
-    packet: 'پاکت',
-    carton: 'کارتن',
-    bundle: 'بسته',
-    pair: 'جوره',
-    unit: 'عدد',
-    bag: 'بوری',
-};
+
 
 export default function Create({
     items,
-    customers,
     currencies,
     locations,
+    customers
 }: Props) {
     const [barcode, setBarcode] = useState('');
     const [search, setSearch] = useState('');
@@ -104,16 +102,7 @@ export default function Create({
             Number(balance?.reserved ?? 0),
         );
     };
-    const cart = useMemo(
-        () =>
-            lines
-                .map((line) => ({
-                    ...line,
-                    item: items.find((item) => item.id === line.item_id)!,
-                }))
-                .filter((line) => line.item),
-        [items, lines],
-    );
+
     const filteredItems = items
         .filter((item) =>
             `${item.name} ${item.code} ${item.sku} ${item.product?.barcode ?? ''}`
@@ -221,11 +210,11 @@ export default function Create({
                 <div className="mx-auto max-w-7xl space-y-5">
                     <section className="relative overflow-hidden rounded-[1.75rem] bg-[#092b4c] px-6 py-7 text-white shadow-[0_20px_50px_rgba(9,43,76,0.2)] sm:px-8">
                         <div className="absolute -top-16 -left-8 h-48 w-48 rounded-full border-24 border-cyan-300/10" />
+                        <div className="absolute -bottom-16 right-80 h-48 w-48 rounded-full border-24 border-cyan-300/10" />
                         <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-center">
                             <div>
                                 <div className="mb-2 flex items-center gap-2 text-sm text-cyan-200">
-                                    <ScanLine className="size-4" /> نقطه فروش
-                                    هوشمند
+                                    <ScanLine className="size-4" />فورم فروشات
                                 </div>
                                 <h1 className="text-2xl font-bold sm:text-3xl">
                                     فروش جدید را سریع ثبت کنید
@@ -326,28 +315,33 @@ export default function Create({
                                                 type="button"
                                                 key={item.id}
                                                 onClick={() => addItem(item)}
-                                                className="flex w-full items-center gap-3 p-3 text-right hover:bg-slate-50"
+                                                className="flex w-full items-center gap-3 p-2 text-right hover:bg-slate-50"
                                             >
                                                 <Package className="size-4 text-primary" />
                                                 <span className="min-w-0 flex-1">
                                                     <b className="block truncate text-sm">
-                                                        {item.name}
+                                                        {item.name}  <small className='text-gray-500 text-xs'>
+                                                            :
+                                                            ({getStock(item)} {getDariItemUnit(item.unit)})
+                                                        </small>
                                                     </b>
                                                     <small className="text-xs text-slate-400">
                                                         {item.product
                                                             ?.barcode ??
                                                             item.sku}{' '}
-                                                        · موجودی{' '}
-                                                        {getStock(item)}
+
                                                     </small>
                                                 </span>
-                                                <span className="text-sm font-bold">
-                                                    {
-                                                        item.default_sale_price
-
-                                                    }
-                                                    {currency?.name ?? ''}
-                                                </span>
+                                                <div className='flex flex-col'>
+                                                    <span className="text-sm font-bold">
+                                                        {item.default_sale_price}
+                                                        {' '} {getDariCurrency(currency?.name ?? 'AFG')}
+                                                    </span>
+                                                    {item.product &&
+                                                        <small className='text-xs text-gray-400'>
+                                                            {((item?.product?.weight ?? 1) / (item.product?.per_pack ?? 1)) * 1000} وزن
+                                                        </small>}
+                                                </div>
                                             </button>
                                         ))}
                                         {filteredItems.length === 0 && (
@@ -358,125 +352,33 @@ export default function Create({
                                     </div>
                                 )}
                             </section>
-                            <section className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                                <div className="flex items-center justify-between border-b p-5">
-                                    <div className="flex items-center gap-3">
-                                        <ShoppingCart className="size-5 text-amber-600" />
-                                        <div>
-                                            <h2 className="font-bold">
-                                                سبد فروش
-                                            </h2>
-                                            <p className="text-xs text-slate-500">
-                                                {cart.length} قلم ·{' '}
-                                                {lines.reduce(
-                                                    (sum, line) =>
-                                                        sum + line.quantity,
-                                                    0,
-                                                )}{' '}
-                                                واحد
-                                            </p>
-                                        </div>
-                                    </div>
-                                    {cart.length > 0 && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setLines([])}
-                                            className="text-xs text-rose-500"
-                                        >
-                                            پاک کردن همه
-                                        </button>
-                                    )}
-                                </div>
-                                {cart.length === 0 ? (
-                                    <div className="flex min-h-56 flex-col items-center justify-center gap-3 p-6 text-center">
-                                        <ShoppingCart className="size-9 text-slate-300" />
-                                        <p className="font-medium text-slate-600">
-                                            سبد فروش خالی است
-                                        </p>
-                                        <p className="text-xs text-slate-400">
-                                            برای شروع، یک بارکد را اسکن کنید.
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="divide-y">
-                                        {cart.map(
-                                            ({
-                                                item,
-                                                quantity,
-                                                unit_price,
-                                            }) => (
-                                                <div
-                                                    key={item.id}
-                                                    className="flex items-center gap-3 p-4"
-                                                >
-                                                    <Package className="size-5 shrink-0 text-primary" />
-                                                    <div className="min-w-0 flex-1">
-                                                        <b className="block truncate text-sm">
-                                                            {item.name}
-                                                        </b>
-                                                        <span className="text-xs text-slate-400">
-                                                            موجودی{' '}
-                                                            {getStock(item)}{' '}
-                                                            {units[item.unit] ??
-                                                                item.unit}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex items-center rounded-lg border">
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                updateLine(
-                                                                    item.id,
-                                                                    -1,
-                                                                )
-                                                            }
-                                                            className="p-2"
-                                                        >
-                                                            <Minus className="size-3.5" />
-                                                        </button>
-                                                        <span className="min-w-8 text-center text-sm font-bold">
-                                                            {quantity}
-                                                        </span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                updateLine(
-                                                                    item.id,
-                                                                    1,
-                                                                )
-                                                            }
-                                                            className="p-2"
-                                                        >
-                                                            <Plus className="size-3.5" />
-                                                        </button>
-                                                    </div>
-                                                    <b className="hidden w-28 text-left text-sm sm:block">
-                                                        {quantity *
-                                                            unit_price
-                                                        }
-                                                        {currency?.name ??
-                                                            currency.name ?? ''}
-                                                    </b>
-                                                    <button
-                                                        type="button"
-                                                        title="حذف جنس"
-                                                        onClick={() =>
-                                                            removeLine(item.id)
-                                                        }
-                                                        className="p-2 text-slate-400 hover:text-rose-600"
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                    </button>
-                                                </div>
-                                            ),
-                                        )}
-                                    </div>
-                                )}
-                            </section>
+                            {/* ============== SALE ITEM LIST  */}
+                            <SaleItemList 
+                                currency={currency}
+                                getStock={getStock}
+                                items={items}
+                                lines={lines}
+                                setLines={setLines}
+                                removeLine={removeLine}
+                                updateLine={updateLine}
+                                
+                            />
+                           
                         </div>
                         <aside className="space-y-5">
+                            {/* =========== DETAIL OF SALE (CUSTOMER, CURRENCY, SHOP ,...) */}
+                            <SaleDetail 
+                                currencies={currencies}
+                                customers={customers}
+                                locations={locations}
+                                data={data}
+                                setData={setData}
+                                errors={errors}
+                            />
+                          
                             <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                                <div className="mb-5 flex items-center gap-3">
+                                <div className="space-y-3 text-sm">
+                                    <div className="mb-5 flex items-center gap-3">
                                     <Wallet className="size-5 text-emerald-600" />
                                     <div>
                                         <h2 className="font-bold">
@@ -487,105 +389,8 @@ export default function Create({
                                         </p>
                                     </div>
                                 </div>
-                                <div className="space-y-4">
-                                    <div className="grid gap-2">
-                                        <Label>محل فروش</Label>
-                                        <select
-                                            value={data.location_id}
-                                            onChange={(event) =>
-                                                setData(
-                                                    'location_id',
-                                                    Number(event.target.value),
-                                                )
-                                            }
-                                            className="h-10 rounded-lg border px-3 text-sm"
-                                        >
-                                            {locations.map((entry) => (
-                                                <option
-                                                    key={entry.id}
-                                                    value={entry.id}
-                                                >
-                                                    {entry.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError
-                                            message={errors.location_id}
-                                        />
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>مشتری</Label>
-                                        <select
-                                            value={data.customer_id}
-                                            onChange={(event) =>
-                                                setData(
-                                                    'customer_id',
-                                                    Number(event.target.value),
-                                                )
-                                            }
-                                            className="h-10 rounded-lg border px-3 text-sm"
-                                        >
-                                            <option value={0}>
-                                                مشتری گذری
-                                            </option>
-                                            {customers.map((customer) => (
-                                                <option
-                                                    key={customer.id}
-                                                    value={customer.id}
-                                                >
-                                                    {customer.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="customer_name">
-                                            نام مشتری گذری
-                                        </Label>
-                                        <div className="relative">
-                                            <UserRound className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-slate-400" />
-                                            <Input
-                                                id="customer_name"
-                                                value={data.customer_name}
-                                                onChange={(event) =>
-                                                    setData(
-                                                        'customer_name',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                className="pr-9"
-                                                placeholder="در صورت نیاز وارد کنید"
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>واحد پول</Label>
-                                        <select
-                                            value={data.currency_id}
-                                            onChange={(event) =>
-                                                setData(
-                                                    'currency_id',
-                                                    Number(event.target.value),
-                                                )
-                                            }
-                                            className="h-10 rounded-lg border px-3 text-sm"
-                                        >
-                                            {currencies.map((entry) => (
-                                                <option
-                                                    key={entry.id}
-                                                    value={entry.id}
-                                                >
-                                                    {entry.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                </div>
-                            </section>
-                            <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-                                <div className="space-y-3 text-sm">
                                     <div className="flex justify-between text-slate-500">
-                                        <span>جمع اجناس</span>
+                                        <span>جمله پول</span>
                                         <b>
                                             {subtotal
                                             }
@@ -659,7 +464,7 @@ export default function Create({
                                 <Button
                                     disabled={processing || lines.length === 0}
                                     type="submit"
-                                    className="mt-5 h-12 w-full bg-emerald-600 text-base hover:bg-emerald-700"
+                                    className="mt-5 h-9 w-full bg-emerald-600 text-base hover:bg-emerald-700"
                                 >
                                     <Check className="size-5" />
                                     {processing ? 'در حال ثبت...' : 'ثبت فروش'}
@@ -668,7 +473,7 @@ export default function Create({
                                     asChild
                                     variant="ghost"
                                     type="button"
-                                    className="w-full"
+                                    className="w-full h-7"
                                 >
                                     <Link href="/sales">انصراف</Link>
                                 </Button>

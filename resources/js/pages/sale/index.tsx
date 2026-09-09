@@ -32,6 +32,7 @@ import {
 } from 'recharts';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import { getDariCategory, getDariCurrency, getDariItemUnit } from '@/components/location-translator';
 
 type Stats = {
     revenue: number;
@@ -44,7 +45,7 @@ type Stats = {
 };
 type TrendPoint = { day: number; sales: number };
 type Channel = { name: string; value: number; percent: number; color: string };
-type Product = { name: string; category: string; sales: number; units: number };
+type Product = { name: string; category: string; sales: number; units: number, unit: string };
 type Order = { id: string; customer: string; date: string; amount: number; status: string };
 type Comment = { name: string; text: string; time: string };
 
@@ -87,7 +88,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                             >
                                 <Download className="h-4 w-4" /> خروجی گزارش
                             </Button>
-                            <Button className="bg-accent text-slate-950 hover:bg-[#ffd34d]" onClick={()=>router.get('/sales/create')}>
+                            <Button className="bg-accent text-slate-950 hover:bg-[#ffd34d]" onClick={() => router.get('/sales/create')}>
                                 <Plus className="h-4 w-4" /> ثبت فروش جدید
                             </Button>
                         </div>
@@ -213,7 +214,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                     />
                                     <Tooltip
                                         formatter={(value) => [
-                                            `${Number(value).toLocaleString('fa-AF')} افغانی`,
+                                            `${Number(value).toString()} افغانی`,
                                             'درآمد',
                                         ]}
                                         contentStyle={{
@@ -285,7 +286,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                             </ResponsiveContainer>
                             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
                                 <span className="text-2xl font-bold text-slate-900 dark:text-white">
-                                    ۱۰۰٪
+                                    100%
                                 </span>
                                 <span className="text-[10px] text-slate-400">
                                     کل فروش
@@ -341,7 +342,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                     key={product.name}
                                     className="flex items-center gap-3"
                                 >
-                                        <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-violet-500', 'bg-cyan-500'][index % 5]} text-white`}>
+                                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${['bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-violet-500', 'bg-cyan-500'][index % 5]} text-white`}>
                                         <Package className="h-5 w-5" />
                                     </div>
                                     <div className="min-w-0 flex-1">
@@ -350,12 +351,12 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                                 {index + 1}. {product.name}
                                             </p>
                                             <span className="shrink-0 text-sm font-bold text-slate-800 dark:text-white">
-                                                {formatMoney(product.sales, stats.currency)}
+                                                {product.sales} {getDariCurrency(stats.currency)}
                                             </span>
                                         </div>
                                         <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
                                             <span>
-                                                {product.category} · {product.units} واحد فروخته شد
+                                                {getDariCategory(product.category)} · {product.units} {getDariItemUnit(product.unit)} فروخته شد
                                             </span>
                                             <span className="font-semibold text-emerald-600">
                                                 {index === 0 ? 'پرفروش‌ترین' : 'فروش واقعی'}
@@ -417,13 +418,13 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                             <span className="text-slate-500">
                                 ماه قبل:{' '}
                                 <b className="text-slate-700 dark:text-slate-200">
-                                    {formatMoney(meta.previousRevenue, stats.currency)}
+                                    {meta.previousRevenue} {getDariCurrency(stats.currency)}
                                 </b>
                             </span>
                             <span className="text-slate-500">
                                 باقی‌مانده:{' '}
                                 <b className="text-slate-700 dark:text-slate-200">
-                                    {formatMoney(meta.currentRevenue, stats.currency)}
+                                    {meta.currentRevenue} {getDariCurrency(stats.currency)}
                                 </b>
                             </span>
                         </div>
@@ -484,7 +485,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                                 {order.date}
                                             </td>
                                             <td className="py-3 font-semibold text-slate-700 dark:text-slate-200">
-                                                    {formatMoney(order.amount, stats.currency)}
+                                                {order.amount} {getDariCurrency(stats.currency)}
                                             </td>
                                             <td className="py-3">
                                                 <span

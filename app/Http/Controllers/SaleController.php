@@ -130,7 +130,7 @@ class SaleController extends Controller
     {
         $locations = Location::query()->where('type', 'shop')->where('is_active', true)->orderBy('name')->get(['id', 'name', 'address']);
         $items = Item::query()
-            ->with(['product:item_id,barcode', 'category:id,name', 'inventoryBalances:id,item_id,location_id,quantity_on_hand,reserved'])
+            ->with(['product:item_id,barcode,weight,per_pack', 'category:id,name', 'inventoryBalances:id,item_id,location_id,quantity_on_hand,reserved'])
             ->whereHas('inventoryBalances', fn($query) => $query->whereIn('location_id', $locations->pluck('id'))->where('quantity_on_hand', '>', 0))
             ->orderBy('name')
             ->get(['id', 'name', 'code', 'sku', 'unit', 'default_sale_price', 'category_id']);

@@ -32,7 +32,7 @@ class InvMovement
                 'item_id' => $itemID,
                 'quantity' => $quantity,
                 'movement_type' => $moveType,
-                'notes' => $notes,
+                'notes' => $notes ?? '',
                 'reference_no' => '',
                 'occured_at' => now(config('app.timezone')),
             ]);
