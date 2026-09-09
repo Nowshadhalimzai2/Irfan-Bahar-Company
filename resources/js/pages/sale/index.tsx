@@ -6,6 +6,7 @@ import {
     CircleDollarSign,
     Download,
     Ellipsis,
+    FileText,
     MessageSquareText,
     MoreHorizontal,
     Package,
@@ -30,9 +31,9 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
+import { getDariCategory, getDariCurrency, getDariItemUnit } from '@/components/location-translator';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import { getDariCategory, getDariCurrency, getDariItemUnit } from '@/components/location-translator';
 
 type Stats = {
     revenue: number;
@@ -46,10 +47,9 @@ type Stats = {
 type TrendPoint = { day: number; sales: number };
 type Channel = { name: string; value: number; percent: number; color: string };
 type Product = { name: string; category: string; sales: number; units: number, unit: string };
-type Order = { id: string; customer: string; date: string; amount: number; status: string };
+type Order = { saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string };
 type Comment = { name: string; text: string; time: string };
 
-const formatMoney = (value: number, currency: string) => `${value.toLocaleString('fa-AF')} ${currency}`;
 const formatValue = (value: number) => `${(value / 1000).toFixed(1)}k`;
 const statusLabels: Record<string, string> = { completed: 'تکمیل شده', draft: 'پیش‌نویس', cancelled: 'لغو شده', partially_returned: 'بازگشت جزئی', returned: 'بازگشت شده' };
 const statusClasses: Record<string, string> = { completed: 'bg-emerald-50 text-emerald-700', draft: 'bg-amber-50 text-amber-700', cancelled: 'bg-rose-50 text-rose-700', partially_returned: 'bg-orange-50 text-orange-700', returned: 'bg-slate-100 text-slate-700' };
@@ -467,6 +467,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                         <th className="pb-3 font-medium">
                                             وضعیت
                                         </th>
+                                        <th className="pb-3 font-medium">بل</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -493,6 +494,17 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                                 >
                                                     {statusLabels[order.status] ?? order.status}
                                                 </span>
+                                            </td>
+                                            <td className="py-3">
+                                                {order.hasInvoice ? (
+                                                    <button type="button" onClick={() => router.visit(`/sales/${order.saleId}/invoice/print`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                                                        <FileText className="size-3.5" /> چاپ
+                                                    </button>
+                                                ) : (
+                                                    <button type="button" onClick={() => router.post(`/sales/${order.saleId}/invoice`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-primary">
+                                                        <FileText className="size-3.5" /> ایجاد
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

@@ -94,7 +94,7 @@ const SaleItemList = ({ lines, items, setLines, updateLine, getStock, removeLine
                 </div>
             ) : (
                 <div className="divide-y">
-                    {cart.map(({ item, quantity, unit_price }) => (
+                    {cart.reverse().map(({ item, quantity, unit_price }) => (
                         <div key={item.id}>
                                     <SaleItem
                                         currency={currency}

@@ -1,12 +1,13 @@
+import type { FormDataErrors } from '@inertiajs/core';
+import type { SetDataAction } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
+import { Check, FileText, Wallet } from 'lucide-react';
 import React from 'react'
-import { Button } from '../ui/button';
 import InputError from '../input-error';
-import { Label } from '../ui/label';
-import { Input } from '../ui/input';
-import { Check, Wallet } from 'lucide-react';
-import { Link, SetDataAction } from '@inertiajs/react';
-import { FormDataErrors } from '@inertiajs/core';
 import { getDariCurrency } from '../location-translator';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 type Currency = { id: number; name: string };
 type SaleLine = { item_id: number; quantity: number; unit_price: number };
 
@@ -15,7 +16,8 @@ type DataType = {
     notes?: string;
     amount_paid: number;
     currency_id: number;
-    saleLines: SaleLine[]
+    saleLines: SaleLine[];
+    create_invoice: boolean;
 };
 interface Props {
     subtotal: number;
@@ -26,9 +28,11 @@ interface Props {
     grandTotal: number;
     processing: boolean;
     lines:SaleLine[];
+    createInvoice: boolean;
+    onCreateInvoiceChange: (value: boolean) => void;
 
 }
-const SalePayment = ({ subtotal, currency, data, setData, errors, grandTotal,processing,lines }: Props) => {
+const SalePayment = ({ subtotal, currency, data, setData, errors, grandTotal,processing,lines, createInvoice, onCreateInvoiceChange }: Props) => {
     return (
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div className="space-y-3 text-sm">
@@ -115,6 +119,11 @@ const SalePayment = ({ subtotal, currency, data, setData, errors, grandTotal,pro
                 message={errors.saleLines}
                 className="mt-3"
             />
+            <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/60">
+                <input type="checkbox" checked={createInvoice} onChange={(event) => onCreateInvoiceChange(event.target.checked)} className="size-4 accent-primary" />
+                <FileText className="size-4 text-primary" />
+                <span><b className="block">چاپ فاکتور بعد از ثبت</b><small className="text-xs text-slate-500">اختیاری است؛ فروش بدون فاکتور هم ثبت می‌شود.</small></span>
+            </label>
             <Button
                 disabled={processing || lines.length === 0}
                 type="submit"

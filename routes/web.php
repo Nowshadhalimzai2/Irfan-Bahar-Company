@@ -211,6 +211,8 @@ Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
     Route::put('/customers/status/{customer}', [CustomerController::class, 'status'])->name('custoemrs.status');
 
     Route::resource('sales', SaleController::class)->names('sales');
+        Route::post('/sales/{sale}/invoice', [SaleController::class, 'createInvoice'])->name('sales.invoice.create');
+        Route::get('/sales/{sale}/invoice/print', [SaleController::class, 'printInvoice'])->name('sales.invoice.print');
 });
 
 Route::middleware(['auth'])->group(function () {

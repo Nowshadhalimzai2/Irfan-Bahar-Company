@@ -1,34 +1,22 @@
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, useForm } from '@inertiajs/react';
 import {
     Barcode,
     Check,
     CircleAlert,
-    File,
-    Minus,
     Package,
-    Plus,
     ScanLine,
     Search,
-    Sheet,
-    ShoppingCart,
-    Trash2,
-    UserRound,
-    Wallet,
     X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import InputError from '@/components/input-error';
+import { getDariCurrency, getDariItemUnit } from '@/components/location-translator';
+import SaleDetail from '@/components/sale/sale-detail';
+import SaleItemList from '@/components/sale/sale-item-list';
+import SalePayment from '@/components/sale/sale-payment';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import AppLayout from '@/layouts/app-layout';
-import { getDariCurrency, getDariItemUnit } from '@/components/location-translator';
-import SaleItem from '@/components/sale-item';
-import SaleItemList from '@/components/sale/sale-item-list';
-import SaleDetail from '@/components/sale/sale-detail';
-import custoemrs from '@/routes/custoemrs';
-import SalePayment from '@/components/sale/sale-payment';
 
 type Balance = {
     location_id: number;
@@ -82,6 +70,7 @@ export default function Create({
         sold_at: new Date().toISOString().slice(0, 16),
         discount_total: 0,
         amount_paid: 0,
+        create_invoice: false,
         notes: '',
         saleLines: [] as SaleLine[],
     });
@@ -189,15 +178,11 @@ export default function Create({
                     : line,
             ),
         );
-    const removeLine = (itemId: number) =>
-        {
-            console.log('removed');
-            
-            
+    const removeLine = (itemId: number) => {
             setLines((current) =>
                 current.filter((line) => line.item_id !== itemId),
-        );
-    }
+            );
+    };
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         post('/sales');
@@ -359,6 +344,8 @@ export default function Create({
                                     processing={processing}
                                     setData={setData}
                                     subtotal={subtotal}
+                                    createInvoice={data.create_invoice}
+                                    onCreateInvoiceChange={(value) => setData('create_invoice', value)}
 
                                 />
                         </aside>
