@@ -2,7 +2,6 @@ import React, { Dispatch, SetStateAction, useMemo } from 'react'
 import SaleItem from '../sale-item';
 import { ShoppingCart } from 'lucide-react';
 
-
 type SaleLine = { item_id: number; quantity: number; unit_price: number };
 type Balance = {
     location_id: number;
@@ -20,17 +19,17 @@ type Item = {
     inventory_balances?: Balance[];
 };
 interface Props {
-lines: SaleLine[];
-items:Item[];
-setLines: Dispatch<SetStateAction<SaleLine[]>>
-updateLine: (itemId: number, change: number) => void
+    lines: SaleLine[];
+    items: Item[];
+    setLines: Dispatch<SetStateAction<SaleLine[]>>
+    updateLine: (itemId: number, change: number) => void
     getStock: (item: Item) => number;
     removeLine: (itemId: number) => void;
-        currency: { id: number, name: string; }
+    currency: { id: number, name: string; }
 
 }
 
-const SaleItemList = ({lines,items,setLines,updateLine,getStock,removeLine , currency}:Props) => {
+const SaleItemList = ({ lines, items, setLines, updateLine, getStock, removeLine, currency }: Props) => {
     const units: Record<string, string> = {
         kg: 'کیلو',
         gr: 'گرام',
@@ -43,7 +42,7 @@ const SaleItemList = ({lines,items,setLines,updateLine,getStock,removeLine , cur
         bag: 'بوری',
     };
 
-     const cart = useMemo(
+    const cart = useMemo(
         () =>
             lines
                 .map((line) => ({
@@ -96,17 +95,20 @@ const SaleItemList = ({lines,items,setLines,updateLine,getStock,removeLine , cur
             ) : (
                 <div className="divide-y">
                     {cart.map(({ item, quantity, unit_price }) => (
-                        <SaleItem
-                            key={item.id}
-                            currency={currency}
-                            getStock={getStock}
-                            item={item}
-                            quantity={quantity}
-                            unit_price={unit_price}
-                            units={units}
-                            updateLine={updateLine}
-                            removeLine={removeLine}
-                        />
+                        <div key={item.id}>
+                                    <SaleItem
+                                        currency={currency}
+                                        getStock={getStock}
+                                        item={item}
+                                        quantity={quantity}
+                                        unit_price={unit_price}
+                                        units={units}
+                                        updateLine={updateLine}
+                                        removeLine={removeLine}
+                                    />
+                          
+
+                        </div>
                     ),
                     )}
                 </div>

@@ -53,7 +53,7 @@ type Props = {
     items: Item[];
     currencies: Currency[];
     locations: Location[];
-        customers: Customer[];
+    customers: Customer[];
 
 };
 
@@ -115,6 +115,11 @@ export default function Create({
         0,
     );
     const grandTotal = Math.max(0, subtotal - Number(data.discount_total || 0));
+
+    useEffect(() => {
+        setData('amount_paid', grandTotal);
+    }, [grandTotal, setData]);
+
     const addItem = (item: Item) => {
         const existing = lines.find((line) => line.item_id === item.id);
         const quantity = (existing?.quantity ?? 0) + 1;
@@ -187,9 +192,14 @@ export default function Create({
             ),
         );
     const removeLine = (itemId: number) =>
-        setLines((current) =>
-            current.filter((line) => line.item_id !== itemId),
+        {
+            console.log('removed');
+            
+            
+            setLines((current) =>
+                current.filter((line) => line.item_id !== itemId),
         );
+    }
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         post('/sales');
@@ -353,7 +363,7 @@ export default function Create({
                                 )}
                             </section>
                             {/* ============== SALE ITEM LIST  */}
-                            <SaleItemList 
+                            <SaleItemList
                                 currency={currency}
                                 getStock={getStock}
                                 items={items}
@@ -361,13 +371,13 @@ export default function Create({
                                 setLines={setLines}
                                 removeLine={removeLine}
                                 updateLine={updateLine}
-                                
+
                             />
-                           
+
                         </div>
                         <aside className="space-y-5">
                             {/* =========== DETAIL OF SALE (CUSTOMER, CURRENCY, SHOP ,...) */}
-                            <SaleDetail 
+                            <SaleDetail
                                 currencies={currencies}
                                 customers={customers}
                                 locations={locations}
@@ -375,20 +385,20 @@ export default function Create({
                                 setData={setData}
                                 errors={errors}
                             />
-                          
+
                             <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
                                 <div className="space-y-3 text-sm">
                                     <div className="mb-5 flex items-center gap-3">
-                                    <Wallet className="size-5 text-emerald-600" />
-                                    <div>
-                                        <h2 className="font-bold">
-                                            جزئیات پرداخت
-                                        </h2>
-                                        <p className="text-xs text-slate-500">
-                                            اطلاعات فاکتور را تکمیل کنید.
-                                        </p>
+                                        <Wallet className="size-5 text-emerald-600" />
+                                        <div>
+                                            <h2 className="font-bold">
+                                                جزئیات پرداخت
+                                            </h2>
+                                            <p className="text-xs text-slate-500">
+                                                اطلاعات فاکتور را تکمیل کنید.
+                                            </p>
+                                        </div>
                                     </div>
-                                </div>
                                     <div className="flex justify-between text-slate-500">
                                         <span>جمله پول</span>
                                         <b>
