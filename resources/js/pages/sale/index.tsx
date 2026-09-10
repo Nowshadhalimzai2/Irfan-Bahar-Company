@@ -7,6 +7,7 @@ import {
     Download,
     Ellipsis,
     FileText,
+    HandHelping,
     MessageSquareText,
     MoreHorizontal,
     Package,
@@ -99,7 +100,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                         title="درآمد خالص"
                         value={stats.revenue.toString()}
                         unit={stats.currency}
-                        change={`${stats.revenueGrowth}٪`}
+                        change={`${stats.revenueGrowth}%`}
                         detail="در مقایسه با ماه قبل"
                         icon={CircleDollarSign}
                         tone="blue"
@@ -108,7 +109,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                         title="تعداد سفارش‌ها"
                         value={stats.orders.toString()}
                         unit="سفارش"
-                        change={`${stats.ordersGrowth}٪`}
+                        change={`${stats.ordersGrowth}%`}
                         detail="در ۳۰ روز گذشته"
                         icon={ShoppingBag}
                         tone="green"
@@ -131,6 +132,8 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                         icon={Users}
                         tone="violet"
                     />
+
+                    
                 </section>
 
                 <section className="grid gap-5 xl:grid-cols-[1.55fr_0.85fr]">

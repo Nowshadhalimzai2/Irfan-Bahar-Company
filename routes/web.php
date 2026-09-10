@@ -16,6 +16,7 @@ use App\Http\Controllers\LogController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProductionInputController;
 use App\Http\Controllers\ProductionOrderController;
+use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SupplierController;
@@ -213,6 +214,12 @@ Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
     Route::resource('sales', SaleController::class)->names('sales');
         Route::post('/sales/{sale}/invoice', [SaleController::class, 'createInvoice'])->name('sales.invoice.create');
         Route::get('/sales/{sale}/invoice/print', [SaleController::class, 'printInvoice'])->name('sales.invoice.print');
+});
+
+Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
+    Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+    Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
+    Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
 });
 
 Route::middleware(['auth'])->group(function () {

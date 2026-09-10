@@ -1,7 +1,16 @@
-import { dashboard } from "@/routes";
-import { NavItem } from "@/types";
-import { AlertCircle, BadgeMinus, BookOpen, Factory, FolderGit2, GroupIcon, LayoutGrid, PackageOpen, ShoppingCart, Store, Truck, Users } from "lucide-react";
-
+import {
+    AlertCircle,
+    BadgeMinus,
+    Factory,
+    LayoutGrid,
+    Receipt,
+    ShoppingCart,
+    Store,
+    Truck,
+    Users,
+} from 'lucide-react';
+import { dashboard } from '@/routes';
+import type { NavItem } from '@/types';
 export const mainNavItems: NavItem[] = [
     {
         title: 'دشبورد',
@@ -13,6 +22,11 @@ export const mainNavItems: NavItem[] = [
         href: '/sales',
         icon: ShoppingCart,
     },
+    {
+        title: 'پرداخت‌ها و رسیدها',
+        href: '/payments',
+        icon: Receipt,
+    },
 
     {
         title: 'مصارف',
@@ -21,40 +35,40 @@ export const mainNavItems: NavItem[] = [
     },
     {
         title: 'کار مندان',
-        href: "/stackholders",
+        href: '/stackholders',
         icon: Users,
     },
     {
         title: 'ستاک',
-        href: "/inventory-balances",
+        href: '/inventory-balances',
         icon: Store,
     },
     {
         title: ' انتقال اموال',
-        href: "/receipts",
+        href: '/receipts',
         icon: Truck,
-    }, {
+    },
+    {
         title: 'کارخانه',
-        href: "/factory/home",
+        href: '/factory/home',
         icon: Factory,
     },
-     {
+    {
         title: 'اطلاعات',
-        href: "/notifications",
+        href: '/notifications',
         icon: AlertCircle,
     },
-
 ];
 
 export const footerNavItems: NavItem[] = [
-        // {
-        //     title: 'Repository',
-        //     href: 'https://github.com/laravel/react-starter-kit',
-        //     icon: FolderGit2,
-        // },
-        // {
-        //     title: 'Documentation',
-        //     href: 'https://laravel.com/docs/starter-kits#react',
-        //     icon: BookOpen,
-        // },
-    ];
+    // {
+    //     title: 'Repository',
+    //     href: 'https://github.com/laravel/react-starter-kit',
+    //     icon: FolderGit2,
+    // },
+    // {
+    //     title: 'Documentation',
+    //     href: 'https://laravel.com/docs/starter-kits#react',
+    //     icon: BookOpen,
+    // },
+];

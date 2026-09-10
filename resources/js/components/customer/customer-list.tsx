@@ -60,7 +60,7 @@ const CustomerList = ({ customers }: Props) => {
                 <div className="p-5">
                     <SectionTitle title="لیست مشتریان" />
                     <div>
-                        <Table>
+                        <Table dir="rtl">
                             <TableHeader>
                                 <TableRow>
                                     <TableHead className="text-center">شماره</TableHead>

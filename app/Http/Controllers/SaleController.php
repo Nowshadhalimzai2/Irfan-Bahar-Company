@@ -10,6 +10,7 @@ use App\Models\InventoryBalance;
 use App\Models\Invoice;
 use App\Models\Item;
 use App\Models\Location;
+use App\Models\Payment;
 use App\Models\Sale;
 use App\Models\SaleLine;
 use App\Models\User;
@@ -333,7 +334,7 @@ class SaleController extends Controller
 
         $paidAmount = (float) $sale->amount_paid;
 
-        return Invoice::create([
+        $invoice = Invoice::create([
             'sale_id' => $sale->id,
             'invoice_number' => 'INV-'.now()->format('Y').'-'.str_pad((string) $sale->id, 6, '0', STR_PAD_LEFT),
             'status' => $paidAmount >= $total ? 'paid' : ($paidAmount > 0 ? 'partially_paid' : 'issued'),
@@ -348,5 +349,17 @@ class SaleController extends Controller
             'total' => $total,
             'notes' => $sale->notes,
         ]);
+
+        if ($paidAmount > 0) {
+            Payment::create([
+                'invoice_id' => $invoice->id,
+                'amount' => min($paidAmount, $total),
+                'method' => 'cash',
+                'paid_at' => $sale->sold_at ?? now(),
+                'notes' => 'پرداخت اولیه هنگام ثبت فروش',
+            ]);
+        }
+
+        return $invoice;
     }
 }
