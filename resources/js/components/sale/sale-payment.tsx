@@ -13,6 +13,7 @@ type SaleLine = { item_id: number; quantity: number; unit_price: number };
 
 type DataType = {
     discount_total: number;
+    customer_id:number;
     notes?: string;
     amount_paid: number;
     currency_id: number;
@@ -84,7 +85,7 @@ const SalePayment = ({ subtotal, currency, data, setData, errors, grandTotal,pro
                 </div>
                 <div className="flex items-center justify-between gap-3">
                     <span className="text-slate-500">
-                        پرداخت‌شده
+                        پرداخت پول
                     </span>
                     <Input
                         type="number"
@@ -120,7 +121,7 @@ const SalePayment = ({ subtotal, currency, data, setData, errors, grandTotal,pro
                 className="mt-3"
             />
             <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/60">
-                <input type="checkbox" checked={createInvoice} onChange={(event) => onCreateInvoiceChange(event.target.checked)} className="size-4 accent-primary" />
+                <input type="checkbox" checked={createInvoice || data.amount_paid<grandTotal || data.customer_id>0} onChange={(event) => onCreateInvoiceChange(event.target.checked)} className="size-4 accent-primary" />
                 <FileText className="size-4 text-primary" />
                 <span><b className="block">چاپ فاکتور بعد از ثبت</b><small className="text-xs text-slate-500">اختیاری است؛ فروش بدون فاکتور هم ثبت می‌شود.</small></span>
             </label>

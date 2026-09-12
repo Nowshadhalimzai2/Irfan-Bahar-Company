@@ -15,7 +15,7 @@ type Props = {
 };
 type ReturnLine = { sale_line_id: number; quantity: number; condition: string; restock_action: 'restock' | 'none'; notes: string };
 
-const money = (value: number, currency = 'AFG') => `${Number(value || 0).toString()} ${currency === 'AFG' ? 'افغانی' : currency === 'PKR' ? 'کلداری' : 'دالر'}`;
+const money = (value: number, currency = 'AFG') => `${Number(value || 0).toFixed(2)} ${currency === 'AFG' ? 'افغانی' : currency === 'PKR' ? 'کلداری' : 'دالر'}`;
 
 export default function Create({ sale, locations, returnableLines, paidAmount }: Props) {
     const [quantities, setQuantities] = useState<Record<number, number>>({});

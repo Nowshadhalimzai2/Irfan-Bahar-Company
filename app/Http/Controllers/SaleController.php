@@ -66,7 +66,7 @@ class SaleController extends Controller
             return ['day' => $date->day, 'sales' => round((float) $daySales->sum('after_descount_total'), 2)];
         })->filter(fn(array $item) => $item['day'] <= $now->day)->values();
 
-        $topProducts = $completedSales->flatMap->saleLines
+        $topProducts =$completedSales->flatMap->saleLines
             ->groupBy('item_id')
             ->map(function ($lines) {
                 $line = $lines->first();
@@ -117,6 +117,7 @@ class SaleController extends Controller
                 'date' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),
                 'amount' => (float) ($sale->after_descount_total ?: $sale->total),
                 'status' => $sale->status,
+                'currency' => $sale->currency->name,
             ])->values(),
             'comments' => $comments,
             'meta' => [

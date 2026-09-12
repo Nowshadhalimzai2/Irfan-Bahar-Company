@@ -29,4 +29,13 @@ class Sale extends Model
     {
         return $this->hasOne(Invoice::class);
     }
+    public function saleReturns(): HasMany
+    {
+
+        return $this->hasMany(SaleReturn::class);
+    }
+    public function getRefundedAmount():float{
+
+        return $this->saleReturns()->sum('refund_amount');
+    }
 }

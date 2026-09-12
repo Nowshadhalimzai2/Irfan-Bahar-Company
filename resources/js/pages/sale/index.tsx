@@ -48,7 +48,7 @@ type Stats = {
 type TrendPoint = { day: number; sales: number };
 type Channel = { name: string; value: number; percent: number; color: string };
 type Product = { name: string; category: string; sales: number; units: number, unit: string };
-type Order = { saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string };
+type Order = { saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string,currency: 'AFG' | 'PKR' | 'USD' };
 type Comment = { name: string; text: string; time: string };
 
 const formatValue = (value: number) => `${(value / 1000).toFixed(1)}k`;
@@ -354,7 +354,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                                 {index + 1}. {product.name}
                                             </p>
                                             <span className="shrink-0 text-sm font-bold text-slate-800 dark:text-white">
-                                                {product.sales} {getDariCurrency(stats.currency)}
+                                                {product.sales} {getDariCurrency('AFG')}
                                             </span>
                                         </div>
                                         <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
@@ -489,7 +489,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                                 {order.date}
                                             </td>
                                             <td className="py-3 font-semibold text-slate-700 dark:text-slate-200">
-                                                {order.amount} {getDariCurrency(stats.currency)}
+                                                {order.amount} {getDariCurrency(order.currency)}
                                             </td>
                                             <td className="py-3">
                                                 <span
