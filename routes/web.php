@@ -16,6 +16,7 @@ use App\Http\Controllers\LogController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProductionInputController;
 use App\Http\Controllers\ProductionOrderController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SaleController;
@@ -126,6 +127,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses'));
     })->name('dashboard');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
 });
 
 Route::get('/total-revenue-and-expenses/{currency}', function (string $currency) {

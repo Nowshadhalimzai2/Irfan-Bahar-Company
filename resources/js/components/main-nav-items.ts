@@ -3,6 +3,7 @@ import {
     BadgeMinus,
     Factory,
     LayoutGrid,
+    ChartNoAxesCombined,
     Receipt,
     ShoppingCart,
     Store,
@@ -16,6 +17,11 @@ export const mainNavItems: NavItem[] = [
         title: 'دشبورد',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'مرکز راپورها',
+        href: '/reports',
+        icon: ChartNoAxesCombined,
     },
     {
         title: 'فروشات',
