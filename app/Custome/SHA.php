@@ -9,16 +9,20 @@ use Inertia\Inertia;
 class SHA
 {
 
-      public function credit(int $amount, ?int $currency = 1)
+    public function credit(float $amount, ?int $currency = 1)
     {
         $account = ShopAccount::firstWhere('currency_id', $currency);
+        if (! $account) {
+            return false;
+        }
         $account->amount += $amount;
         $account->save();
+        return true;
     }
-    public function debit(int $amount, ?int $currency = 1)
+    public function debit(float $amount, ?int $currency = 1)
     {
         $account = ShopAccount::firstWhere('currency_id', $currency);
-        if ($account->amount < $amount) {
+        if (! $account || $account->amount < $amount) {
             return false;
         }
         $account->amount -= $amount;

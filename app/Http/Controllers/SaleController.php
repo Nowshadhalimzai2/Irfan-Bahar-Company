@@ -64,7 +64,7 @@ class SaleController extends Controller
             });
 
             return ['day' => $date->day, 'sales' => round((float) $daySales->sum('after_descount_total'), 2)];
-        })->filter(fn (array $item) => $item['day'] <= $now->day)->values();
+        })->filter(fn(array $item) => $item['day'] <= $now->day)->values();
 
         $topProducts = $completedSales->flatMap->saleLines
             ->groupBy('item_id')
@@ -88,9 +88,9 @@ class SaleController extends Controller
         $channels = collect([
             ['name' => 'مشتری ثبت‌شده', 'value' => $registeredCustomerSales, 'color' => '#006fdf'],
             ['name' => 'فروش حضوری', 'value' => $walkInSales, 'color' => '#17b897'],
-        ])->map(fn (array $channel) => [...$channel, 'percent' => round(($channel['value'] / $channelTotal) * 100, 1)])->values();
+        ])->map(fn(array $channel) => [...$channel, 'percent' => round(($channel['value'] / $channelTotal) * 100, 1)])->values();
 
-        $comments = $sales->filter(fn (Sale $sale) => filled($sale->notes))->take(4)->map(fn (Sale $sale) => [
+        $comments = $sales->filter(fn(Sale $sale) => filled($sale->notes))->take(4)->map(fn(Sale $sale) => [
             'name' => $sale->customer?->name ?? $sale->customer_name ?? 'یادداشت فروش',
             'text' => $sale->notes,
             'time' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),
@@ -109,9 +109,9 @@ class SaleController extends Controller
             'trend' => $trend,
             'channels' => $channels,
             'topProducts' => $topProducts,
-            'orders' => $sales->take(8)->map(fn (Sale $sale) => [
+            'orders' => $sales->take(8)->map(fn(Sale $sale) => [
                 'saleId' => $sale->id,
-                'id' => $sale->invoice?->invoice_number ?? '#SO-'.str_pad((string) $sale->id, 4, '0', STR_PAD_LEFT),
+                'id' => $sale->invoice?->invoice_number ?? '#SO-' . str_pad((string) $sale->id, 4, '0', STR_PAD_LEFT),
                 'hasInvoice' => (bool) $sale->invoice,
                 'customer' => $sale->customer?->name ?? $sale->customer_name ?? 'مشتری گذری',
                 'date' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),
@@ -133,7 +133,7 @@ class SaleController extends Controller
         $locations = Location::query()->where('type', 'shop')->where('is_active', true)->orderBy('name')->get(['id', 'name', 'address']);
         $items = Item::query()
             ->with(['product:item_id,barcode,weight,per_pack', 'category:id,name', 'inventoryBalances:id,item_id,location_id,quantity_on_hand,reserved'])
-            ->whereHas('inventoryBalances', fn ($query) => $query->whereIn('location_id', $locations->pluck('id'))->where('quantity_on_hand', '>', 0))
+            ->whereHas('inventoryBalances', fn($query) => $query->whereIn('location_id', $locations->pluck('id'))->where('quantity_on_hand', '>', 0))
             ->orderBy('name')
             ->get(['id', 'name', 'code', 'sku', 'unit', 'default_sale_price', 'category_id']);
 
@@ -152,15 +152,21 @@ class SaleController extends Controller
         ]);
 
         $data = $request->validate([
+
+            // LOCATION AND CUSTOMER VALIDATION
             'location_id' => ['required', 'exists:locations,id'],
             'customer_id' => ['nullable', 'exists:customers,id'],
             'customer_name' => ['nullable', 'string', 'max:50'],
             'currency_id' => ['required', 'exists:currencies,id'],
             'sold_at' => ['required', 'date'],
+
+            // PAYMENT VALIDATION
             'discount_total' => ['nullable', 'numeric', 'min:0'],
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:1000'],
             'create_invoice' => ['nullable', 'boolean'],
+
+            // SALELINE VALIDATATION 
             'saleLines' => ['required', 'array', 'min:1'],
             'saleLines.*.item_id' => ['required', 'exists:items,id'],
             'saleLines.*.quantity' => ['required', 'numeric', 'gt:0'],
@@ -188,6 +194,7 @@ class SaleController extends Controller
                 $total = (float) $lineData->sum('line_total');
                 $discount = (float) ($data['discount_total'] ?? 0);
                 $afterDiscount = max(0, $total - $discount);
+                $amountPaid = min((float) ($data['amount_paid'] ?? 0), $afterDiscount);
 
                 $sale = Sale::query()->create([
                     'customer_id' => $data['customer_id'] ?? null,
@@ -198,7 +205,7 @@ class SaleController extends Controller
                     'total' => $total,
                     'discount_total' => $discount,
                     'after_descount_total' => $afterDiscount,
-                    'amount_paid' => min((float) ($data['amount_paid'] ?? 0), $afterDiscount),
+                    'amount_paid' => $amountPaid,
                     'sold_at' => $data['sold_at'],
                     'notes' => $data['notes'] ?? null,
                 ]);
@@ -225,11 +232,15 @@ class SaleController extends Controller
                     $sa->credit($afterDiscount, $data['currency_id']);
                 }
 
+                if ($amountPaid < $afterDiscount || $data['customer_id'] !=null) {
+                    $this->createInvoice($sale);
+                }
                 $this->ensureDiscountIsEnough($sale);
 
                 return $sale;
             });
             Inertia::flash('toast', ['type' => 'success', 'message' => 'فروشات تکمیل شد']);
+
 
             if ($request->boolean('create_invoice')) {
                 $this->createInvoiceForSale($sale);
@@ -240,7 +251,6 @@ class SaleController extends Controller
             }
 
             return redirect()->route('sales.index')->with('success', 'فروش با موفقیت ثبت شد.');
-
         } catch (\Throwable $exception) {
             report($exception);
             Inertia::flash('toast', ['type' => 'error', 'message' => $exception->getMessage()]);
@@ -300,7 +310,7 @@ class SaleController extends Controller
                 'address' => $sale->customer?->address,
                 'soldAt' => Carbon::parse($sale->sold_at ?? $sale->created_at)->format('Y/m/d H:i'),
                 'amount_paid' => $sale->amount_paid,
-                'lines' => $sale->saleLines->map(fn ($line) => [
+                'lines' => $sale->saleLines->map(fn($line) => [
                     'name' => $line->item?->name ?? 'جنس حذف‌شده',
                     'unit' => $line->unit,
                     'quantity' => (float) $line->quantity,
@@ -336,7 +346,7 @@ class SaleController extends Controller
 
         $invoice = Invoice::create([
             'sale_id' => $sale->id,
-            'invoice_number' => 'INV-'.now()->format('Y').'-'.str_pad((string) $sale->id, 6, '0', STR_PAD_LEFT),
+            'invoice_number' => 'INV-' . now()->format('Y') . '-' . str_pad((string) $sale->id, 6, '0', STR_PAD_LEFT),
             'status' => $paidAmount >= $total ? 'paid' : ($paidAmount > 0 ? 'partially_paid' : 'issued'),
             'issued_on' => now(),
             'paid_at' => $paidAmount >= $total ? now() : null,

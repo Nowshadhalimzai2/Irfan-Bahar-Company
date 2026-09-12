@@ -19,6 +19,7 @@ use App\Http\Controllers\ProductionOrderController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SaleController;
+use App\Http\Controllers\SaleReturnController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\WasteController;
@@ -214,6 +215,8 @@ Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
     Route::resource('sales', SaleController::class)->names('sales');
         Route::post('/sales/{sale}/invoice', [SaleController::class, 'createInvoice'])->name('sales.invoice.create');
         Route::get('/sales/{sale}/invoice/print', [SaleController::class, 'printInvoice'])->name('sales.invoice.print');
+        Route::get('/sales/{sale}/returns/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');
+        Route::post('/sales/{sale}/returns', [SaleReturnController::class, 'store'])->name('sales.returns.store');
 });
 
 Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {

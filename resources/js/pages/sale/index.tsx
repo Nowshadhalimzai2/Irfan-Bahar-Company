@@ -7,11 +7,11 @@ import {
     Download,
     Ellipsis,
     FileText,
-    HandHelping,
     MessageSquareText,
     MoreHorizontal,
     Package,
     Plus,
+    RotateCcw,
     ShoppingBag,
     Target,
     TrendingUp,
@@ -499,15 +499,22 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                                 </span>
                                             </td>
                                             <td className="py-3">
-                                                {order.hasInvoice ? (
-                                                    <button type="button" onClick={() => router.visit(`/sales/${order.saleId}/invoice/print`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
-                                                        <FileText className="size-3.5" /> چاپ
+                                                <div className="flex items-center gap-3">
+                                                    {order.hasInvoice ? (
+                                                        <button type="button" onClick={() => router.visit(`/sales/${order.saleId}/invoice/print`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                                                            <FileText className="size-3.5" /> چاپ
+                                                        </button>
+                                                    ) : (
+                                                        <button type="button" onClick={() => router.post(`/sales/${order.saleId}/invoice`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-primary">
+                                                            <FileText className="size-3.5" /> ایجاد
+                                                        </button>
+                                                    )}
+                                                   {order.hasInvoice ?  <button type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700">
+                                                        <RotateCcw className="size-3.5" /> برگشت
                                                     </button>
-                                                ) : (
-                                                    <button type="button" onClick={() => router.post(`/sales/${order.saleId}/invoice`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-primary">
-                                                        <FileText className="size-3.5" /> ایجاد
-                                                    </button>
-                                                )}
+                                                    : <p className='text-xs text-gray-400 '>بل ندارد</p>
+                                                    }
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}

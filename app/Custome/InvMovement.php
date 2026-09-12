@@ -10,7 +10,7 @@ use InvalidArgumentException;
 
 class InvMovement
 {
-    public function move(int $locID, int $itemID, int $quantity, string $moveType, ?string $notes = '', ?string $operation = '+')
+    public function move(int $locID, int $itemID, float $quantity, string $moveType, ?string $notes = '', ?string $operation = '+')
     {
         if (! in_array($operation, ['+', '-'], true)) {
             throw new InvalidArgumentException('The inventory operation must be + or -.');
@@ -49,7 +49,7 @@ class InvMovement
         }, 3);
     }
 
-    private function updateInventory(int $locID, int $itemID, int $quantity): bool
+    private function updateInventory(int $locID, int $itemID, float $quantity): bool
     {
         $inventory = InventoryBalance::where('location_id', $locID)
             ->where('item_id', $itemID)
