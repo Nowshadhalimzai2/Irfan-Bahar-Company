@@ -28,8 +28,10 @@ use App\Models\Currency;
 use App\Models\Employee;
 use App\Models\Expense;
 use App\Models\Item;
+use App\Models\Payment;
 use App\Models\ProductionOrder;
 use App\Models\Role;
+use App\Models\Sale;
 use App\Models\ShopAccount;
 use App\Models\Transfer;
 use App\Models\User;
@@ -63,10 +65,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
         $sa = ShopAccount::with('currency:id,name')->select('id', 'amount', 'currency_id')->get();
         $todaysExpenses = Expense::with('currency:id,name')
-            ->select('id', 'amount', 'description', 'date', 'currency_id')
+            ->selectRaw('currency_id, SUM(amount) as total_amount')
+
             ->whereDate('date', Carbon::today(config('app.timezone')))
+            ->groupBy('currency_id')
             ->orderBy('id', 'desc')
-            ->get();
+            ->pluck('total_amount', 'currency_id');
         $totalExpensesBasedOnCurrency = Expense::query()
             ->selectRaw('currency_id, SUM(amount) as total_amount')
             ->groupBy('currency_id')
@@ -125,7 +129,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->groupBy('currency_id')
             ->pluck('total_amount', 'currency_id');
 
-        return Inertia::render('dashboard', compact('sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses'));
+        $todaysExpenses = Expense::with('currency:id,name')
+            ->selectRaw('currency_id, SUM(amount) as total_amount')
+
+            ->whereDate('date', Carbon::today(config('app.timezone')))
+            ->groupBy('currency_id')
+            ->orderBy('id', 'desc')
+            ->pluck('total_amount', 'currency_id');
+        $paymentsTotal = Payment::query()
+            ->selectRaw('currency_id, SUM(amount) as total_amount')
+            ->whereDate('date', Carbon::today(config('app.timezone')))
+            ->where('method', 'cash')
+            ->groupBy('currency_d')
+            ->orderBy('id', 'desc')
+            ->pluck('total_amount', 'currency_id');
+        $salesTotal = Sale::query()
+            ->doesntHave('invoice')
+            ->selectRaw('currency_id, SUM(amount_paid) as total_amount')
+            ->whereDate('sold_at', Carbon::today(config('app.timezone')))
+            ->groupBy('currency_id')
+            ->orderBy('total_amount', 'desc')
+            ->pluck('total_amount', 'currency_id');
+        $todayIncomes = $salesTotal->map(fn($val, $key) => $val + ($paymentsTotal[$key] ?? 0))
+            ->merge($paymentsTotal->diffKeys($salesTotal))
+            ->toArray();
+        return Inertia::render('dashboard', compact('todayIncomes', 'sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses'));
     })->name('dashboard');
 });
 
@@ -218,10 +246,10 @@ Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
     Route::put('/customers/status/{customer}', [CustomerController::class, 'status'])->name('custoemrs.status');
 
     Route::resource('sales', SaleController::class)->names('sales');
-        Route::post('/sales/{sale}/invoice', [SaleController::class, 'createInvoice'])->name('sales.invoice.create');
-        Route::get('/sales/{sale}/invoice/print', [SaleController::class, 'printInvoice'])->name('sales.invoice.print');
-        Route::get('/sales/{sale}/returns/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');
-        Route::post('/sales/{sale}/returns', [SaleReturnController::class, 'store'])->name('sales.returns.store');
+    Route::post('/sales/{sale}/invoice', [SaleController::class, 'createInvoice'])->name('sales.invoice.create');
+    Route::get('/sales/{sale}/invoice/print', [SaleController::class, 'printInvoice'])->name('sales.invoice.print');
+    Route::get('/sales/{sale}/returns/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');
+    Route::post('/sales/{sale}/returns', [SaleReturnController::class, 'store'])->name('sales.returns.store');
 });
 
 Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {

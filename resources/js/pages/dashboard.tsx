@@ -38,11 +38,13 @@ interface Props {
     totalAmountShopOwes: number;
     totalAmountOfAvailableItems: number;
     totalExpenses: Record<number, number>;
+    todaysExpenses:Record<number,number>;
+    todayIncomes:Record<number,number>;
 }
 
-export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies, transfersToShop, employees, items, reorderItemsCount, totalAmountShopOwes, totalAmountOfAvailableItems, totalExpenses }: Props) {
-    console.log('expsss: ', totalExpenses);
-
+export default function Dashboard({ todayIncomes,todaysExpenses,sa, totalExpensesBasedOnCurrency, currencies, transfersToShop, employees, items, reorderItemsCount, totalAmountShopOwes, totalAmountOfAvailableItems, totalExpenses }: Props) {
+    
+        
     const [currency, setCurrency] = useState<string>(currencies[0]?.name ?? 'USD');
     const [averageExpenses, setAverageExpenses] = useState<number>(0);
 
@@ -57,10 +59,7 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
         getRevenueAndExpenses();
     }, [currency]);
 
-    const totalCashValue = useMemo(
-        () => sa.reduce((sum, account) => sum + Number(account.amount || 0), 0),
-        [sa],
-    );
+    
     const presentEmps: number = useMemo(
         () => employees.filter(emp => emp.attendances[emp.attendances.length - 1].is_present === true).length
         , []
@@ -189,8 +188,9 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
                                 <BalanceCard
                                     key={account.id}
                                     account={account}
-                                    totalExpensesBasedOnCurrency={totalExpensesBasedOnCurrency}
+                                    todaysExpenses={todaysExpenses}
                                     LucideIcon={Wallet}
+                                    todaysIncomes={todayIncomes}
                                 />
                             ))}
                         </div>
@@ -337,12 +337,13 @@ export default function Dashboard({ sa, totalExpensesBasedOnCurrency, currencies
 }
 
 interface BalanceProps {
-    totalExpensesBasedOnCurrency: Record<string, number>;
+    todaysExpenses: Record<number, number>;
+    todaysIncomes: Record<number, number>;
     account: Account;
     LucideIcon: LucideIcon;
 }
 
-const BalanceCard = ({ totalExpensesBasedOnCurrency, account, LucideIcon }: BalanceProps) => {
+const BalanceCard = ({ todaysExpenses, account, LucideIcon,todaysIncomes }: BalanceProps) => {
     return (
         <div className="rounded-2xl border border-slate-200 bg-linear-to-b from-white to-slate-50 p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md dark:border-slate-700 dark:from-slate-900 dark:to-slate-950">
             <div className="flex items-center justify-between">
@@ -358,11 +359,11 @@ const BalanceCard = ({ totalExpensesBasedOnCurrency, account, LucideIcon }: Bala
             <div className="mt-4 rounded-xl bg-slate-100 p-2.5 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-200">
                 <div className="flex items-center justify-between gap-2 ">
                     <span>هزینه امروز</span>
-                    <span>{totalExpensesBasedOnCurrency[account.currency.id]?.toLocaleString() || 0}</span>
+                    <span>{todaysExpenses[account.currency.id]?.toLocaleString() || 0}</span>
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-2">
                     <span>درآمد امروز</span>
-                    <span>{(Number(account.amount) * 0.18).toFixed(2)}</span>
+                    <span>{todaysIncomes[account.currency.id-1]?.toLocaleString() || 0}</span>
                 </div>
             </div>
         </div>
