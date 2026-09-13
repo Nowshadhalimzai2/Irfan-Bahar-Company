@@ -104,11 +104,7 @@ function UserList({ users }: Props) {
                     </TableFooter>
                 </Table>
             </div>
-            <div className="flex justify-end flex-col items-end">
-                <Link href={register()} className={buttonVariants({
-                    variant: 'default'
-                }) + "  "}>ایجاد یوزر جدید</Link>
-            </div>
+          
         </section>
     )
 }

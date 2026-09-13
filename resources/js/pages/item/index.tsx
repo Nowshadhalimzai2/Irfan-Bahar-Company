@@ -42,7 +42,7 @@ const Index = ({ items }: Props) => {
 
   return (
     <AppLayout breadcrumbs={[
-      { title: 'دشبورد', href: '/dashboard' },
+      { title: 'کارخانه', href: '/factory/home' },
       { title: 'اجناس', href: '/items' }
     ]}>
       <div className=" section">

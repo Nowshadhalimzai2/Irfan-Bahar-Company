@@ -95,7 +95,7 @@ const Create = ({ categories, items }: Props) => {
   return (
     <AppLayout
       breadcrumbs={[
-        { title: 'دشبورد', href: '/dashbaord' },
+        { title: 'کارخانه', href: '/factory/home' },
         { title: 'فورموله ها', href: '/boms' },
         { title: 'فورم', href: '/boms/create' },
       ]}
@@ -143,37 +143,37 @@ const Create = ({ categories, items }: Props) => {
                     <InputError message={errors.category_id} className="mt-2" />
                   </div>
 
-                <div className="grid gap-2 mt-5">
-                  <Label htmlFor="min_exp_qty">مقدار تخمینی حداقل</Label>
-                  <Input
-                    className="border p-1.5 rounded-md text-sm"
-                    tabIndex={2}
-                    name="min_exp_qty"
-                    value={data.min_exp_qty}
-                    onChange={(e) =>
-                      setData('min_exp_qty', Number(e.target.value))
-                    }
-                    placeholder="مقدار جنس تخمینی را وارد کنید که حداقل باید تولید شود"
-                  />
+                  <div className="grid gap-2 mt-5">
+                    <Label htmlFor="min_exp_qty">مقدار تخمینی حداقل</Label>
+                    <Input
+                      className="border p-1.5 rounded-md text-sm"
+                      tabIndex={2}
+                      name="min_exp_qty"
+                      value={data.min_exp_qty}
+                      onChange={(e) =>
+                        setData('min_exp_qty', Number(e.target.value))
+                      }
+                      placeholder="مقدار جنس تخمینی را وارد کنید که حداقل باید تولید شود"
+                    />
 
-                  <InputError message={errors.min_exp_qty} className="mt-2" />
-                </div>
-                <div className="grid gap-2 mt-5">
-                  <Label htmlFor="max_exp_qty">مقدار تخمینی حداکثر</Label>
-                  <Input
-                    className="border p-1.5 rounded-md text-sm"
-                    tabIndex={2}
-                    min={data.min_exp_qty}
-                    name="max_exp_qty"
-                    value={data.max_exp_qty}
-                    onChange={(e) =>
-                      setData('max_exp_qty', Number(e.target.value))
-                    }
-                    placeholder="مقدار جنس تخمینی را وارد کنید که حداکثر باید تولید شود"
-                  />
+                    <InputError message={errors.min_exp_qty} className="mt-2" />
+                  </div>
+                  <div className="grid gap-2 mt-5">
+                    <Label htmlFor="max_exp_qty">مقدار تخمینی حداکثر</Label>
+                    <Input
+                      className="border p-1.5 rounded-md text-sm"
+                      tabIndex={2}
+                      min={data.min_exp_qty}
+                      name="max_exp_qty"
+                      value={data.max_exp_qty}
+                      onChange={(e) =>
+                        setData('max_exp_qty', Number(e.target.value))
+                      }
+                      placeholder="مقدار جنس تخمینی را وارد کنید که حداکثر باید تولید شود"
+                    />
 
-                  <InputError message={errors.max_exp_qty} className="mt-2" />
-                </div>
+                    <InputError message={errors.max_exp_qty} className="mt-2" />
+                  </div>
                 </div>
 
                 <section className="section ITEMSection mt-8">

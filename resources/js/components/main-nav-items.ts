@@ -18,11 +18,7 @@ export const mainNavItems: NavItem[] = [
         href: dashboard(),
         icon: LayoutGrid,
     },
-    {
-        title: 'مرکز راپورها',
-        href: '/reports',
-        icon: ChartNoAxesCombined,
-    },
+
     {
         title: 'فروشات',
         href: '/sales',
@@ -60,12 +56,78 @@ export const mainNavItems: NavItem[] = [
         icon: Factory,
     },
     {
+        title: 'مرکز راپورها',
+        href: '/reports',
+        icon: ChartNoAxesCombined,
+    },
+    {
+        title: 'اطلاعات',
+        href: '/notifications',
+        icon: AlertCircle,
+    },
+];
+export const mainNevShopClerkItems: NavItem[] = [
+    {
+        title: 'دشبورد',
+        href: dashboard(),
+        icon: LayoutGrid,
+    },
+
+    {
+        title: 'فروشات',
+        href: '/sales',
+        icon: ShoppingCart,
+    },
+    {
+        title: 'پرداخت‌ها و رسیدها',
+        href: '/payments',
+        icon: Receipt,
+    },
+
+    {
+        title: 'مصارف',
+        href: '/expenses/create',
+        icon: BadgeMinus,
+    },
+    {
+        title: 'کار مندان',
+        href: '/stackholders',
+        icon: Users,
+    },
+    {
+        title: 'ستاک',
+        href: '/inventory-balances',
+        icon: Store,
+    },
+    {
         title: 'اطلاعات',
         href: '/notifications',
         icon: AlertCircle,
     },
 ];
 
+export const mainNavFactoryClerkItems: NavItem[] = [
+    {
+        title: 'کارخانه',
+        href: '/factory/home',
+        icon: Factory,
+    },
+     {
+        title: 'ستاک',
+        href: '/inventory-balances',
+        icon: Store,
+    },
+    {
+        title: ' انتقال اموال',
+        href: '/receipts',
+        icon: Truck,
+    },
+    {
+        title: 'اطلاعات',
+        href: '/notifications',
+        icon: AlertCircle,
+    },
+]
 export const footerNavItems: NavItem[] = [
     // {
     //     title: 'Repository',

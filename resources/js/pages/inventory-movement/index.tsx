@@ -53,7 +53,7 @@ const Index = ({ movements }: Props) => {
     return (
         <AppLayout
             breadcrumbs={[
-                { title: 'دشبورد', href: '/dashboard' },
+                { title: 'کارخانه', href: '/factory/home' },
                 { title: 'تبادله اجناس ', href: '/inventory-movements' }
             ]}
         >

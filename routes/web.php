@@ -163,7 +163,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 Route::get('/total-revenue-and-expenses/{currency}', function (string $currency) {
     $today = Carbon::today(config('app.timezone'));
-    $startOftheDate = $today->startOfMonth()->subMonth(2);
+    $startOftheDate = $today->startOfMonth()->subMonth()->subMonth();
     $expenses = Expense::with('currency:id,name')
         ->whereDate('date', '>', $startOftheDate)
         ->whereHas('currency', function ($q) use ($currency) {
@@ -172,8 +172,8 @@ Route::get('/total-revenue-and-expenses/{currency}', function (string $currency)
         ->sum('amount');
     // 100 30
     //  X  Days
-    $currenyMonthDay = Carbon::today(config('app.timezone'))->dayOfMonth();
-    $currentMonthDatePercent = (100 * $currenyMonthDay) / Carbon::today(config('app.timezone'))->daysInMonth();
+    $currentMonthDay = Carbon::today(config('app.timezone'))->dayOfMonth();
+    $currentMonthDatePercent = (100 * $currentMonthDay) / Carbon::today(config('app.timezone'))->daysInMonth();
 
     $aveOfThreeMonths = $expenses / (2 + ($currentMonthDatePercent / 100));
     return response()->json($aveOfThreeMonths);

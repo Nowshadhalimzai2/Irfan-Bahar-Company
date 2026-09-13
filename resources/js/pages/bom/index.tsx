@@ -22,14 +22,14 @@ interface Props {
 const Index = ({ boms }: Props) => {
     return (
         <AppLayout breadcrumbs={[
-            { title: 'دشبورد', href: "/dashboard" },
+            { title: 'کارخانه', href: '/factory/home' },
             { title: 'فورموله ها', href: "/boms" },
 
         ]}>
             <div className="section">
                 <SectionTitle title="فورموله ها" description="در این بخش کله فورموله ها تنظیم میشه" />
                 <div className="flex justify-end items-end p-5">
-                    <Link href={'/boms/create'} className={`${buttonVariants({variant:'default'})}`}>فورمول جدید </Link>
+                    <Link href={'/boms/create'} className={`${buttonVariants({ variant: 'default' })}`}>فورمول جدید </Link>
                 </div>
                 <div className="max-w-4xl mx-auto px-8">
                     <Table>
@@ -45,8 +45,8 @@ const Index = ({ boms }: Props) => {
                         </TableHeader>
                         <TableBody>
                             {boms.length > 0 ? boms.map((bom, ind) => (
-                                <TableRow key={bom.id} onClick={()=>router.get('/boms/'+bom.id)}>
-                                    <TableCell className="text-center">{ind+1}</TableCell>
+                                <TableRow key={bom.id} onClick={() => router.get('/boms/' + bom.id)}>
+                                    <TableCell className="text-center">{ind + 1}</TableCell>
                                     <TableCell className="text-center">{bom.formula_name}</TableCell>
                                     <TableCell className="text-center">{getDariCategory(bom.category.name)}</TableCell>
                                     <TableCell className="text-center">{bom.min_exp_qty}</TableCell>

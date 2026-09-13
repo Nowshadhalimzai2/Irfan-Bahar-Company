@@ -27,8 +27,8 @@ interface Props {
     categories: Category[];
 }
 const Create = ({ categories }: Props) => {
-   
-    
+
+
     const { data, setData, errors, reset, post, processing } = useForm<ItemType>({
         'name': '',
         'item_type': 'product',
@@ -48,7 +48,7 @@ const Create = ({ categories }: Props) => {
     }
     return (
         <AppLayout breadcrumbs={[
-            { title: 'دشبورد', href: '/dashboard' },
+            { title: 'کارخانه', href: '/factory/home' },
             { title: 'اجناس', href: '/items' },
             { title: 'جنس جدید', href: '/items/create' },
 
@@ -90,7 +90,7 @@ const Create = ({ categories }: Props) => {
                                             value="بعد از ثبت خودکار ساخته می‌شود"
                                         />
                                     </div>
-                                   
+
                                     <div className="grid gap-2">
                                         <Label htmlFor="price">نرخ اوسط</Label>
                                         <Input
@@ -138,7 +138,7 @@ const Create = ({ categories }: Props) => {
                                             {/* <option value="kg">کیلو</option>
                                             <option value="ltr">لیتر</option>
                                             <option value="gr">ګرام</option> */}
-                                            {getUnitOfMeasurements().map((unit)=> <option value={unit.value} onChange={(e)=>setData('unit',e.target.value as unitType)} className="text-center ">.................<span>{unit.label}..................</span></option>)}
+                                            {getUnitOfMeasurements().map((unit) => <option value={unit.value} onChange={(e) => setData('unit', e.target.value as unitType)} className="text-center ">.................<span>{unit.label}..................</span></option>)}
 
                                         </select>
                                         <InputError
