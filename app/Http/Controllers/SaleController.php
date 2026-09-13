@@ -366,6 +366,7 @@ class SaleController extends Controller
                 'invoice_id' => $invoice->id,
                 'amount' => min($paidAmount, $total),
                 'method' => 'cash',
+                'currency_id' => $sale->currency_id,
                 'paid_at' => $sale->sold_at ?? now(),
                 'notes' => 'پرداخت اولیه هنگام ثبت فروش',
             ]);

@@ -95,6 +95,7 @@ class PaymentController extends Controller
                     'reference' => $data['reference'] ?? null,
                     'paid_at' => $data['paid_at'],
                     'notes' => $data['notes'] ?? null,
+                    'currency_id' => $invoice->sale->currency_id,
                 ]);
 
                 $newPaid = $paid + (float) $data['amount'];
