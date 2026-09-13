@@ -22,9 +22,9 @@ interface Props {
 }
 const SupplierList = ({ suppliers }: Props) => {
  const { auth, roles }= usePage().props;
-  const canAddEmployee = ['admin', 'super_admin', 'shop_clerk'].includes(
-    roles[auth.user.role_id]?.name,
-  );
+//   const canAddEmployee = ['admin', 'super_admin', 'shop_clerk'].includes(
+//     roles[auth.user.role_id]?.name,
+//   );
     return (
         <div className="py-5">
             <PageHead
@@ -32,8 +32,8 @@ const SupplierList = ({ suppliers }: Props) => {
                 title="تأمین کنندگان"
                 subtitle="لیست تأمین کنندگان"
                 description="در اینجا میتوانید لیست تمام تأمین کنندگان که در سیستم ثبت شده‌اند را مشاهده کنید."
-                actionTitle={canAddEmployee ? 'ایجاد تأمین کننده جدید' : ''}
-                actionURL={canAddEmployee ? '/suppliers/create' : ''}
+                actionTitle={ 'ایجاد تأمین کننده جدید'}
+                actionURL={'/suppliers/create'}
             />
             <div className="p-2 border mt-6 bg-white shadow-2xl rounded-lg">
                 <div>
@@ -64,7 +64,7 @@ const SupplierList = ({ suppliers }: Props) => {
                                         <TableCell>
                                             <CustomeDropDownMenu
                                                 items={[
-                                                    { name: "Edit", url: `/suppliers/${supplier.id}/edit` },
+                                                    { name: "ویرایش", url: `/suppliers/${supplier.id}/edit` },
                                                 ]}
                                                 deletion={{ id: supplier.id, url: `/suppliers/${supplier.id}` }}
                                             />
@@ -91,9 +91,7 @@ const SupplierList = ({ suppliers }: Props) => {
                         </TableFooter>
                     </Table>
                 </div>
-                <div className="flex justify-end items-end p-5">
-                    <Link href={'/suppliers/create'} className={buttonVariants({ variant: 'default' })}>ایجاد تامین کننده</Link>
-                </div>
+                
             </div>
         </div>
     )

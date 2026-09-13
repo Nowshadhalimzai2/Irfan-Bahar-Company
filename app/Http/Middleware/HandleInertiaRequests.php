@@ -44,7 +44,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => Auth::user(),
             ],
-            'roles' => Role::all(),
+            'roles' => Role::query()->select('id','name')->get(),
             'logo' => Storage::url('public/logo/nobg.png'),
             'notifications' => fn() => $request->user() ? [
                 'unread_count' => $request->user()->unreadNotifications()->count(),

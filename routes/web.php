@@ -37,10 +37,12 @@ use App\Models\Transfer;
 use App\Models\User;
 use App\Services\HighProductionService;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
@@ -56,12 +58,14 @@ if (! function_exists('getEmployees')) {
             ->get();
     }
 }
-Route::inertia('/', 'welcome')->name('home');
-// Route::inertia('/products',)->name('products.index');
-Route::inertia('/contact-us', 'contact-us')->name('contact-us');
-Route::inertia('/about-us', 'about-us')->name('about-us');
 
 Route::middleware(['auth', 'verified'])->group(function () {
+
+    Route::get('/', function (): RedirectResponse {
+
+        return redirect()->to(route('dashboard'));
+    })->name('home');
+
     Route::get('/dashboard', function () {
         $sa = ShopAccount::with('currency:id,name')->select('id', 'amount', 'currency_id')->get();
         $todaysExpenses = Expense::with('currency:id,name')
@@ -154,120 +158,111 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->merge($paymentsTotal->diffKeys($salesTotal))
             ->toArray();
         return Inertia::render('dashboard', compact('todayIncomes', 'sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses'));
-    })->name('dashboard');
-});
+    })->name('dashboard')->middleware('refuseFactoryClerk');
 
-Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-});
-
-Route::get('/total-revenue-and-expenses/{currency}', function (string $currency) {
-    $today = Carbon::today(config('app.timezone'));
-    $startOftheDate = $today->startOfMonth()->subMonth()->subMonth();
-    $expenses = Expense::with('currency:id,name')
-        ->whereDate('date', '>', $startOftheDate)
-        ->whereHas('currency', function ($q) use ($currency) {
-            $q->where('name', $currency);
-        })
-        ->sum('amount');
-    // 100 30
-    //  X  Days
-    $currentMonthDay = Carbon::today(config('app.timezone'))->dayOfMonth();
-    $currentMonthDatePercent = (100 * $currentMonthDay) / Carbon::today(config('app.timezone'))->daysInMonth();
-
-    $aveOfThreeMonths = $expenses / (2 + ($currentMonthDatePercent / 100));
-    return response()->json($aveOfThreeMonths);
-});
-
-// ---------------------------------------------------------------------------------
-
-Route::get('/register', function () {
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index')->middleware('superadmin');
 
 
-    if (User::query()->exists()) {
-        Gate::authorize('manage-users');
-    }
+    Route::get('/total-revenue-and-expenses/{currency}', function (string $currency) {
+        $today = Carbon::today(config('app.timezone'));
+        $startOftheDate = $today->startOfMonth()->subMonth()->subMonth();
+        $expenses = Expense::with('currency:id,name')
+            ->whereDate('date', '>', $startOftheDate)
+            ->whereHas('currency', function ($q) use ($currency) {
+                $q->where('name', $currency);
+            })
+            ->sum('amount');
+        // 100 30
+        //  X  Days
+        $currentMonthDay = Carbon::today(config('app.timezone'))->dayOfMonth();
+        $currentMonthDatePercent = (100 * $currentMonthDay) / Carbon::today(config('app.timezone'))->daysInMonth();
 
-    return Inertia::render('auth/register', [
-        'passwordRules' => Password::defaults()->toPasswordRulesString(),
-        'roles' => Role::select('id', 'name')->get(),
-    ]);
-})->name('register');
+        $aveOfThreeMonths = $expenses / (2 + ($currentMonthDatePercent / 100));
+        return response()->json($aveOfThreeMonths);
+    })->middleware('refuseFactoryClerk');
 
-Route::post('/register', function (Request $request, CreateNewUser $creator) {
-    if (User::query()->exists()) {
-        Gate::authorize('manage-users');
-    }
+    // ---------------------------------------------------------------------------------
 
-    DB::beginTransaction();
-    try {
-        $user = $creator->create($request->all());
+    Route::get('/register', function () {
 
-        if (! Auth::check()) {
-            Auth::login($user);
+
+        if (User::query()->exists()) {
+            Gate::authorize('manage-users');
         }
 
-        $log = new Log();
-        $log->create('insert', ' یوزر  جدید', $user->name);
-        Inertia::flash('toast', ['type' => 'success', 'message' => ' موفقانه ایجاد شد {$request->name} اکونت یوزر']);
-        DB::commit();
-    } catch (\Throwable $th) {
-        DB::rollBack();
-        Inertia::flash('toast', ['type' => 'success', 'message' => ' یک مشکل در وجود امد. ' . $th->getMessage()]);
-        return redirect()->back();
-    }
+        return Inertia::render('auth/register', [
+            'passwordRules' => Password::defaults()->toPasswordRulesString(),
+            'roles' => Role::select('id', 'name')->get(),
+        ]);
+    })->name('register')->middleware('superadmin');
 
-    return redirect()->route('dashboard')->with('success', 'User created successfully.');
-})->name('register.store');
+    Route::post('/register', function (Request $request, CreateNewUser $creator) {
+        if (User::query()->exists()) {
+            Gate::authorize('manage-users');
+        }
 
-Route::middleware(['auth'])->group(function () {
+        DB::beginTransaction();
+        try {
+            $user = $creator->create($request->all());
+
+            if (! Auth::check()) {
+                Auth::login($user);
+            }
+
+            $log = new Log();
+            $log->create('insert', ' یوزر  جدید', $user->name);
+            Inertia::flash('toast', ['type' => 'success', 'message' => ' موفقانه ایجاد شد {$request->name} اکونت یوزر']);
+            DB::commit();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Inertia::flash('toast', ['type' => 'success', 'message' => ' یک مشکل در وجود امد. ' . $th->getMessage()]);
+            return redirect()->back();
+        }
+
+        return redirect()->route('dashboard')->with('success', 'User created successfully.');
+    })->name('register.store')->middleware('superadmin');
+
     Route::get('/stackholders', [RegisteredUserController::class, 'index'])->name('employees.index');
     Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
     Route::resource('employees', EmployeeController::class)->except('index')->names('employees');
     Route::post('/employees/{employee}/attendance-toggle', [EmployeeController::class, 'toggleAttendance'])
         ->name('employees.attendance.toggle');
-
+    
     Route::get('/employees/{employee}/salary-receipt/{salary}', [EmployeeController::class, 'salaryReceipt'])
         ->name('employees.salary.receipt');
 
     Route::post('/employees/{employee}/pay-salary', [EmployeeController::class, 'paySalary'])->name('pay.salary')
         ->name('employees.pay.salary');
-});
 
-Route::middleware(['auth'])->group(function () {
     Route::get('/employees/{employee}/salary-record', [SalaryController::class, 'salaryRecord'])->name('emplyee-salary-record');
     Route::get('/employees/{employee}/attendance-record', [AttendanceController::class, 'attendanceRecord'])->name('emplyee-attendance-record');
-});
 
-Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
-    Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
-    Route::resource('expenses', ExpenseController::class)->names('expenses');
-    Route::resource('customers', CustomerController::class)->except('index')->names('customers');
-    Route::put('/customers/status/{customer}', [CustomerController::class, 'status'])->name('custoemrs.status');
+    Route::middleware(['refuseFactoryClerk'])->group(function () {
+        Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
+        Route::resource('expenses', ExpenseController::class)->names('expenses');
+        Route::resource('customers', CustomerController::class)->except('index')->names('customers');
+        Route::put('/customers/status/{customer}', [CustomerController::class, 'status'])->name('custoemrs.status');
 
-    Route::resource('sales', SaleController::class)->names('sales');
-    Route::post('/sales/{sale}/invoice', [SaleController::class, 'createInvoice'])->name('sales.invoice.create');
-    Route::get('/sales/{sale}/invoice/print', [SaleController::class, 'printInvoice'])->name('sales.invoice.print');
-    Route::get('/sales/{sale}/returns/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');
-    Route::post('/sales/{sale}/returns', [SaleReturnController::class, 'store'])->name('sales.returns.store');
-});
+        Route::resource('sales', SaleController::class)->names('sales');
+        Route::post('/sales/{sale}/invoice', [SaleController::class, 'createInvoice'])->name('sales.invoice.create');
+        Route::get('/sales/{sale}/invoice/print', [SaleController::class, 'printInvoice'])->name('sales.invoice.print');
+        Route::get('/sales/{sale}/returns/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');
+        Route::post('/sales/{sale}/returns', [SaleReturnController::class, 'store'])->name('sales.returns.store');
 
-Route::middleware(['auth', 'refuseFactoryClerk'])->group(function () {
-    Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
-    Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
-    Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
-});
+        Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
+        Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
+        Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
+    });
 
-Route::middleware(['auth'])->group(function () {
+
+
     Route::resource('suppliers', SupplierController::class)->names('suppliers');
     Route::get('/locations', [LocationController::class, 'index'])->name('locations.index');
     Route::post('/locations', [LocationController::class, 'store'])->name('locations.index');
     Route::put('/locations/{location}/toggle-is-active/{is_active}', [LocationController::class, 'update'])->name('locations.index');
-});
 
 
-// ============================  Goods Receipt and Transfers Section =====================
-Route::middleware('auth')->group(function () {
+    // ============================  Goods Receipt and Transfers Section =====================
     Route::resource('receipts', GoodsReceiptController::class)->names('receipts');
     Route::resource('items', ItemController::class)->names('items');
     Route::resource('transfers', TransferController::class)->names('items');
@@ -276,9 +271,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
     Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])->name('movements.index');
     Route::resource('boms', BOMController::class)->names('boms');
-});
 
-Route::middleware(['auth'])->group(function () {
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');

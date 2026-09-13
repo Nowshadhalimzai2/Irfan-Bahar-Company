@@ -112,7 +112,12 @@ export const mainNavFactoryClerkItems: NavItem[] = [
         href: '/factory/home',
         icon: Factory,
     },
-     {
+    {
+        title: 'کار مندان',
+        href: '/stackholders',
+        icon: Users,
+    },
+    {
         title: 'ستاک',
         href: '/inventory-balances',
         icon: Store,

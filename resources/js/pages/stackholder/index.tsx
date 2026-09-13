@@ -12,15 +12,25 @@ import UserList from "@/components/user/user-list";
 import AppLayout from "@/layouts/app-layout";
 import { Customer, Employee, Supplier, User } from "@/types";
 import { usePage } from "@inertiajs/react";
-interface Props {
-    users: User[];
-    employees: Employee[];
-    suppliers: Supplier[];
-    customers: Customer[];
+import { useRoute } from "ziggy-js";
+interface Stackholders {
+    customers?: any[];
+    employees?: any[];
+    users?: any[];
+    suppliers?: any[];
 }
-export default function Index({ users, employees, suppliers, customers }: Props) {
-    const { auth } = usePage().props;
 
+type StackholdersData = Stackholders[];
+interface Props {
+    stackholders: StackholdersData;
+}
+
+export default function Index({ stackholders }: Props) {
+    const data = stackholders[0];
+
+    const { auth, roles } = usePage().props;
+    const userRole = roles[auth.user.role_id-1].name;
+    
     return (
         <AppLayout breadcrumbs={[
             {
@@ -33,29 +43,30 @@ export default function Index({ users, employees, suppliers, customers }: Props)
             <section className="">
                 <div>
                     <div className="mt-2">
-                        <Tabs defaultValue="customers" className="w-full px-2 md:px-8">
+                        <Tabs defaultValue={userRole=== 'factory_clerk' ? "suppliers" : 'customers'} className="w-full px-2 md:px-8">
                             <TabsList className="flex justify-between items-center w-full">
-                                <TabsTrigger value="customers">مشتریان</TabsTrigger>
-                                <TabsTrigger value="employees">کاریګر ها</TabsTrigger>
-                                {(auth.user.role_id === 1 || auth.user.role_id === 2) && <TabsTrigger value="users">استفاده کنندګان سیستم</TabsTrigger>}
-                                <TabsTrigger value="suppliers">تامین کنندگان</TabsTrigger>
+
+                                {data.customers && <TabsTrigger value="customers">مشتری ها</TabsTrigger>}
+                                {data.employees && <TabsTrigger value="employees">کاریګر ها</TabsTrigger>}
+                                {data.users && <TabsTrigger value="users">استفاده کنندګان سیستم</TabsTrigger>}
+                                {data.suppliers && <TabsTrigger value="suppliers">تامین کنندگان</TabsTrigger>}
                             </TabsList>
                             {/*1: CUSTOMERS  */}
-                            <TabsContent value="customers">
-                                <CustomerList customers={customers} />
-                            </TabsContent>
+                           {data.customers && <TabsContent value="customers">
+                                <CustomerList customers={data.customers} />
+                            </TabsContent>}
                             {/* 2: EMPLOYEES */}
-                            <TabsContent value="employees">
-                                <EmployeeList employees={employees} />
-                            </TabsContent>
+                            {data.employees && <TabsContent value="employees">
+                                <EmployeeList employees={data.employees} />
+                            </TabsContent>}
                             {/* 3: USERS */}
-                            <TabsContent value="users">
-                                <UserList users={users} />
-                            </TabsContent>
+                            {data.users && <TabsContent value="users">
+                                <UserList users={data.users} />
+                            </TabsContent>}
                             {/* 4: SUPPLIERS */}
-                            <TabsContent value="suppliers">
-                                <SupplierList suppliers={suppliers} />
-                            </TabsContent>
+                            {data.suppliers && <TabsContent value="suppliers">
+                                <SupplierList suppliers={data.suppliers} />
+                            </TabsContent>}
                         </Tabs>
                     </div>
                 </div>
