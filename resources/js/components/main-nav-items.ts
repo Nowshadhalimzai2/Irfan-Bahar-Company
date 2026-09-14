@@ -100,6 +100,11 @@ export const mainNevShopClerkItems: NavItem[] = [
         icon: Store,
     },
     {
+        title: ' انتقال اموال',
+        href: '/receipts',
+        icon: Truck,
+    },
+    {
         title: 'اطلاعات',
         href: '/notifications',
         icon: AlertCircle,

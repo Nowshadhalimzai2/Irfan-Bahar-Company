@@ -47,6 +47,16 @@ class AppServiceProvider extends ServiceProvider
 
             return $user instanceof User && $user->hasRole('shop_clerk');
         });
+        Gate::define('reject-admins', function (?User $user): bool {
+            if (! User::query()->exists()) {
+                return true;
+            }
+            if (! $user->status) {
+                abort(403, 'اکونت شما بلاک شده. برای معلومات بیشتر با سوپر ادمین با تماس شوید');
+            }
+
+            return $user instanceof User && $user->hasAnyRole(['shop_clerk','factory_clerk']);
+        });
     }
 
     /**

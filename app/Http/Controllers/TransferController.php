@@ -7,7 +7,6 @@ use App\Custome\Log;
 use App\Models\Item;
 use App\Models\Location;
 use App\Models\Transfer;
-use App\Models\TransferLine;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,8 +14,8 @@ use Illuminate\Validation\ValidationException;
 use App\Models\InventoryBalance;
 use App\Notifications\TransferCreated;
 use Error;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
-use Monolog\Processor\LoadAverageProcessor;
 
 class TransferController extends Controller
 {
@@ -31,6 +30,7 @@ class TransferController extends Controller
      */
     public function create(Request $request, ?Location $location)
     {
+        Gate::authorize('reject-admins');
 
         $locations = Location::select('id', 'name')->get();
         if ($location instanceof Location) {
@@ -49,7 +49,7 @@ class TransferController extends Controller
             $query->select('id', 'item_id', 'quantity_on_hand')->where('quantity_on_hand', '>', 0);
         }])->whereHas('inventoryBalances', function ($query) {
             $query->where('quantity_on_hand', '>', 0);
-        })->select('id', 'name', 'unit','default_sale_price')->get();
+        })->select('id', 'name', 'unit', 'default_sale_price')->get();
 
         return Inertia::render('transfer/create', compact('locations', 'items'));
     }
@@ -59,6 +59,8 @@ class TransferController extends Controller
      */
     public function store(Request $request)
     {
+        Gate::authorize('reject-admins');
+
         $data = $request->validate([
             'source_id' => 'required|integer|exists:locations,id',
             'destination_id' => 'required|integer|exists:locations,id',
@@ -115,7 +117,7 @@ class TransferController extends Controller
                 $inventory->move($data['destination_id'], $line['item_id'], $line['quantity'], 'transferred_in', $data['notes']);
                 // ======== UPDATE INVENTORY BALANCE =======
             }
-            $des = 'اجناس از '.$transfer->source->name.' به '.$transfer->destination->name.' انتقال شد';
+            $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' انتقال شد';
             $log->create('insert', $des);
             DB::commit();
             $transfer->load('source:id,name', 'destination:id,name');
@@ -129,7 +131,7 @@ class TransferController extends Controller
             if ($th instanceof ValidationException) {
                 throw $th;
             }
-            $des = 'اجناس از '.$transfer->source->name.' به '.$transfer->destination->name.' انتقال نشد';
+            $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' انتقال نشد';
             $log->create('insert', $des);
             DB::rollBack();
             Inertia::flash('toast', ['type' => 'error', 'message' => 'جنس نو وارد نشد .' . $th->getMessage()]);

@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowRight, CalendarDays, ChevronDown, PackagePlus, Search, SlidersHorizontal, Warehouse, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import LocationTranslator from '@/components/location-translator';
@@ -23,6 +23,8 @@ interface Props {
     };
 }
 const GoodsReceiptList = ({ goodsReceipts }: Props) => {
+    const {auth,roles} = usePage().props;
+    const userRole:string = roles.filter(role=>role.id===auth.user.role_id)[0].name;
     const [search, setSearch] = useState('');
     const [supplier, setSupplier] = useState('all');
     const [location, setLocation] = useState('all');
@@ -60,7 +62,7 @@ const GoodsReceiptList = ({ goodsReceipts }: Props) => {
                         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">رسیدهای اجناس</h1>
                         <p className="max-w-xl text-sm leading-6 text-slate-300">ورود اجناس از تأمین‌کنندگان را سریع پیدا و بررسی کنید.</p>
                     </div>
-                    <Link href="/receipts/create" className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-amber-400 text-slate-950 hover:bg-amber-300`}><PackagePlus className="size-4" /> خریدن جنس نو</Link>
+                    {(userRole === 'factory_clerk' || userRole==='shop_clerk') &&<Link href="/receipts/create" className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-amber-400 text-slate-950 hover:bg-amber-300`}><PackagePlus className="size-4" /> خریدن جنس نو</Link>}
                 </div>
             </div>
 
@@ -83,8 +85,7 @@ const GoodsReceiptList = ({ goodsReceipts }: Props) => {
                 </div>
             </div>
 
-            <div className="section">
-                <SectionTitle title="لیست اجناس آمده" />
+            <div className="">
                 <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
                     <div className="overflow-x-auto">
                     <Table>

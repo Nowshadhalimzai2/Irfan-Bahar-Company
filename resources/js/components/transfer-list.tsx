@@ -1,4 +1,4 @@
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, ArrowRight, CalendarDays, ChevronDown, PackageCheck, Search, SlidersHorizontal, Truck, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import LocationTranslator from '@/components/location-translator';
@@ -23,6 +23,10 @@ interface Props {
     };
 }
 const TransferList = ({ transfers }: Props) => {
+
+    const { auth, roles } = usePage().props;
+    const userRole: string = roles.filter(role => role.id === auth.user.role_id)[0].name;
+
     const [search, setSearch] = useState('');
     const [source, setSource] = useState('all');
     const [destination, setDestination] = useState('all');
@@ -32,7 +36,7 @@ const TransferList = ({ transfers }: Props) => {
     const destinationLocations = useMemo(() => Array.from(new Set(transfers.data.map((transfer) => LocationTranslator(transfer.destination.name)))), [transfers.data]);
 
     const filteredTransfers = useMemo(() => transfers.data.filter((transfer) => {
-       
+
         const searchable = `${transfer.reference_no}`.toLowerCase();
         const transferredDate = new Date(transfer.transferred_at);
 
@@ -60,7 +64,7 @@ const TransferList = ({ transfers }: Props) => {
                         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">انتقالات داخلی</h1>
                         <p className="max-w-xl text-sm leading-6 text-slate-300">تمام جابه‌جایی‌های اجناس را در یک نمای روشن دنبال کنید.</p>
                     </div>
-                    <Link href="/transfers/create" className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-cyan-400 text-slate-950 hover:bg-cyan-300`}><PackageCheck className="size-4" /> جنس را انتقال دهید</Link>
+                    {(userRole === 'factory_clerk' || userRole === 'shop_clerk') && <Link href="/transfers/create" className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-cyan-400 text-slate-950 hover:bg-cyan-300`}><PackageCheck className="size-4" /> جنس را انتقال دهید</Link>}
                 </div>
             </div>
 
@@ -83,46 +87,45 @@ const TransferList = ({ transfers }: Props) => {
                 </div>
             </div>
 
-            <div className='section'>
-                <SectionTitle title="لیست اجناس انتقال شده" />
+            <div className='shadow-md bg-white rounded-2xl'>
                 <div className=" ">
                     <div className="overflow-x-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                <TableHead className='text-center text-xs font-semibold'>شماره</TableHead>
-                                <TableHead className='text-center'>مرجع</TableHead>
-                                <TableHead className='text-center'>مقصود</TableHead>
-                                <TableHead className='text-center'>نمبر حواله</TableHead>
-                                <TableHead className='text-center'>تاریخ انتقال</TableHead>
-                                <TableHead className='text-center'>جمله قیمت اجناس</TableHead>
-                                <TableHead aria-label="باز کردن" />
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                    <TableHead className='text-center text-xs font-semibold'>شماره</TableHead>
+                                    <TableHead className='text-center'>مرجع</TableHead>
+                                    <TableHead className='text-center'>مقصود</TableHead>
+                                    <TableHead className='text-center'>نمبر حواله</TableHead>
+                                    <TableHead className='text-center'>تاریخ انتقال</TableHead>
+                                    <TableHead className='text-center'>جمله قیمت اجناس</TableHead>
+                                    <TableHead aria-label="باز کردن" />
 
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredTransfers.length > 0 ? filteredTransfers.map((transfer, ind) =>
-                                <TableRow key={transfer.id} className="cursor-pointer transition-colors hover:bg-cyan-50/60 dark:hover:bg-cyan-950/20" onClick={() => router.get('/transfers/' + transfer.id)}>
-                                    <TableCell className='text-center'>{ind + 1}</TableCell>
-                                    <TableCell className='text-center'>{LocationTranslator(transfer.source.name)}</TableCell>
-                                    <TableCell className='text-center' >{LocationTranslator(transfer.destination.name)}</TableCell>
-                                    <TableCell className='text-center'>{transfer.reference_no}</TableCell>
-                                    <TableCell className='text-center text-sm text-muted-foreground'>{new Date(transfer.transferred_at).toLocaleDateString('fa-IR')}</TableCell>
-                                    <TableCell className='text-center font-semibold'>{transfer.transfer_lines.reduce((acc,line)=>acc + Number(line.unit_price),0).toLocaleString()}</TableCell>
-                                    <TableCell className="w-8"><ArrowRight className="size-4 text-muted-foreground" /></TableCell>
                                 </TableRow>
-                            ) : <TableRow>
-                                <TableCell colSpan={7}><p className="w-full p-10 text-center text-muted-foreground">موردی با این مشخصات پیدا نشد.</p></TableCell>
-                            </TableRow>}
-                        </TableBody>
-                        <TableFooter>
-                            <TableRow>
-                                <TableCell colSpan={7}>
-                                   <PageLinks links={transfers.links} />
-                                </TableCell>
-                            </TableRow>
-                        </TableFooter>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {filteredTransfers.length > 0 ? filteredTransfers.map((transfer, ind) =>
+                                    <TableRow key={transfer.id} className="cursor-pointer transition-colors hover:bg-cyan-50/60 dark:hover:bg-cyan-950/20" onClick={() => router.get('/transfers/' + transfer.id)}>
+                                        <TableCell className='text-center'>{ind + 1}</TableCell>
+                                        <TableCell className='text-center'>{LocationTranslator(transfer.source.name)}</TableCell>
+                                        <TableCell className='text-center' >{LocationTranslator(transfer.destination.name)}</TableCell>
+                                        <TableCell className='text-center'>{transfer.reference_no}</TableCell>
+                                        <TableCell className='text-center text-sm text-muted-foreground'>{new Date(transfer.transferred_at).toLocaleDateString('fa-IR')}</TableCell>
+                                        <TableCell className='text-center font-semibold'>{transfer.transfer_lines.reduce((acc, line) => acc + Number(line.unit_price), 0).toLocaleString()}</TableCell>
+                                        <TableCell className="w-8"><ArrowRight className="size-4 text-muted-foreground" /></TableCell>
+                                    </TableRow>
+                                ) : <TableRow>
+                                    <TableCell colSpan={7}><p className="w-full p-10 text-center text-muted-foreground">موردی با این مشخصات پیدا نشد.</p></TableCell>
+                                </TableRow>}
+                            </TableBody>
+                            <TableFooter>
+                                <TableRow>
+                                    <TableCell colSpan={7}>
+                                        <PageLinks links={transfers.links} />
+                                    </TableCell>
+                                </TableRow>
+                            </TableFooter>
+                        </Table>
                     </div>
                 </div>
             </div>

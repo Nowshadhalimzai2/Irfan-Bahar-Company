@@ -12,9 +12,13 @@ use App\Models\Item;
 use App\Models\Location;
 use App\Models\Supplier;
 use App\Models\Transfer;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class GoodsReceiptController extends Controller
@@ -22,17 +26,54 @@ class GoodsReceiptController extends Controller
 
     function index()
     {
-        $transfers = Transfer::with('source:id,name','destination:id,name','transferLines:id,item_id,transfer_id,quantity,unit_price','transferLines.item:id,name,unit,item_type')
-            ->select('id','source_id','destination_id','reference_no','notes','transferred_at')
-            ->orderBy('id','desc')->paginate(10);
-        $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')->orderBy('id', 'desc')->paginate(10);
-        return Inertia::render('goods-receipt/index', compact('goodsReceipts','transfers'));
+        $user = Auth::user();
+        if ($user instanceof User) {
+            if ($user->hasRole('factory_clerk')) {
+                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')
+                    ->whereIn('destination_location_id', function ($query) {
+                        $query->select('id')
+                            ->from('locations')
+                            ->whereIn('type', ['factory', 'warehouse']);
+                    })
+                    ->orderBy('id', 'desc')
+                    ->paginate(10);
+            }
+            if ($user->hasRole('shop_clerk')) {
+                  $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')
+                    ->whereIn('destination_location_id', function ($query) {
+                        $query->select('id')
+                            ->from('locations')
+                            ->whereIn('type', ['shop']);
+                    })
+                    ->orderBy('id', 'desc')
+                    ->paginate(10);
+            } else {
+                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')->orderBy('id', 'desc')->paginate(10);
+            }
+        }
+        $transfers = Transfer::with('source:id,name', 'destination:id,name', 'transferLines:id,item_id,transfer_id,quantity,unit_price', 'transferLines.item:id,name,unit,item_type')
+            ->select('id', 'source_id', 'destination_id', 'reference_no', 'notes', 'transferred_at')
+            ->orderBy('id', 'desc')->paginate(10);
+        return Inertia::render('goods-receipt/index', compact('goodsReceipts', 'transfers'));
     }
     function create()
     {
+        Gate::authorize('reject-admins');
+
 
         $suppliers = Supplier::select('id', 'name')->get();
-        $locations = Location::select('id', 'name')->get();
+        
+        $user = Auth::user();
+        if ($user instanceof User && $user->hasRole('factory_clerk')) {
+            $locations = Location::select('id', 'name')
+                ->whereIn('type', ['warehouse', 'factory'])
+                ->get();
+        } else if ($user instanceof User && $user->hasRole('shop_clerk')) {
+            $locations = Location::select('id', 'name')
+                ->whereIn('type', ['shop'])
+                ->get();
+        }
+
         $currencies = Currency::select('id', 'name')->get();
         $items = Item::with('product')->select('id', 'name', 'unit')->get();
 
@@ -41,14 +82,22 @@ class GoodsReceiptController extends Controller
 
     public function store(Request $request)
     {
+        Gate::authorize('reject-admins');
+
         // ========== VALIDATE DATA ===========
         $data = $request->validate([
             'supplier_id' => 'required|integer|exists:suppliers,id',
-            'destination_location_id' => 'required|integer|exists:locations,id',
+            'destination_location_id' => [
+                'required',
+                'integer',
+                Rule::exists('locations', 'id')->where(function ($query) {
+                    $query->whereIn('type', ['warehouse', 'factory', 'shop']);
+                }),
+            ],
             'received_at' => 'required|date',
             'notes' => 'nullable|string|max:255',
             'receiptLines' => 'required|array|min:1',
-
+            'distination_id' => '',
             // each line validation
             'receiptLines.*.item_id' => 'required|integer|exists:items,id|distinct',
             'receiptLines.*.quantity' => 'required|integer|gt:0',
@@ -79,7 +128,7 @@ class GoodsReceiptController extends Controller
                 $inventory->move($data['destination_location_id'], $line['item_id'], $line['quantity'], 'receipt', $data['notes']);
             }
 
-            $log->create('insert', ' جنس نو وارد شد در '.$receipt->location->name);
+            $log->create('insert', ' جنس نو وارد شد در ' . $receipt->location->name);
             DB::commit();
 
             Inertia::flash('toast', ['type' => 'success', 'message' => 'جنس نو امد به کارخانه .']);
@@ -95,7 +144,7 @@ class GoodsReceiptController extends Controller
     public function show(GoodsReceipt $receipt)
     {
         $receipt->load('location:id,name', 'receiptLines:id,item_id,quantity,receipt_id,unit_cost, currency_id', 'supplier:id,name');
-        $receipt->load('receiptLines.item:id,name,unit,product_id','receiptLines.currency:id,name','receiptLines.item.product:item_id,weight');
+        $receipt->load('receiptLines.item:id,name,unit,product_id', 'receiptLines.currency:id,name', 'receiptLines.item.product:item_id,weight');
         return Inertia::render('goods-receipt/show', compact('receipt'));
     }
 }
