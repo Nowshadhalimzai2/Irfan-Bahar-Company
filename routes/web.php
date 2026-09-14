@@ -35,6 +35,7 @@ use App\Models\Sale;
 use App\Models\ShopAccount;
 use App\Models\Transfer;
 use App\Models\User;
+use App\Services\DashboardService;
 use App\Services\HighProductionService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
@@ -67,97 +68,36 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('home');
 
     Route::get('/dashboard', function () {
+        $dashbaordService = new DashboardService();
         $sa = ShopAccount::with('currency:id,name')->select('id', 'amount', 'currency_id')->get();
-        $todaysExpenses = Expense::with('currency:id,name')
-            ->selectRaw('currency_id, SUM(amount) as total_amount')
-
-            ->whereDate('date', Carbon::today(config('app.timezone')))
-            ->groupBy('currency_id')
-            ->orderBy('id', 'desc')
-            ->pluck('total_amount', 'currency_id');
-        $totalExpensesBasedOnCurrency = Expense::query()
-            ->selectRaw('currency_id, SUM(amount) as total_amount')
-            ->groupBy('currency_id')
-            ->pluck('total_amount', 'currency_id');
 
         //  get all emplyess length 
         $employees = getEmployees();
 
-        $transfersToShop = Transfer::with('destination:id,name', 'transferLines:id,transfer_id,item_id,unit_price,quantity', 'transferLines.item:id,category_id', 'transferLines.item.category:id,name')->whereHas('destination', function ($q) {
-            $q->where('name', 'shop');
-        })
-            ->orderBy('created_at', 'desc')
-            ->limit(3)
-            ->get();
+        $transfersToShop = $dashbaordService->shopTransfers();
+
         $currencies = Currency::all(['id', 'name']);
 
-        $items = Item::with('inventoryBalances:id,item_id,location_id,quantity_on_hand,reserved')
-            ->get();
-        $reorderItemsCount = $items->sum(function ($item) {
-            return $item->inventoryBalances()->where('quantity_on_hand', '<', 10)->count();
-        });
-
+        $reorderItemsCount = $dashbaordService->reOrderItemsCount();
         //  PRICE OF OVERALL PRODUCTS TRANSFERRED TO SHOP SINCE
-        $totalAmountShopOwes = 0;
+        $totalAmountShopOwes = $dashbaordService->totalAmountShopOwes();
 
-        foreach ($transfersToShop as $transfer) {
-            foreach ($transfer->transferLines as $line) {
-                $totalAmountShopOwes += ($line->unit_price * $line->quantity);
-            }
-        }
-
-        // Total Price of Available Items In Shop
-        $totalAmountOfAvailableItems = 0;
-        $items = Item::query()
-            ->with([
-                'inventoryBalances' => function ($query) {
-                    $query->select('id', 'item_id', 'location_id', 'quantity_on_hand', 'reserved')
-                        ->whereHas('location', function ($q) {
-                            $q->where('name', 'shop');
-                        });
-                },
-            ])
-            ->whereHas('inventoryBalances.location', function ($q) {
-                $q->where('name', 'shop');
-            })
-            ->get();
-
-        foreach ($items as $item) {
-            foreach ($item->inventoryBalances as $inventoryBalance) {
-                $totalAmountOfAvailableItems += ($item->default_sale_price * $inventoryBalance->quantity_on_hand);
-            }
-        }
+        $items = $dashbaordService->shopItems();
+        // Total Cost of Available Items In Shop
+        $totalAmountOfAvailableItems = $dashbaordService->totalCostOfAvailableItemsInShop();
         // TOTAL EXPENSES SO FAR
-        $totalExpenses = Expense::query()
-            ->selectRaw('currency_id, SUM(amount) as total_amount')
-            ->groupBy('currency_id')
-            ->pluck('total_amount', 'currency_id');
+        $totalExpenses = $dashbaordService->totalExpenses();
 
-        $todaysExpenses = Expense::with('currency:id,name')
-            ->selectRaw('currency_id, SUM(amount) as total_amount')
+        $todaysExpenses = $dashbaordService->todaysExpenses();
+        $todayIncomes = $dashbaordService->todayIncomes();
 
-            ->whereDate('date', Carbon::today(config('app.timezone')))
-            ->groupBy('currency_id')
-            ->orderBy('id', 'desc')
-            ->pluck('total_amount', 'currency_id');
-        $paymentsTotal = Payment::query()
-            ->selectRaw('currency_id, SUM(amount) as total_amount')
-            ->whereDate('date', Carbon::today(config('app.timezone')))
-            ->where('method', 'cash')
-            ->groupBy('currency_d')
-            ->orderBy('id', 'desc')
-            ->pluck('total_amount', 'currency_id');
-        $salesTotal = Sale::query()
-            ->doesntHave('invoice')
-            ->selectRaw('currency_id, SUM(amount_paid) as total_amount')
-            ->whereDate('sold_at', Carbon::today(config('app.timezone')))
-            ->groupBy('currency_id')
-            ->orderBy('total_amount', 'desc')
-            ->pluck('total_amount', 'currency_id');
-        $todayIncomes = $salesTotal->map(fn($val, $key) => $val + ($paymentsTotal[$key] ?? 0))
-            ->merge($paymentsTotal->diffKeys($salesTotal))
-            ->toArray();
-        return Inertia::render('dashboard', compact('todayIncomes', 'sa', 'todaysExpenses', 'totalExpensesBasedOnCurrency', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses'));
+        //  payments for today for custoemr loans
+        $totalPayments = $dashbaordService->todaysRealPayments();
+        // total of todays loan
+        $totalLoans = $dashbaordService->todaysLoans();
+        // $totalIncomes
+        $overallLoans = $dashbaordService->totalOverallLoans();
+        return Inertia::render('dashboard', compact('overallLoans','todayIncomes', 'sa', 'todaysExpenses', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses', 'totalPayments', 'totalLoans'));
     })->name('dashboard')->middleware('refuseFactoryClerk');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index')->middleware('superadmin');
@@ -227,7 +167,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('employees', EmployeeController::class)->except('index')->names('employees');
     Route::post('/employees/{employee}/attendance-toggle', [EmployeeController::class, 'toggleAttendance'])
         ->name('employees.attendance.toggle');
-    
+
     Route::get('/employees/{employee}/salary-receipt/{salary}', [EmployeeController::class, 'salaryReceipt'])
         ->name('employees.salary.receipt');
 

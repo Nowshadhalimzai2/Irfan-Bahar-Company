@@ -303,7 +303,7 @@ const Index = ({ items, locations }: Props) => {
                                                         موجودی مکان‌ها
                                                     </div>
                                                     <div className="space-y-2">
-                                                        {item.inventory_balances.map((balance, ind) => <ul key={ind} className="flex items-center justify-between gap-3 rounded-xl bg-white px-2 py-1.5 text-xs shadow-sm dark:bg-slate-900">
+                                                        {item.inventory_balances.map((balance, ind) => <ul key={ind} className={`flex items-center justify-between gap-3 rounded-xl bg-white px-2 py-1.5 text-xs shadow-sm dark:bg-slate-900 ${balance.quantity_on_hand<10 && ' bg-red-100!'}`}>
                                                             <li className={`${locationColor(balance.location.name)} font-medium`}>{LocationTranslator(balance.location.name)}</li>
                                                             <li className="text-slate-700 dark:text-slate-200">{balance.quantity_on_hand} {getDariItemUnit(item.unit)}</li>
                                                             <li className="text-slate-500">رزرو: {balance.reserved}</li>

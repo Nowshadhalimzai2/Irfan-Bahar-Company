@@ -9,10 +9,8 @@ import {
     BadgeCheck,
     BadgeAlert,
     BriefcaseBusiness,
-    Building2,
     CircleDollarSign,
     Coins,
-    Factory,
     PackageCheck,
     TrendingUp,
     Users,
@@ -20,8 +18,8 @@ import {
     Warehouse,
     LucideIcon,
     AlertTriangle,
-    ShoppingCart,
     DollarSignIcon,
+    Activity,
 } from 'lucide-react';
 import { getDariCurrency } from '@/components/location-translator';
 import axios from 'axios';
@@ -38,46 +36,43 @@ interface Props {
     totalAmountShopOwes: number;
     totalAmountOfAvailableItems: number;
     totalExpenses: Record<number, number>;
-    todaysExpenses:Record<number,number>;
-    todayIncomes:Record<number,number>;
+    todaysExpenses: Record<number, number>;
+    todayIncomes: Record<number, number>;
+    totalPayments: Record<number, number>;
+    overallLoans: Record<number, number>;
+    totalLoans: Record<number, number>;
+
 }
 
-export default function Dashboard({ todayIncomes,todaysExpenses,sa, totalExpensesBasedOnCurrency, currencies, transfersToShop, employees, items, reorderItemsCount, totalAmountShopOwes, totalAmountOfAvailableItems, totalExpenses }: Props) {
-    
-        
-    const [currency, setCurrency] = useState<string>(currencies[0]?.name ?? 'USD');
+export default function Dashboard({ todayIncomes, todaysExpenses, sa, totalPayments, currencies, overallLoans, transfersToShop, employees, items, reorderItemsCount, totalAmountShopOwes, totalAmountOfAvailableItems, totalExpenses, totalLoans }: Props) {
+
+
+    const [currency, setCurrency] = useState<Currency>(currencies[0]);
     const [averageExpenses, setAverageExpenses] = useState<number>(0);
 
     useEffect(() => {
         const getRevenueAndExpenses = async () => {
-            const response = await axios.get(`/total-revenue-and-expenses/${currency}`);
+            const response = await axios.get(`/total-revenue-and-expenses/${currency.name}`);
             if (response.status === 200) {
                 setAverageExpenses(response.data);
             }
         };
 
         getRevenueAndExpenses();
-    }, [currency]);
+    }, [currency.id]);
 
-    
+
     const presentEmps: number = useMemo(
         () => employees.filter(emp => emp.attendances[emp.attendances.length - 1].is_present === true).length
         , []
     );
 
-    const topTransfer = transfersToShop[0];
 
     const quickStats = [
-        // {
-        //     title: 'کل موجودی نقد',
-        //     value: `${totalCashValue.toLocaleString()} ${getDariCurrency(currency)}`,
-        //     subtitle: 'موجودی حساب‌های دکان',
-        //     icon: Wallet,
-        //     tone: 'emerald',
-        // },
+
         {
             title: 'میانگین هزینه‌ها',
-            value: `${averageExpenses.toFixed(2)} ${getDariCurrency(currency)}`,
+            value: `${averageExpenses.toFixed(2)} ${getDariCurrency(currency.name)}`,
             subtitle: 'در این ماه',
             icon: TrendingUp,
             tone: 'amber',
@@ -98,9 +93,9 @@ export default function Dashboard({ todayIncomes,todaysExpenses,sa, totalExpense
         },
 
         {
-            title: 'پول اجناس موجوده',
-            value: totalAmountOfAvailableItems.toString(),
-            subtitle: 'پول اجناس موجود در دوکان',
+            title: 'جمله قرضه',
+            value: (overallLoans[currency.id] ?? 0).toString(),
+            subtitle: 'جمله قرضه داده شده به مشتریان',
             icon: DollarSignIcon,
             tone: 'emerald',
         },
@@ -110,7 +105,7 @@ export default function Dashboard({ todayIncomes,todaysExpenses,sa, totalExpense
     const moreOptions: { name: string; url: string }[] = [
         { name: 'موقعیت ها', url: '/locations' },
         { name: 'تاریخچه اجرآات', url: '/logs' },
-        
+
     ];
 
     return (
@@ -127,13 +122,16 @@ export default function Dashboard({ todayIncomes,todaysExpenses,sa, totalExpense
                             <label className="mb-1 block text-[10px] uppercase tracking-[0.12em] text-slate-500">Currency</label>
                             <select
                                 name='currency'
-                                value={currency}
-                                onChange={(e) => setCurrency(e.target.value)}
-                                className='bg-transparent text-sm font-medium text-slate-700 outline-none dark:text-slate-200'
+                                value={currency.id}
+                                onChange={(e) => {
+                                    const id = Number(e.target.value);
+                                    const currency = currencies.find(c => c.id === id);
+                                    if (currency) setCurrency(currency);
+                                }} className='bg-transparent text-sm font-medium text-slate-700 outline-none dark:text-slate-200'
                             >
-                                {currencies.map((currencyOption) => (
-                                    <option key={currencyOption.id} value={currencyOption.name}>
-                                        {getDariCurrency(currencyOption.name)}
+                                {currencies.map((cur) => (
+                                    <option key={cur.id} value={cur.id}>
+                                        {getDariCurrency(cur.name)}
                                     </option>
                                 ))}
                             </select>
@@ -189,6 +187,7 @@ export default function Dashboard({ todayIncomes,todaysExpenses,sa, totalExpense
                                     todaysExpenses={todaysExpenses}
                                     LucideIcon={Wallet}
                                     todaysIncomes={todayIncomes}
+
                                 />
                             ))}
                         </div>
@@ -217,38 +216,30 @@ export default function Dashboard({ todayIncomes,todaysExpenses,sa, totalExpense
                         <div className="mb-4 flex items-center justify-between">
                             <div className="flex items-center gap-2">
                                 <div className="rounded-xl bg-sky-100 p-2 text-sky-600 dark:bg-sky-950 dark:text-sky-300">
-                                    <Factory className="h-4 w-4" />
+                                    <Activity className="h-4 w-4" />
                                 </div>
-                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">عملکرد روزانه</h2>
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">قرضه روزانه</h2>
                             </div>
                         </div>
 
                         <div className="space-y-3">
                             <div className="rounded-2xl bg-emerald-50 p-3 dark:bg-emerald-950/50">
                                 <div className="flex items-center justify-between text-sm text-emerald-700 dark:text-emerald-300">
-                                    <span>درآمد امروز</span>
+                                    <span>آمد قرض امروز</span>
                                     <ArrowUpRight className="h-4 w-4" />
                                 </div>
-                                <p className="mt-2 text-xl font-bold text-emerald-700 dark:text-emerald-200">{(averageExpenses * 1.3).toFixed(2)} {getDariCurrency(currency)}</p>
+                                <p className="mt-2 text-xl font-bold text-emerald-700 dark:text-emerald-200">{(totalPayments[currency.id] ?? 0).toFixed(2)} {getDariCurrency(currency.name)}</p>
                             </div>
 
                             <div className="rounded-2xl bg-rose-50 p-3 dark:bg-rose-950/50">
                                 <div className="flex items-center justify-between text-sm text-rose-700 dark:text-rose-300">
-                                    <span>هزینه امروز</span>
+                                    <span>رفت قرض امروز</span>
                                     <ArrowDownLeft className="h-4 w-4" />
                                 </div>
-                                <p className="mt-2 text-xl font-bold text-rose-700 dark:text-rose-200">{averageExpenses.toFixed(2)} {getDariCurrency(currency)}</p>
+                                <p className="mt-2 text-xl font-bold text-rose-700 dark:text-rose-200">{(totalLoans[currency.id] ?? 0).toFixed(2)} {getDariCurrency(currency.name)}</p>
                             </div>
 
-                            <div className="rounded-2xl bg-slate-100 p-3 dark:bg-slate-800">
-                                <div className="flex items-center justify-between text-sm text-slate-700 dark:text-slate-200">
-                                    <span>آخرین انتقال</span>
-                                    <Building2 className="h-4 w-4" />
-                                </div>
-                                <p className="mt-2 text-sm font-medium text-slate-700 dark:text-slate-200">
-                                    {topTransfer ? topTransfer.reference_no : 'بدون داده'}
-                                </p>
-                            </div>
+
                         </div>
                     </div>
 
@@ -258,7 +249,7 @@ export default function Dashboard({ todayIncomes,todaysExpenses,sa, totalExpense
                                 <div className="rounded-xl bg-amber-100 p-2 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
                                     <Warehouse className="h-4 w-4" />
                                 </div>
-                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">اجناس تازه به دوکان</h2>
+                                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">اجناس آخرین  انتقال شده به دوکان</h2>
                             </div>
                             <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
                                 {transfersToShop.length} مورد
@@ -298,16 +289,16 @@ export default function Dashboard({ todayIncomes,todaysExpenses,sa, totalExpense
                     </div>
                 </div>
                 <div className="">
-                    <div className='grid grid-cols-1 gap-2 md:gap-5  md:grid-cols-2 '>
+                    <div className='grid grid-cols-1 gap-2 md:gap-5  md:grid-cols-3 '>
                         <div className=" gap-3 flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
                             <div className="flex justify-between">
-                                <div className="flex gap-2 text-indigo-500">
-                                    <Coins />
-                                    <h4 className="text-xl font-semibold">{totalAmountShopOwes}</h4>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    پول اجناس
+                                <p className="font-medium text-sm">
+                                    بقایه اجناس
                                 </p>
+                                <div className="flex gap-2 text-indigo-500">
+                                    <h4 className="text-xl font-semibold">{totalAmountShopOwes}</h4>
+                                    <Coins />
+                                </div>
                             </div>
                             <p className="text-xs text-muted-foreground">
                                 جمله پول اجناس انتقال شده به دوکان
@@ -315,17 +306,34 @@ export default function Dashboard({ todayIncomes,todaysExpenses,sa, totalExpense
                         </div>
                         <div className=" gap-3 flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
                             <div className="flex justify-between">
-                                <div className="flex gap-2 text-fuchsia-500">
-                                    <Coins />
-                                    <h4 className="text-xl font-semibold">{totalExpenses[currencies.filter(cur => cur.name == currency)[0].id] ?? 0}</h4>
-                                </div>
-                                <p className="text-sm text-muted-foreground">
-                                    پول پرداخت شده
+                                <p className="font-medium text-sm">
+                                    پول اجناس
                                 </p>
+                                <div className="flex gap-2 text-amber-600">
+                                    <h4 className="text-xl font-semibold">{totalAmountOfAvailableItems}</h4>
+                                    <Coins />
+                                </div>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                جمله پول پرداخت شده به دفتر
+                                جمله پول اجناس موجوده در دوکان
                             </p>
+                        </div>
+                        <div className=" gap-3 flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
+                            <div className="flex justify-between">
+
+                                <p className="font-medium text-sm">
+                                    پول پرداخت شده
+                                </p>
+                                <div className="flex gap-2 text-fuchsia-500">
+                                    <h4 className="text-xl font-semibold">{totalExpenses[currencies.filter(cur => cur.name == currency.name)[0].id] ?? 0}</h4>
+                                    <Coins />
+                                </div>
+                               
+                            </div>
+                                <p className="text-xs text-muted-foreground">
+                                    جمله پول پرداخت شده از دوکان به دفتر
+                                </p>
+
                         </div>
                     </div>
                 </div>
@@ -341,7 +349,7 @@ interface BalanceProps {
     LucideIcon: LucideIcon;
 }
 
-const BalanceCard = ({ todaysExpenses, account, LucideIcon,todaysIncomes }: BalanceProps) => {
+const BalanceCard = ({ todaysExpenses, account, LucideIcon, todaysIncomes }: BalanceProps) => {
     return (
         <div className="rounded-2xl border border-slate-200 bg-linear-to-b from-white to-slate-50 p-4 shadow-sm transition hover:border-primary/30 hover:shadow-md dark:border-slate-700 dark:from-slate-900 dark:to-slate-950">
             <div className="flex items-center justify-between">
@@ -361,7 +369,7 @@ const BalanceCard = ({ todaysExpenses, account, LucideIcon,todaysIncomes }: Bala
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-2">
                     <span>درآمد امروز</span>
-                    <span>{todaysIncomes[account.currency.id-1]?.toLocaleString() || 0}</span>
+                    <span>{todaysIncomes[account.currency.id - 1]?.toLocaleString() || 0}</span>
                 </div>
             </div>
         </div>
