@@ -346,6 +346,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                 variant="ghost"
                                 size="sm"
                                 className="text-primary"
+                                onClick={()=>router.get('/sales/most-sold-products')}
                             >
                                 مشاهده همه{' '}
                                 <ArrowDownLeft className="h-3.5 w-3.5 rotate-45" />

@@ -183,11 +183,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('customers', CustomerController::class)->except('index')->names('customers');
         Route::put('/customers/status/{customer}', [CustomerController::class, 'status'])->name('custoemrs.status');
 
+        Route::get('/sales/most-sold-products', [SaleController::class, 'mostSold'])->name('sales.mostSold');
         Route::resource('sales', SaleController::class)->names('sales');
         Route::post('/sales/{sale}/invoice', [SaleController::class, 'createInvoice'])->name('sales.invoice.create');
         Route::get('/sales/{sale}/invoice/print', [SaleController::class, 'printInvoice'])->name('sales.invoice.print');
         Route::get('/sales/{sale}/returns/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');
         Route::post('/sales/{sale}/returns', [SaleReturnController::class, 'store'])->name('sales.returns.store');
+        
 
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');

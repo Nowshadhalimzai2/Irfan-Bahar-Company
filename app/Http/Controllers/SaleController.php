@@ -33,7 +33,6 @@ class SaleController extends Controller
         if ($requestedMonth) {
             if ($requestedMonth == 'previous_month') {
                 $monthStart = $now->copy()->startOfMonth()->subMonth();
-            
             } else if ($requestedMonth == 'three_months_ago') {
                 $monthStart = $now->copy()->startOfMonth()->subMonth();
                 $monthStart = $monthStart->copy()->subMonth();
@@ -399,5 +398,36 @@ class SaleController extends Controller
 
             return ['day' => $date->day, 'sales' => round((float) $daySales->sum('after_descount_total'), 2)];
         })->filter(fn(array $item) => $item['day'] <= $now->day)->values();
+    }
+
+    public function mostSold()
+    {
+        $now = now();
+        $monthStart = $now->copy()->startOfMonth();
+        $sales = Sale::query()
+            ->with(['customer:id,name', 'currency:id,name', 'saleLines.item:id,name,category_id,unit', 'saleLines.item.category:id,name', 'invoice:id,sale_id,invoice_number,status'])
+            ->where(function ($query) use ($monthStart, $now) {
+                $query->whereBetween('sold_at', [$monthStart, $now])
+                    ->orWhereBetween('created_at', [$monthStart, $now]);
+            })
+            ->latest('sold_at')
+            ->latest('created_at')
+            ->get();
+
+        $completedSales = $sales->where('status', 'completed');
+        $topProducts = $completedSales->flatMap->saleLines
+            ->groupBy('item_id')
+            ->map(function ($lines) {
+                $line = $lines->first();
+
+                return [
+                    'name' => $line->item?->name ?? 'بدون نام',
+                    'category' => $line->item?->category?->name ?? 'بدون دسته‌بندی',
+                    'sales' => round((float) $lines->sum('line_total'), 2),
+                    'units' => round((float) $lines->sum('quantity'), 3),
+                    'unit' => $line->item?->unit ?? 'unit',
+                ];
+            })->sortByDesc('sales')->values()->values();
+            return Inertia::render('sale/top-product',compact('topProducts'));
     }
 }
