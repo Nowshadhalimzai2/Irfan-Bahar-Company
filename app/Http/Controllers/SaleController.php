@@ -16,6 +16,7 @@ use App\Models\SaleLine;
 use App\Models\User;
 use App\Notifications\HighDiscountAlert;
 use Carbon\Carbon;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -23,10 +24,22 @@ use Inertia\Inertia;
 
 class SaleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
+
         $now = now();
         $monthStart = $now->copy()->startOfMonth();
+        $requestedMonth = $request->period;
+        if ($requestedMonth) {
+            if ($requestedMonth == 'previous_month') {
+                $monthStart = $now->copy()->startOfMonth()->subMonth();
+            
+            } else if ($requestedMonth == 'three_months_ago') {
+                $monthStart = $now->copy()->startOfMonth()->subMonth();
+                $monthStart = $monthStart->copy()->subMonth();
+            }
+        }
+
         $previousMonthStart = $monthStart->copy()->subMonth();
         $previousMonthEnd = $monthStart->copy()->subSecond();
 
@@ -39,12 +52,20 @@ class SaleController extends Controller
             ->latest('sold_at')
             ->latest('created_at')
             ->get();
-        // dd($sales);
+
+        $completedSales = $sales->where('status', 'completed');
+        if ($request->expectsJson()) {
+            //  get specified month from front and exeucte the logic accordingly
+            // for month based sales
+            $trend = $this->getTrend($monthStart, $completedSales);
+            return response()->json($trend);
+        }
+        $trend = $this->getTrend($monthStart, $completedSales);
+
         $previousMonthSales = Sale::query()
             ->whereBetween('sold_at', [$previousMonthStart, $previousMonthEnd])
             ->get();
 
-        $completedSales = $sales->where('status', 'completed');
         $previousRevenue = (float) $previousMonthSales->where('status', 'completed')->sum('after_descount_total');
         $revenue = (float) $completedSales->sum('after_descount_total');
         // $orderCount = $sales->count();
@@ -57,16 +78,8 @@ class SaleController extends Controller
             return $previous > 0 ? round((($current - $previous) / $previous) * 100, 1) : ($current > 0 ? 100 : 0);
         };
 
-        $trend = collect(range(0, $now->daysInMonth - 1))->map(function (int $day) use ($monthStart, $completedSales) {
-            $date = $monthStart->copy()->addDays($day);
-            $daySales = $completedSales->filter(function (Sale $sale) use ($date) {
-                return Carbon::parse($sale->sold_at ?? $sale->created_at)->isSameDay($date);
-            });
 
-            return ['day' => $date->day, 'sales' => round((float) $daySales->sum('after_descount_total'), 2)];
-        })->filter(fn(array $item) => $item['day'] <= $now->day)->values();
-
-        $topProducts =$completedSales->flatMap->saleLines
+        $topProducts = $completedSales->flatMap->saleLines
             ->groupBy('item_id')
             ->map(function ($lines) {
                 $line = $lines->first();
@@ -233,7 +246,7 @@ class SaleController extends Controller
                     $sa->credit($afterDiscount, $data['currency_id']);
                 }
 
-                if ($amountPaid < $afterDiscount || $data['customer_id'] !=null) {
+                if ($amountPaid < $afterDiscount || $data['customer_id'] != null) {
                     $this->createInvoice($sale);
                 }
                 $this->ensureDiscountIsEnough($sale);
@@ -373,5 +386,18 @@ class SaleController extends Controller
         }
 
         return $invoice;
+    }
+
+    public function getTrend(CarbonInterface $monthStart, mixed $completedSales)
+    {
+        $now = now();
+        return collect(range(0, $now->daysInMonth - 1))->map(function (int $day) use ($monthStart, $completedSales) {
+            $date = $monthStart->copy()->addDays($day);
+            $daySales = $completedSales->filter(function (Sale $sale) use ($date) {
+                return Carbon::parse($sale->sold_at ?? $sale->created_at)->isSameDay($date);
+            });
+
+            return ['day' => $date->day, 'sales' => round((float) $daySales->sum('after_descount_total'), 2)];
+        })->filter(fn(array $item) => $item['day'] <= $now->day)->values();
     }
 }

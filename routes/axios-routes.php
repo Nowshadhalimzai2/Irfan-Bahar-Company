@@ -3,6 +3,7 @@
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ExpenseController;
 use App\Http\Controllers\SalaryController;
+use App\Http\Controllers\SaleController;
 use Illuminate\Support\Facades\Route;
 use Laravel\Fortify\Http\Controllers\RegisteredUserController;
 
@@ -18,3 +19,5 @@ Route::middleware(['auth', 'allowOnlyShopClerk'])->group(function (){
     
     Route::put('/expenses/{expense}/toggle-editable', [ExpenseController::class, 'toggleEditable'])->name('expenses.toggle-editable');
 });
+
+Route::get('/sales/getTrend/{period}',[SaleController::class,'index'])->middleware('auth')->name('sales.period');

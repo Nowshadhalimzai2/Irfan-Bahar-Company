@@ -17,7 +17,7 @@ import {
     TrendingUp,
     Users,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     Area,
     AreaChart,
@@ -35,6 +35,7 @@ import {
 import { getDariCategory, getDariCurrency, getDariItemUnit } from '@/components/location-translator';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
+import axios from 'axios';
 
 type Stats = {
     revenue: number;
@@ -48,7 +49,7 @@ type Stats = {
 type TrendPoint = { day: number; sales: number };
 type Channel = { name: string; value: number; percent: number; color: string };
 type Product = { name: string; category: string; sales: number; units: number, unit: string };
-type Order = { saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string,currency: 'AFG' | 'PKR' | 'USD' };
+type Order = { saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string, currency: 'AFG' | 'PKR' | 'USD' };
 type Comment = { name: string; text: string; time: string };
 
 const formatValue = (value: number) => `${(value / 1000).toFixed(1)}k`;
@@ -56,8 +57,19 @@ const statusLabels: Record<string, string> = { completed: 'تکمیل شده', d
 const statusClasses: Record<string, string> = { completed: 'bg-emerald-50 text-emerald-700', draft: 'bg-amber-50 text-amber-700', cancelled: 'bg-rose-50 text-rose-700', partially_returned: 'bg-orange-50 text-orange-700', returned: 'bg-slate-100 text-slate-700' };
 
 export default function Index({ stats, trend, channels, topProducts, orders, comments, meta }: { stats: Stats; trend: TrendPoint[]; channels: Channel[]; topProducts: Product[]; orders: Order[]; comments: Comment[]; meta: { month: string; currentRevenue: number; previousRevenue: number; revenueGrowth: number } }) {
-    const [period, setPeriod] = useState('این ماه');
+    const [trending, setTrending] = useState<TrendPoint[]>([]);
+    const [period, setPeriod] = useState('this_month');
+    useEffect(() => {
+        const getTrends = async () => {
+            const res = await axios.get(`/sales/getTrend/${period}`);
+            if (res.status == 200)
+                setTrending(res.data);
+            else
+                console.log('errror::: ', res.statusText);
+        }
 
+        getTrends();
+    }, [period])
     return (
         <AppLayout breadcrumbs={[{ title: 'فروشات', href: '/sales' }]}>
             <Head title="داشبورد فروش" />
@@ -133,7 +145,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                         tone="violet"
                     />
 
-                    
+
                 </section>
 
                 <section className="grid gap-5 xl:grid-cols-[1.55fr_0.85fr]">
@@ -159,16 +171,16 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                     }
                                     className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-600 outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                                 >
-                                    <option>این ماه</option>
-                                    <option>ماه گذشته</option>
-                                    <option>سه ماه اخیر</option>
+                                    <option value='this_month'>این ماه</option>
+                                    <option value='previous_month'>ماه گذشته</option>
+                                    <option value='three_months_ago'>سه ماه اخیر</option>
                                 </select>
                             </div>
                         </div>
                         <div className="h-64 w-full">
                             <ResponsiveContainer width="100%" height="100%">
                                 <AreaChart
-                                    data={trend}
+                                    data={trending}
                                     margin={{
                                         top: 8,
                                         right: 4,
@@ -509,10 +521,10 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                                             <FileText className="size-3.5" /> ایجاد
                                                         </button>
                                                     )}
-                                                   {order.hasInvoice ?  <button type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700">
+                                                    {order.hasInvoice ? <button type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700">
                                                         <RotateCcw className="size-3.5" /> برگشت
                                                     </button>
-                                                    : <p className='text-xs text-gray-400 '>بل ندارد</p>
+                                                        : <p className='text-xs text-gray-400 '>بل ندارد</p>
                                                     }
                                                 </div>
                                             </td>
