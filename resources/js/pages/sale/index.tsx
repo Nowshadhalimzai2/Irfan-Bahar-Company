@@ -7,6 +7,7 @@ import {
     Download,
     Ellipsis,
     FileText,
+    Link,
     MessageSquareText,
     MoreHorizontal,
     Package,
@@ -50,32 +51,37 @@ type TrendPoint = { day: number; sales: number };
 type Channel = { name: string; value: number; percent: number; color: string };
 type Product = { name: string; category: string; sales: number; units: number, unit: string };
 type Order = { saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string, currency: 'AFG' | 'PKR' | 'USD' };
-type Comment = { name: string; text: string; time: string };
+type Comment = { saleID: number, name: string; text: string; time: string };
 
 const formatValue = (value: number) => `${(value / 1000).toFixed(1)}k`;
 const statusLabels: Record<string, string> = { completed: 'تکمیل شده', draft: 'پیش‌نویس', cancelled: 'لغو شده', partially_returned: 'بازگشت جزئی', returned: 'بازگشت شده' };
 const statusClasses: Record<string, string> = { completed: 'bg-emerald-50 text-emerald-700', draft: 'bg-amber-50 text-amber-700', cancelled: 'bg-rose-50 text-rose-700', partially_returned: 'bg-orange-50 text-orange-700', returned: 'bg-slate-100 text-slate-700' };
 
 export default function Index({ stats, trend, channels, topProducts, orders, comments, meta }: { stats: Stats; trend: TrendPoint[]; channels: Channel[]; topProducts: Product[]; orders: Order[]; comments: Comment[]; meta: { month: string; currentRevenue: number; previousRevenue: number; revenueGrowth: number } }) {
+    const [metaMonth, setMetaMonth] = useState<string>(meta.month);
     const [trending, setTrending] = useState<TrendPoint[]>([]);
     const [period, setPeriod] = useState('this_month');
     useEffect(() => {
         const getTrends = async () => {
             const res = await axios.get(`/sales/getTrend/${period}`);
-            if (res.status == 200)
-                setTrending(res.data);
+            if (res.status == 200) {
+                setTrending(res.data['trend']);
+                setMetaMonth(res.data['month']);
+            }
             else
                 console.log('errror::: ', res.statusText);
         }
 
         getTrends();
-    }, [period])
+    }, [period]);
+
+
     return (
         <AppLayout breadcrumbs={[{ title: 'فروشات', href: '/sales' }]}>
             <Head title="داشبورد فروش" />
             <div
                 dir="rtl"
-                className="min-h-full space-y-5 bg-[#f6f9fc] px-1 pb-8 dark:bg-transparent"
+                className=" space-y-5 bg-[#f6f9fc] px-1 pb-8 dark:bg-transparent"
             >
                 <section className="relative overflow-hidden rounded-[1.75rem] bg-[#092b4c] px-6 py-6 text-white shadow-[0_20px_50px_rgba(9,43,76,0.2)] sm:px-8">
                     <div className="absolute -top-16 -left-12 h-48 w-48 rounded-full border-24 border-cyan-300/10" />
@@ -150,7 +156,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
 
                 <section className="grid gap-5 xl:grid-cols-[1.55fr_0.85fr]">
                     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900">
-                        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+                        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">``
                             <div>
                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                                     روند درآمد
@@ -218,7 +224,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                         tickLine={false}
                                         tick={{ fill: '#94a3b8', fontSize: 11 }}
                                         tickFormatter={(value) =>
-                                            `${value} ${meta.month}`
+                                            `${value} ${metaMonth}`
                                         }
                                     />
                                     <YAxis
@@ -346,7 +352,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                 variant="ghost"
                                 size="sm"
                                 className="text-primary"
-                                onClick={()=>router.get('/sales/most-sold-products')}
+                                onClick={() => router.get('/sales/most-sold-products')}
                             >
                                 مشاهده همه{' '}
                                 <ArrowDownLeft className="h-3.5 w-3.5 rotate-45" />
@@ -522,8 +528,9 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                                             <FileText className="size-3.5" /> ایجاد
                                                         </button>
                                                     )}
-                                                    {order.hasInvoice ? <button type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700">
+                                                    {order.hasInvoice ? <button disabled={order.status == 'returned'} type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className={`inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 ${order.status == 'returned' && 'text-gray-400 hover:text-gray-400'}`}>
                                                         <RotateCcw className="size-3.5" /> برگشت
+
                                                     </button>
                                                         : <p className='text-xs text-gray-400 '>بل ندارد</p>
                                                     }
@@ -563,13 +570,25 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                             <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                                                 {comment.name}
                                             </p>
+                                            <button
+                                                onClick={(e) => confirm('نوت را خذف کند؟') && router.patch(`/sales/${comment.saleID}/notes`, {}, {
+                                                    preserveScroll: true,
+
+                                                    preserveState: true,
+                                                })}
+                                                className='font-medium text-xs py-1 underline text-primary rounded-sm shrink-0 hover:bg-primary/10'>
+                                                تکمیل و خذف
+                                            </button>
+
+                                        </div>
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="mt-1 text-xs leading-5 text-slate-500">
+                                                {comment.text}
+                                            </p>
                                             <span className="shrink-0 text-[10px] text-slate-400">
                                                 {comment.time}
                                             </span>
                                         </div>
-                                        <p className="mt-1 text-xs leading-5 text-slate-500">
-                                            {comment.text}
-                                        </p>
                                     </div>
                                 </div>
                             ))}
@@ -577,6 +596,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                         <Button
                             variant="outline"
                             className="mt-5 w-full border-dashed text-xs text-slate-600"
+                            onClick={() => router.get('/sales/comments')}
                         >
                             <MessageSquareText className="h-4 w-4" /> مشاهده همه
                             یادداشت‌ها

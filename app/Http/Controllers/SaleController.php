@@ -57,7 +57,11 @@ class SaleController extends Controller
             //  get specified month from front and exeucte the logic accordingly
             // for month based sales
             $trend = $this->getTrend($monthStart, $completedSales);
-            return response()->json($trend);
+
+            return response()->json([
+                'trend' => $trend,
+                'month' => $monthStart->translatedFormat('F Y'),
+            ]);
         }
         $trend = $this->getTrend($monthStart, $completedSales);
 
@@ -102,11 +106,12 @@ class SaleController extends Controller
             ['name' => 'فروش حضوری', 'value' => $walkInSales, 'color' => '#17b897'],
         ])->map(fn(array $channel) => [...$channel, 'percent' => round(($channel['value'] / $channelTotal) * 100, 1)])->values();
 
-        $comments = $sales->filter(fn(Sale $sale) => filled($sale->notes))->take(4)->map(fn(Sale $sale) => [
+        $comments = $sales->filter(fn(Sale $sale) => filled($sale->notes))->take(10)->map(fn(Sale $sale) => [
+            'saleID' => $sale->id,
             'name' => $sale->customer?->name ?? $sale->customer_name ?? 'یادداشت فروش',
             'text' => $sale->notes,
             'time' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),
-        ])->values();
+        ])->take(6)->values();
 
         return Inertia::render('sale/index', [
             'stats' => [
@@ -390,14 +395,15 @@ class SaleController extends Controller
     public function getTrend(CarbonInterface $monthStart, mixed $completedSales)
     {
         $now = now();
-        return collect(range(0, $now->daysInMonth - 1))->map(function (int $day) use ($monthStart, $completedSales) {
+        $endOfMonth = $monthStart->copy()->month == $now->month ? $now->copy() : $monthStart->copy()->endOfMonth();
+        return collect(range(0, $endOfMonth->daysInMonth - 1))->map(function (int $day) use ($monthStart, $completedSales) {
             $date = $monthStart->copy()->addDays($day);
             $daySales = $completedSales->filter(function (Sale $sale) use ($date) {
                 return Carbon::parse($sale->sold_at ?? $sale->created_at)->isSameDay($date);
             });
 
             return ['day' => $date->day, 'sales' => round((float) $daySales->sum('after_descount_total'), 2)];
-        })->filter(fn(array $item) => $item['day'] <= $now->day)->values();
+        })->filter(fn(array $item) => $item['day'] <= $endOfMonth->day)->values();
     }
 
     public function mostSold()
@@ -428,6 +434,32 @@ class SaleController extends Controller
                     'unit' => $line->item?->unit ?? 'unit',
                 ];
             })->sortByDesc('sales')->values()->values();
-            return Inertia::render('sale/top-product',compact('topProducts'));
+        return Inertia::render('sale/top-product', compact('topProducts'));
+    }
+
+    public function destroyNote(Sale $sale)
+    {
+        $sale->notes = '';
+        $sale->save();
+        return redirect()->back();
+    }
+
+    public function comment()
+    {
+        $sales = Sale::query()
+            ->with('customer:id,name')
+            ->latest('sold_at')
+            ->latest('created_at')
+            ->get();
+        $comments = $sales->filter(fn(Sale $sale) => filled($sale->notes))->take(10)->map(fn(Sale $sale) => [
+            'saleID' => $sale->id,
+            'name' => $sale->customer?->name ?? $sale->customer_name ?? 'یادداشت فروش',
+            'text' => $sale->notes,
+            'time' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),
+        ])->values();
+
+        return Inertia::render('sale/comments', [
+            'comments' => $comments,
+        ]);
     }
 }
