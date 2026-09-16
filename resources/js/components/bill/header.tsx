@@ -5,7 +5,7 @@ interface Props {
 }
 const Header = ({logo,title ='bill'}:Props) => {
     return (
-        <div className="mt-5">
+        <div className="mt-2">
             <div className='flex justify-between items-start gap-5'>
                 <div>
                     <img src={logo} alt="LOGO" className="w-28 h-35" />

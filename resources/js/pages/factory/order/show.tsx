@@ -47,7 +47,7 @@ const Show = ({ productionOrder, logo }: Props) => {
                     </Overview>
 
                     {/*  BILL CONTENT */}
-                    <Content orderStatus={productionOrder.status} >
+                    <Content status={productionOrder.status} >
                         <div>
                             <Table className="border">
                                 <TableHeader>

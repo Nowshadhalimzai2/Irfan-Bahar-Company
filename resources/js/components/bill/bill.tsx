@@ -29,7 +29,7 @@ const Bill = ({ children, production_order_id=0, className = '' }: Props) => {
                     }
                 </div>
             </div>
-            <div className="BillSection p-1" id="printArea" ref={printAreaRef}>
+            <div className="BillSection p-1 overflow-hidden rounded-2xl bg-white shadow-xl print:rounded-none print:shadow-none" id="printArea" ref={printAreaRef}>
                 {children}
             </div>
         </div>

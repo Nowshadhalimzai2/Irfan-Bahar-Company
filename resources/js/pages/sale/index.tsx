@@ -156,7 +156,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
 
                 <section className="grid gap-5 xl:grid-cols-[1.55fr_0.85fr]">
                     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900">
-                        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">``
+                        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                             <div>
                                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                                     روند درآمد
