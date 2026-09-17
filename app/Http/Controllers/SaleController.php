@@ -155,11 +155,14 @@ class SaleController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'code', 'sku', 'unit', 'default_sale_price', 'category_id']);
 
+        $nextInvoiceID = Invoice::query()->orderBy('id', 'desc')->value('id') + 1;
+
         return Inertia::render('sale/create', [
             'items' => $items,
             'customers' => Customer::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'phone']),
             'currencies' => Currency::query()->orderBy('id')->get(['id', 'name']),
             'locations' => $locations,
+            'nextInvoiceID' => $nextInvoiceID,
         ]);
     }
 
@@ -361,10 +364,10 @@ class SaleController extends Controller
         $total = (float) ($sale->after_descount_total ?: $sale->total);
 
         $paidAmount = (float) $sale->amount_paid;
-
+        $invoiceID = Invoice::query()->orderBy('id', 'desc')->value('id');
         $invoice = Invoice::create([
             'sale_id' => $sale->id,
-            'invoice_number' => 'INV-' . now()->format('Y') . '-' . str_pad((string) $sale->id, 6, '0', STR_PAD_LEFT),
+            'invoice_number' => 'INV-' . now()->format('Y') . '-' . str_pad((string) $invoiceID, 6, '0', STR_PAD_LEFT),
             'status' => $paidAmount >= $total ? 'paid' : ($paidAmount > 0 ? 'partially_paid' : 'issued'),
             'issued_on' => now(),
             'paid_at' => $paidAmount >= $total ? now() : null,
@@ -461,5 +464,21 @@ class SaleController extends Controller
         return Inertia::render('sale/comments', [
             'comments' => $comments,
         ]);
+    }
+
+    public function customerOwe(Customer $customer, Currency $currency)
+    {
+        $customer->load(['sales:id,customer_id,after_descount_total', 'sales.invoice:id,sale_id', 'sales.invoice.payments:id,invoice_id,amount']);
+        $totalPayments = $customer->sales->sum(
+            fn($sale) => $sale->invoice?->payments()->where('currency_id',$currency->id)->sum('amount')
+        );
+        $totalOwes = $customer->sales()
+            ->where('currency_id',$currency->id)
+            ->whereNotIn('status', ['returned', 'partially_refunded'])
+            ->sum('after_descount_total');
+        
+            $balance= $totalOwes-$totalPayments;
+        
+        return response()->json($balance);
     }
 }

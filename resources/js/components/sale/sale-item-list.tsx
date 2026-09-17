@@ -62,7 +62,7 @@ const SaleItemList = ({ lines, items, setLines, updateLine, getStock, removeLine
                             سبد فروش
                         </h2>
                         <p className="text-xs text-slate-500">
-                            {cart.length} قلم ·{' '}
+                            <span className={`${lines.length==12 && "text-red-500 font-medium"}`}>{cart.length}/12 قلم ·{' '}</span>
                             {lines.reduce(
                                 (sum, line) =>
                                     sum + line.quantity,

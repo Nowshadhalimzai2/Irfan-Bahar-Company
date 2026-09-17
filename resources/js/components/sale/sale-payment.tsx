@@ -8,6 +8,7 @@ import { getDariCurrency } from '../location-translator';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import invoice from '@/routes/sales/invoice';
 type Currency = { id: number; name: string };
 type SaleLine = { item_id: number; quantity: number; unit_price: number };
 
@@ -31,9 +32,9 @@ interface Props {
     lines:SaleLine[];
     createInvoice: boolean;
     onCreateInvoiceChange: (value: boolean) => void;
-
+    nextInvoiceID:number;
 }
-const SalePayment = ({ subtotal, currency, data, setData, errors, grandTotal,processing,lines, createInvoice, onCreateInvoiceChange }: Props) => {
+const SalePayment = ({ nextInvoiceID, subtotal, currency, data, setData, errors, grandTotal,processing,lines, createInvoice, onCreateInvoiceChange }: Props) => {
     return (
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div className="space-y-3 text-sm">
@@ -44,17 +45,15 @@ const SalePayment = ({ subtotal, currency, data, setData, errors, grandTotal,pro
                             جزئیات پرداخت
                         </h2>
                         <p className="text-xs text-slate-500">
-                            اطلاعات فاکتور را تکمیل کنید.
+                            اطلاعات پرداخت را تکمیل کنید
                         </p>
                     </div>
                 </div>
                 <div className="flex justify-between text-slate-500">
                     <span>جمله پول</span>
                     <b>
-                        {subtotal
-                        }
-                        {currency?.name ??
-                            currency.name ?? ''}
+                        {subtotal}
+                        {getDariCurrency(currency.name) ?? ''}
                     </b>
                 </div>
                 <div className="flex items-center justify-between gap-3">
@@ -123,12 +122,12 @@ const SalePayment = ({ subtotal, currency, data, setData, errors, grandTotal,pro
             <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-3 text-sm dark:border-slate-700 dark:bg-slate-800/60">
                 <input type="checkbox" checked={createInvoice || data.amount_paid<grandTotal || data.customer_id>0} onChange={(event) => onCreateInvoiceChange(event.target.checked)} className="size-4 accent-primary" />
                 <FileText className="size-4 text-primary" />
-                <span><b className="block">چاپ فاکتور بعد از ثبت</b><small className="text-xs text-slate-500">اختیاری است؛ فروش بدون فاکتور هم ثبت می‌شود.</small></span>
+                <span><b className="block">چاپ بل بعد از فروش</b><small className="text-xs text-slate-500">بل  شما دارای نمبر {`INV-20XX-(0..)${nextInvoiceID}`} می باشد</small></span>
             </label>
             <Button
                 disabled={processing || lines.length === 0}
                 type="submit"
-                className="mt-5 h-9 w-full bg-emerald-600 text-base hover:bg-emerald-700"
+                className="mt-5 mb-2 h-9 w-full bg-emerald-600 text-base hover:bg-emerald-700"
             >
                 <Check className="size-5" />
                 {processing ? 'در حال ثبت...' : 'ثبت فروش'}

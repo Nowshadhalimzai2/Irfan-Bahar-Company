@@ -43,7 +43,7 @@ type Props = {
     currencies: Currency[];
     locations: Location[];
     customers: Customer[];
-
+    nextInvoiceID:number;
 };
 
 
@@ -51,7 +51,8 @@ export default function Create({
     items,
     currencies,
     locations,
-    customers
+    customers,
+    nextInvoiceID,
 }: Props) {
     const [barcode, setBarcode] = useState('');
     const [search, setSearch] = useState('');
@@ -198,7 +199,7 @@ export default function Create({
             <Head title="ثبت فروش جدید" />
             <div
                 dir="rtl"
-                className="min-h-full bg-[#f6f9fc] px-1 pb-10 dark:bg-transparent"
+                className=" bg-[#f6f9fc] px-1 pb-10 dark:bg-transparent"
             >
                 <div className="mx-auto max-w-7xl space-y-5">
                     <section className="relative overflow-hidden rounded-[1.75rem] bg-[#092b4c] px-6 py-7 text-white shadow-[0_20px_50px_rgba(9,43,76,0.2)] sm:px-8">
@@ -245,7 +246,7 @@ export default function Create({
                                         <ScanLine className="size-5" />
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2" aria-disabled={lines.length>12}>
                                     <div className="relative flex-1">
                                         <Barcode className="absolute top-1/2 right-3 size-5 -translate-y-1/2 text-primary" />
                                         <Input
@@ -254,12 +255,14 @@ export default function Create({
                                             value={barcode}
                                             onChange={(event) =>
                                                 setBarcode(event.target.value)
+                                                
                                             }
                                             onKeyDown={(event) => {
                                                 if (event.key === 'Enter') {
                                                     scan(event);
                                                 }
                                             }}
+                                            disabled={lines.length>12}
                                             placeholder="بارکد را اسکن کنید و Enter بزنید..."
                                             className="h-12 border-blue-200 bg-blue-50/40 pr-11 text-base"
                                         />
@@ -300,6 +303,7 @@ export default function Create({
                                         }
                                         placeholder="جستجوی نام، کد یا SKU..."
                                         className="pr-10"
+                                        disabled={lines.length>12}
                                     />
                                 </div>
                                 {search && (
@@ -346,7 +350,7 @@ export default function Create({
                                     subtotal={subtotal}
                                     createInvoice={data.create_invoice}
                                     onCreateInvoiceChange={(value) => setData('create_invoice', value)}
-
+                                    nextInvoiceID={nextInvoiceID}
                                 />
                         </aside>
                     </form>

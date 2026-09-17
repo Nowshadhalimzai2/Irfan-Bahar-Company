@@ -17,7 +17,17 @@ import {
     DrawerTitle,
     DrawerTrigger,
 } from "@/components/ui/drawer"
-
+import {
+    Barcode,
+    BadgeDollarSign,
+    Box,
+    Boxes,
+    ClipboardList,
+    Hash,
+    Scale,
+    ShoppingCart,
+    Warehouse,
+} from 'lucide-react';
 type Item = {
     id: number;
     name: string;
@@ -38,7 +48,49 @@ interface Props {
     units: Record<string, string>;
     currency: { id: number, name: string; }
 }
+
+
 const SaleItem = ({ item, unit_price, quantity, updateLine, getStock, removeLine, units, currency }: Props) => {
+    const totalInventory =
+        item.inventory_balances?.reduce(
+            (acc, balance) => acc + balance.quantity_on_hand,
+            0
+        ) ?? 0;
+
+    const details = [
+        {
+            label: 'کد جنس',
+            value: item.code || '—',
+            icon: Hash,
+        },
+        {
+            label: 'SKU',
+            value: item.sku || '—',
+            icon: ClipboardList,
+        },
+        {
+            label: 'بارکد',
+            value: item.product?.barcode || '—',
+            icon: Barcode,
+        },
+        {
+            label: 'واحد',
+            value: units[item.unit] || item.unit,
+            icon: Box,
+        },
+        {
+            label: 'وزن',
+            value: item.product?.weight,
+            icon: Scale,
+            visible: item.product?.weight !== undefined,
+        },
+        {
+            label: 'تعداد در بسته',
+            value: item.product?.per_pack,
+            icon: Boxes,
+            visible: item.product?.per_pack !== undefined,
+        },
+    ];
     return (
         <div
             className="flex flex-wrap items-center gap-3 p-3 sm:flex-nowrap sm:p-4"
@@ -58,7 +110,7 @@ const SaleItem = ({ item, unit_price, quantity, updateLine, getStock, removeLine
                         item.unit}
                 </span>
             </div>
-            <div className="order-3 flex w-full items-center justify-between rounded-lg border sm:order-none sm:w-auto sm:justify-start">
+            <div className="order-3 flex w-full items-center justify-between rounded-lg border sm:order-0 sm:w-auto sm:justify-start">
                 <button
                     type="button"
                     onClick={() =>
@@ -123,7 +175,7 @@ const SaleItem = ({ item, unit_price, quantity, updateLine, getStock, removeLine
                     <button
                         type="button"
                         title="توضیحات جنس بیبین"
-                       
+
                         className="p-2 text-sky-400 hover:text-sky-600"
                     >
                         <Eye className="size-4" />
@@ -136,51 +188,104 @@ const SaleItem = ({ item, unit_price, quantity, updateLine, getStock, removeLine
                             جزئیات کامل جنس
                         </DrawerDescription>
                     </DrawerHeader>
-                    <div className="grid gap-3 p-4 text-sm sm:grid-cols-2 xl:grid-cols-3">
-                        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-muted/80 to-muted/40 p-3 shadow-sm">
-                            <span className="mb-1.5 block text-[11px] font-medium tracking-[0.08em] text-muted-foreground/80">کد جنس</span>
-                            <p className="break-all font-semibold text-foreground">{item.code || '—'}</p>
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-muted/80 to-muted/40 p-3 shadow-sm">
-                            <span className="mb-1.5 block text-[11px] font-medium tracking-[0.08em] text-muted-foreground/80">SKU</span>
-                            <p className="break-all font-semibold text-foreground">{item.sku || '—'}</p>
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-muted/80 to-muted/40 p-3 shadow-sm">
-                            <span className="mb-1.5 block text-[11px] font-medium tracking-[0.08em] text-muted-foreground/80">بارکد</span>
-                            <p className="break-all font-semibold text-foreground">{item.product?.barcode || '—'}</p>
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-muted/80 to-muted/40 p-3 shadow-sm">
-                            <span className="mb-1.5 block text-[11px] font-medium tracking-[0.08em] text-muted-foreground/80">واحد</span>
-                            <p className="font-semibold text-foreground">{units[item.unit] || item.unit}</p>
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-muted/80 to-muted/40 p-3 shadow-sm">
-                            <span className="mb-1.5 block text-[11px] font-medium tracking-[0.08em] text-muted-foreground/80">قیمت واحد</span>
-                            <p className="font-semibold text-foreground">{unit_price.toLocaleString()} {currency.name}</p>
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-muted/80 to-muted/40 p-3 shadow-sm">
-                            <span className="mb-1.5 block text-[11px] font-medium tracking-[0.08em] text-muted-foreground/80">موجود در شرکت</span>
-                            <p className="font-semibold text-foreground">{item.inventory_balances?.reduce((acc, balance) => acc + balance.quantity_on_hand, 0) ?? 0}</p>
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-muted/80 to-muted/40 p-3 shadow-sm">
-                            <span className="mb-1.5 block text-[11px] font-medium tracking-[0.08em] text-muted-foreground/80">تعداد انتخاب‌شده</span>
-                            <p className="font-semibold text-foreground">{quantity}</p>
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-muted/80 to-muted/40 p-3 shadow-sm">
-                            <span className="mb-1.5 block text-[11px] font-medium tracking-[0.08em] text-muted-foreground/80">قیمت پیش‌فرض فروش</span>
-                            <p className="font-semibold text-foreground">{item.default_sale_price.toLocaleString()} {currency.name}</p>
-                        </div>
-                        {item.product?.weight !== undefined && (
-                            <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-muted/80 to-muted/40 p-3 shadow-sm">
-                                <span className="mb-1.5 block text-[11px] font-medium tracking-[0.08em] text-muted-foreground/80">وزن</span>
-                                <p className="font-semibold text-foreground">{item.product.weight}</p>
+
+                    <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                        <div dir="rtl" className="p-3 sm:p-4">
+                            <div className="overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm">
+                                {/* Compact summary */}
+                                <div className="grid grid-cols-2 gap-px bg-border/60 sm:grid-cols-4">
+                                    <div className="bg-gradient-to-br from-primary to-primary/80 p-3 text-primary-foreground">
+                                        <div className="mb-1 flex items-center gap-2 text-primary-foreground/75">
+                                            <BadgeDollarSign className="size-4" />
+                                            <span className="text-[11px] font-medium">
+                                                قیمت واحد
+                                            </span>
+                                        </div>
+
+                                        <p className="truncate text-base font-black tabular-nums">
+                                            {unit_price.toLocaleString()}
+                                            <span className="mr-1 text-[10px] font-medium">
+                                                {currency.name}
+                                            </span>
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-background p-3">
+                                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                                            <Warehouse className="size-4" />
+                                            <span className="text-[11px] font-medium">
+                                                موجودی شرکت
+                                            </span>
+                                        </div>
+
+                                        <p className="text-base font-black tabular-nums text-foreground">
+                                            {totalInventory.toLocaleString()}
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-background p-3">
+                                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                                            <ShoppingCart className="size-4" />
+                                            <span className="text-[11px] font-medium">
+                                                تعداد انتخاب‌شده
+                                            </span>
+                                        </div>
+
+                                        <p className="text-base font-black tabular-nums text-foreground">
+                                            {quantity}
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-background p-3">
+                                        <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                                            <BadgeDollarSign className="size-4" />
+                                            <span className="text-[11px] font-medium">
+                                                قیمت فروش
+                                            </span>
+                                        </div>
+
+                                        <p className="truncate text-sm font-black tabular-nums text-foreground">
+                                            {item.default_sale_price.toLocaleString()}
+                                            <span className="mr-1 text-[10px] font-medium text-muted-foreground">
+                                                {currency.name}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Details grid */}
+                                <div className="grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
+                                    {details
+                                        .filter((detail) => detail.visible !== false)
+                                        .map((detail) => {
+                                            const Icon = detail.icon;
+
+                                            return (
+                                                <div
+                                                    key={detail.label}
+                                                    className="group min-w-0 rounded-2xl border border-border/60 bg-muted/30 p-3 transition-colors hover:border-primary/30 hover:bg-primary/[0.04]"
+                                                >
+                                                    <div className="flex min-w-0 items-center gap-2.5">
+                                                        <div className="grid size-8 shrink-0 place-items-center rounded-xl bg-background text-primary shadow-sm ring-1 ring-border/60 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+                                                            <Icon className="size-4" strokeWidth={2} />
+                                                        </div>
+
+                                                        <div className="min-w-0">
+                                                            <span className="block truncate text-[10px] font-medium text-muted-foreground">
+                                                                {detail.label}
+                                                            </span>
+
+                                                            <p className="mt-1 truncate text-xs font-bold tabular-nums text-foreground">
+                                                                {detail.value ?? '—'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                </div>
                             </div>
-                        )}
-                        {item.product?.per_pack !== undefined && (
-                            <div className="rounded-2xl border border-border/60 bg-gradient-to-br from-muted/80 to-muted/40 p-3 shadow-sm">
-                                <span className="mb-1.5 block text-[11px] font-medium tracking-[0.08em] text-muted-foreground/80">تعداد در بسته</span>
-                                <p className="font-semibold text-foreground">{item.product.per_pack}</p>
-                            </div>
-                        )}
+                        </div>
                     </div>
                     <DrawerFooter>
                         <DrawerClose >
