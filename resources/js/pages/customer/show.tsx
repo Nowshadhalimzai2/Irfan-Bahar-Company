@@ -49,14 +49,14 @@ export default function Show({ customer, sales, invoices }: Props) {
             sale.sale_returns && sale.sale_returns.forEach(saleReturn => {
                 refuneded += saleReturn.refund_amount;
             });
-            refuneded+=0;
+            refuneded += 0;
         });
-        
+
         const due = currencyInvoices.reduce((sum, invoice) => sum + Number(invoice.total || 0), 0) - paid;
-        
+
         return {
             currency: summaryCurrency, sales: currencySales.reduce((sum, sale) =>
-                sum + Number(sale.after_descount_total || 0), 0)-refuneded, paid, due
+                sum + Number(sale.after_descount_total || 0), 0) - refuneded, paid, due
         };
     });
     console.log('Currency Summery::: ');
@@ -108,7 +108,20 @@ export default function Show({ customer, sales, invoices }: Props) {
                 <section className="rounded-3xl border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-100 p-5"><h2 className="text-xl font-bold text-slate-800">پرداخت‌های اخیر</h2><p className="mt-1 text-sm text-slate-500">آخرین دریافت‌های ثبت‌شده</p></div><div className="divide-y divide-slate-100">{payments.slice(0, 6).map((payment) => <div key={payment.id} className="flex items-start gap-3 p-4"><div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600"><Banknote size={19} /></div><div className="min-w-0 flex-1"><div className="flex justify-between gap-3"><p className="font-semibold text-slate-800">{money(Number(payment.amount), payment.invoice.currency)}</p><span className="text-xs text-slate-400">{date(payment.paid_at)}</span></div><p className="mt-1 text-xs text-slate-500">{methodLabels[payment.method] || payment.method} · {payment.invoice.number}</p></div></div>)}{!payments.length && <EmptyState text="هنوز هیچ پرداختی ثبت نشده است." />}</div></section>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]"><section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="mb-4 text-xl font-bold text-slate-800">اطلاعات تماس</h2><div className="grid gap-3 sm:grid-cols-2"><Detail icon={<Phone />} label="شماره تماس" value={customer.phone || 'ثبت نشده'} /><Detail icon={<Mail />} label="ایمیل" value={customer.email || 'ثبت نشده'} /><Detail icon={<MapPin />} label="آدرس" value={customer.address || 'ثبت نشده'} /><Detail icon={<CalendarDays />} label="تاریخ عضویت" value={date(String(customer.created_at))} /></div></section><section className="rounded-3xl bg-[#092b4c] p-6 text-white shadow-lg"><div className="mb-6 flex items-center justify-between"><div><p className="text-sm text-cyan-200">خلاصه حساب</p><h2 className="mt-1 text-xl font-bold">وضعیت مالی</h2></div><CreditCard className="text-cyan-200" /></div><div className="space-y-4 text-sm"><SummaryRow label="تعداد انوایسها" value={`${invoices.length}`} /><SummaryRow label="آخرین پرداخت" value={latestPayment ? date(latestPayment.paid_at) : 'ثبت نشده'} /><SummaryRow label="آخرین مبلغ دریافتی" value={latestPayment ? money(Number(latestPayment.amount), latestPayment.invoice.currency) : 'ثبت نشده'} /></div></section></div>
+            <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h2 className="mb-4 text-xl font-bold text-slate-800">اطلاعات تماس</h2>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                        <Detail icon={<Phone />} label="شماره تماس" value={customer.phone || 'ثبت نشده'} />
+                        <Detail icon={<Mail />} label="ایمیل" value={customer.email || 'ثبت نشده'} /><Detail icon={<MapPin />} label="آدرس" value={customer.address || 'ثبت نشده'} />
+                        <Detail icon={<CalendarDays />} label="تاریخ عضویت" value={date(String(customer.created_at))} /></div></section><section className="rounded-3xl bg-[#092b4c] p-6 text-white shadow-lg"><div className="mb-6 flex items-center justify-between"><div><p className="text-sm text-cyan-200">خلاصه حساب</p><h2 className="mt-1 text-xl font-bold">وضعیت مالی</h2></div>
+                            <CreditCard className="text-cyan-200" /></div><div className="space-y-4 text-sm">
+                        <SummaryRow label="تعداد انوایسها" value={`${invoices.length}`} />
+                        <SummaryRow label="آخرین پرداخت" value={latestPayment ? date(latestPayment.paid_at) : 'ثبت نشده'} />
+                        <SummaryRow label="آخرین مبلغ دریافتی" value={latestPayment ? money(Number(latestPayment.amount), latestPayment.invoice.currency) : 'ثبت نشده'} />
+                    </div>
+                </section>
+            </div>
             <Link href="/stackholders" className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-700 hover:text-cyan-900"><ArrowRight size={18} /> بازگشت به فهرست مشتریان</Link>
         </div>
         {selected && (

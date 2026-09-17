@@ -14,12 +14,16 @@ use App\Models\Payment;
 use App\Models\Sale;
 use App\Models\SaleLine;
 use App\Models\User;
+use App\Notifications\CustomerHighDueAlert;
 use App\Notifications\HighDiscountAlert;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
+use Error;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
 class SaleController extends Controller
@@ -230,6 +234,11 @@ class SaleController extends Controller
                     'sold_at' => $data['sold_at'],
                     'notes' => $data['notes'] ?? null,
                 ]);
+
+                // Alert admin if customer due increases 300000
+                if ($data['customer_id']) {
+                    $this->AlertAdminIfCustomerDueExceedsLimit($request, Customer::findOrFail($data['customer_id']), Currency::findOrFail($data['currency_id']));
+                }
                 $totalSaleQuantities = 0;
                 foreach ($data['saleLines'] as $line) {
                     $totalSaleQuantities += $line['quantity'];
@@ -466,19 +475,58 @@ class SaleController extends Controller
         ]);
     }
 
-    public function customerOwe(Customer $customer, Currency $currency)
+    public function customerOwe(Request $request, Customer $customer, Currency $currency): float|JsonResponse
     {
+        if (!$customer || !$currency)
+            return 0;
         $customer->load(['sales:id,customer_id,after_descount_total', 'sales.invoice:id,sale_id', 'sales.invoice.payments:id,invoice_id,amount']);
         $totalPayments = $customer->sales->sum(
-            fn($sale) => $sale->invoice?->payments()->where('currency_id',$currency->id)->sum('amount')
+            fn($sale) => $sale->invoice?->payments()->where('currency_id', $currency->id)->sum('amount')
         );
         $totalOwes = $customer->sales()
-            ->where('currency_id',$currency->id)
+            ->where('currency_id', $currency->id)
             ->whereNotIn('status', ['returned', 'partially_refunded'])
             ->sum('after_descount_total');
-        
-            $balance= $totalOwes-$totalPayments;
-        
-        return response()->json($balance);
+
+        $balance = $totalOwes - $totalPayments;
+
+        if ($request->expectsJson())
+            return response()->json($balance);
+        return $balance;
+    }
+
+    private function AlertAdminIfCustomerDueExceedsLimit(Request $request, Customer $customer, Currency $currency)
+    {
+        if (!$customer || !$currency) {
+            throw new Error('مشکل در مشتری یا واحد پول در وجود امد. لطفا دوباره چک کنید');
+        }
+
+        $balance = $this->customerOwe($request, $customer, $currency);
+        if ($currency->name == 'AFG') {
+            $possibleAFGDue = 300000;
+
+            if ($balance > $possibleAFGDue) {
+                $admins = User::query()->with('role:id,name')->whereHas('role', function ($query) {
+                    $query->whereIn('name', ['admin', 'super_admin']);
+                })->get();
+                Notification::send($admins, new CustomerHighDueAlert($customer));
+            }
+        } else if ($currency->name == 'PKR') {
+            $possiblePKRDue = 500000;
+            if ($balance > $possiblePKRDue) {
+                $admins = User::query()->with('role:id,name')->whereHas('role', function ($query) {
+                    $query->whereIn('name', ['admin', 'super_admin']);
+                })->get();
+                Notification::send($admins, new CustomerHighDueAlert($customer));
+            }
+        } else if ($currency->name == 'USD') {
+            $possibleUSDDue = 1000;
+            if ($balance > $possibleUSDDue) {
+                $admins = User::query()->with('role:id,name')->whereHas('role', function ($query) {
+                    $query->whereIn('name', ['admin', 'super_admin']);
+                })->get();
+                Notification::send($admins, new CustomerHighDueAlert($customer));
+            }
+        }
     }
 }

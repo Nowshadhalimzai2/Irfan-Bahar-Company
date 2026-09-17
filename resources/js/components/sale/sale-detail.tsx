@@ -29,7 +29,7 @@ const SaleDetail = ({ currencies, customers, locations, data, setData, errors }:
 
     useEffect(() => {
         async function getCustomerRecord(customerID: number) {
-            const res = await axios.get(`/sales/${customerID}/${data.currency_id}`)
+            const res = await axios.get(`/sales/customer/${customerID}/${data.currency_id}`)
             if (res.status == 200)
                 setCustomerOwe(res.data);
             else {

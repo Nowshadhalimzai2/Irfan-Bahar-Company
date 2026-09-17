@@ -81,11 +81,11 @@ export default function Invoice({ sale, invoice }: InvoicePageProps) {
                                 </div>
                                 <div className="flex px-2 justify-between mt-1 items-center gap-x-2">
                                     <div>
-                                        <p className='text-start text-sm font-normal text-gray-400'>بل نمبر</p>
+                                        <p className='text-start text-xs font-normal text-gray-400'>بل نمبر</p>
                                         <p className='text-center '>{invoice.number}</p>
                                     </div>
                                     <div>
-                                        <p className='text-sm text-center text-gray-400'>تاریخ صدور</p>
+                                        <p className='text-xs text-center font-normal text-gray-400'>تاریخ صدور</p>
                                         <p className=' text-center text-gray-600'>{new Date(invoice.issuedOn).toLocaleDateString('fa-AF')}</p>
                                     </div>
 

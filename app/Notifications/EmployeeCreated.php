@@ -46,7 +46,7 @@ class EmployeeCreated extends Notification implements ShouldQueue
                 'کارمند جدید %s ثبت گردید.',
                 $this->employee->name,
             ),
-            'transfer_id' => $this->employee->id,
+            'customer_id' => $this->employee->id,
             'url' => '/employees/'.$this->employee->id,
         ];
     }

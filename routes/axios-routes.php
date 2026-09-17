@@ -15,9 +15,10 @@ Route::middleware(['auth', 'superadmin'])->group(function () {
 });
 
 
-Route::middleware(['auth', 'allowOnlyShopClerk'])->group(function (){
-    
+Route::middleware(['auth', 'allowOnlyShopClerk'])->group(function () {
+
     Route::put('/expenses/{expense}/toggle-editable', [ExpenseController::class, 'toggleEditable'])->name('expenses.toggle-editable');
 });
 
-Route::get('/sales/getTrend/{period}',[SaleController::class,'index'])->middleware('auth')->name('sales.period');
+Route::get('/sales/getTrend/{period}', [SaleController::class, 'index'])->middleware('auth')->name('sales.period');
+Route::get('/sales/customer/{customer}/{currency}', [SaleController::class, 'customerOwe'])->name('sales.customer.owe');
