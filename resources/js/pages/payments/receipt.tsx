@@ -46,7 +46,7 @@ export default function PaymentReceipt({ payment, invoice }: ReceiptPageProps) {
             <Head title={`رسید ${payment.receiptNumber}`} />
             <div
                 dir="rtl"
-                className="min-h-full bg-slate-100 px-2 py-6 dark:bg-slate-950 print:bg-white print:p-0"
+                className=" bg-slate-100 px-2 py-6 dark:bg-slate-950 print:bg-white print:p-0"
             >
                 <div className="mx-auto max-w-2xl space-y-4 print:max-w-none">
                     <div className="flex items-center justify-between print:hidden">

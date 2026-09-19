@@ -16,6 +16,7 @@ return new class extends Migration
        
         Schema::table('payments', function (Blueprint $table) use($afgCur) {
             $table->foreignIdFor(Currency::class)->default($afgCur->id ?? 1);
+            $table->string('payment_number', 50)->nullable()->unique();
         });
     }
 
@@ -25,8 +26,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('payments', function (Blueprint $table) {
-            $table->dropForeign('currency_id');
+            $table->dropForeign(['currency_id']);
             $table->dropColumn('currency_id');
+            $table->dropColumn('payment_number');
         });
     }
 };

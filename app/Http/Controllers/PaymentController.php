@@ -41,7 +41,7 @@ class PaymentController extends Controller
                     'due' => max(0, $total - $paid),
                     'status' => $invoice->status,
                     'issuedOn' => $invoice->issued_on ? Carbon::parse($invoice->issued_on)->format('Y/m/d') : '',
-                    'payments' => $invoice->payments->map(fn (Payment $payment) => [
+                    'payments' => $invoice->payments->map(fn(Payment $payment) => [
                         'id' => $payment->id,
                         'amount' => (float) $payment->amount,
                         'method' => $payment->method,
@@ -76,9 +76,9 @@ class PaymentController extends Controller
                 if ((float) $data['amount'] > $remaining) {
                     throw new \RuntimeException('مبلغ پرداختی از باقی‌مانده بل بیشتر است.');
                 }
-                if($data['method']==='cash'){
+                if ($data['method'] === 'cash') {
                     $sa = new SHA();
-                    $sa->credit($data['amount'],$invoice->sale->currency_id);
+                    $sa->credit($data['amount'], $invoice->sale->currency_id);
                 }
                 if ($invoice->payments()->count() === 0 && $paid > 0) {
                     $invoice->payments()->create([
@@ -88,7 +88,7 @@ class PaymentController extends Controller
                         'notes' => 'پرداخت اولیه قبلی',
                     ]);
                 }
-
+                $paymentID = max(Payment::max('id'), 0)+1;
                 $payment = $invoice->payments()->create([
                     'amount' => $data['amount'],
                     'method' => $data['method'],
@@ -96,6 +96,7 @@ class PaymentController extends Controller
                     'paid_at' => $data['paid_at'],
                     'notes' => $data['notes'] ?? null,
                     'currency_id' => $invoice->sale->currency_id,
+                    'payment_number' => 'RCP-' . now()->format('Y') . '-' . str_pad((string) $paymentID, 6, '0', STR_PAD_LEFT),
                 ]);
 
                 $newPaid = $paid + (float) $data['amount'];
@@ -131,7 +132,7 @@ class PaymentController extends Controller
         return Inertia::render('payments/receipt', [
             'payment' => [
                 'id' => $payment->id,
-                'receiptNumber' => 'REC-'.now()->format('Y').'-'.str_pad((string) $payment->id, 6, '0', STR_PAD_LEFT),
+                'receiptNumber' => $payment->payment_number ?? 'REC-'.$payment->id,
                 'amount' => (float) $payment->amount,
                 'method' => $payment->method,
                 'reference' => $payment->reference,
@@ -146,6 +147,40 @@ class PaymentController extends Controller
                 'total' => (float) $invoice->total,
                 'paid' => $paid,
                 'remaining' => max(0, (float) $invoice->total - $paid),
+            ],
+        ]);
+    }
+
+    public function invoicePayments(Invoice $invoice)
+    {
+        $invoice->load([
+            'sale:id,total,discount_total,after_descount_total,sold_at',
+            'payments:id,invoice_id,paid_at,amount,method,reference,notes,currency_id'
+        ]);
+
+        // dd($invoice);
+        return Inertia::render('invoice/index', [
+            'invoice' => [
+                'id' => $invoice->id,
+                'invoice_number' => $invoice->invoice_number,
+                'issued_on' => $invoice->issued_on,
+                'status' => $invoice->status,
+                'bill_to_name' => $invoice->bill_to_name,
+                // 'status' => $invoice->status,
+                'sold_at' => $invoice->sale->sold_at,
+                'total' => $invoice->sale->total,
+                'discount_total' => $invoice->sale->discount_total,
+                'after_descount_total' => $invoice->sale->after_descount_total,
+                'total_paid_amount' => $invoice->payments()->sum('amount'),
+                'sale_id' => $invoice->sale->id,
+                'payments' => $invoice->payments->map(fn(Payment $payment)=>[
+                    'id' => $payment->id,
+                    'amount'=>$payment->amount,
+                    'paid_at'=>$payment->paid_at,
+                    'payment_number' => $payment->payment_number,
+                    'method' =>$payment->method,
+                    'notes' =>$payment->notes,
+                ])->values(),
             ],
         ]);
     }
