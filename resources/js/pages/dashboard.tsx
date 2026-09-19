@@ -94,7 +94,7 @@ export default function Dashboard({ todayIncomes, todaysExpenses, sa, totalPayme
 
         {
             title: 'جمله قرضه',
-            value: (overallLoans[currency.id] ?? 0).toString(),
+            value: (overallLoans[currency.id] ?? 0).toFixed(2).toString(),
             subtitle: 'جمله قرضه داده شده به مشتریان',
             icon: DollarSignIcon,
             tone: 'emerald',

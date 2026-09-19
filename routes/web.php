@@ -227,16 +227,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
             $items = Item::with([
                 'inventoryBalances' => function ($query) {
                     $query->whereHas('location', function ($locationQuery) {
-                        $locationQuery->where('name', 'factory');
+                        $locationQuery->where('type', 'factory');
                     });
                 },
-                'inventoryBalances.location:id,name',
+                'inventoryBalances.location:id,name,type',
                 'product:item_id,per_pack,weight',
                 'category:id,name',
             ])->whereHas('inventoryBalances', function ($p0) {
-                $p0->whereNot('quanity_on_hand', 0)
+                $p0->whereNot('quantity_on_hand', 0)
                     ->whereHas('location', function ($locationQuery) {
-                        $locationQuery->where('name', 'factory');
+                        $locationQuery->where('type', 'factory');
                     });
             })->paginate(4);
 
