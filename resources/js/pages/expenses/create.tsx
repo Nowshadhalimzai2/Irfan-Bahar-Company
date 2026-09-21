@@ -18,10 +18,12 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import { Coins, Menu } from "lucide-react";
+import { CalendarRange, Coins, Menu } from "lucide-react";
 import { CustomeDropDownMenu } from "@/components/customer-dropdwon";
 import axios from "axios";
 import PageHead from "@/components/page-head";
+import { getDariCurrency } from "@/components/location-translator";
+import { Calendar } from "@/components/ui/calendar";
 
 
 type ExpenseType = {
@@ -137,108 +139,115 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                     description="در این صفحه میتانی مصارف خود را دیده و مدیریت نمایی"
                     subtitle="مصارف"
                     HeadIcon={Coins}
-                    // actionTitle="مصارف جدید"
-                    menuItems={[{ name: 'ریکورد مصارف', url: '/expenses' }]}
+                    actionTitle="ریکورد مصارف"
+                    ActionIcon={CalendarRange}
+                    actionURL="/expenses"
+                    key={0}
                 />
 
-                <div className={` grid grid-cols-1 ${role.name === 'shop_clerk' && "md:grid-cols-2"} gap-5`}>
-                    {role.name === "shop_clerk" && <div>
-                        <form onSubmit={handleExpense}>
-                            <div className="grid gap-6">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="amount">مقدار پول</Label>
-                                    <Input
-                                        id="amount"
-                                        type="number"
-                                        required
-                                        autoFocus
-                                        tabIndex={1}
-                                        autoComplete="amount"
-                                        min={10}
-                                        name="amount"
-                                        value={data.amount}
-                                        onChange={(e) => setData('amount', Number(e.target.value))}
-                                    />
-                                    <InputError
-                                        message={errors.amount}
-                                        className="mt-2"
-                                    />
-                                </div>
+                <div className={` grid grid-cols-1 ${role.name === 'shop_clerk' && "md:grid-cols-2"} gap-5`} dir="rtl">
+                    {role.name === "shop_clerk" &&
+                        <div className=" rounded-lg shadow-lg px-3 py-5 bg-white">
+                            <form onSubmit={handleExpense}>
+                                <div className="grid gap-6">
 
-                                <div className="grid gap-2">
-                                    <Label htmlFor="currencies">واحد پول</Label>
-                                    <select
-                                        id="currencies"
-                                        name="currencies"
-                                        required
-                                        tabIndex={5}
-                                        value={data.currency_id}
-                                        onChange={(e) => setData('currency_id', Number(e.target.value))}
-                                        className="border rounded px-3 py-2"
+                                      <div className="grid gap-2">
+                                        <Label htmlFor="description">توضیحات</Label>
+                                        <textarea
+                                            id="description"
+                                            required
+                                            tabIndex={2}
+                                            autoComplete="description"
+                                            name="description"
+                                            value={data.description}
+                                            onChange={(e) => setData('description', e.target.value)}
+                                            className="border rounded-md p-5"
+                                            placeholder="لطفا توضیحات را واضح نماید"
+                                        />
+                                        <InputError
+                                            message={errors.description}
+                                            className="mt-2"
+                                        />
+                                    </div>
+
+                                    
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="amount">مقدار پول</Label>
+                                        <Input
+                                            id="amount"
+                                            type="number"
+                                            required
+                                            autoFocus
+                                            tabIndex={1}
+                                            autoComplete="amount"
+                                            min={10}
+                                            name="amount"
+                                            value={data.amount}
+                                            onChange={(e) => setData('amount', Number(e.target.value))}
+                                        />
+                                        <InputError
+                                            message={errors.amount}
+                                            className="mt-2"
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="currencies">واحد پول</Label>
+                                        <select
+                                            id="currencies"
+                                            name="currencies"
+                                            required
+                                            tabIndex={5}
+                                            value={data.currency_id}
+                                            onChange={(e) => setData('currency_id', Number(e.target.value))}
+                                            className="border rounded px-3 py-2"
+                                        >
+                                            <option value="">واحد بول را انتخاب کنین</option>
+                                            {currencies.map((currency) => (
+                                                <option key={currency.id} value={currency.id}>
+                                                    {getDariCurrency(currency.name)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <InputError message={errors.currency_id} />
+                                    </div>
+
+                                  
+
+
+                                    <Button
+                                        type="submit"
+                                        className="mt-2 w-full"
+                                        tabIndex={7}
+                                        data-test="register-employee-button"
                                     >
-                                        <option value="">واحد بول را انتخاب کنین</option>
-                                        {currencies.map((currency) => (
-                                            <option key={currency.id} value={currency.id}>
-                                                {currency.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <InputError message={errors.currency_id} />
+                                        {processing && <Spinner />}
+                                        ثبت کنید
+                                    </Button>
                                 </div>
-
-                                <div className="grid gap-2">
-                                    <Label htmlFor="description">توضیحات</Label>
-                                    <textarea
-                                        id="description"
-                                        required
-                                        tabIndex={2}
-                                        autoComplete="description"
-                                        name="description"
-                                        value={data.description}
-                                        onChange={(e) => setData('description', e.target.value)}
-                                        className="border rounded-md p-5"
-                                        placeholder="لطفا توضیحات را واضح نماید"
-                                    />
-                                    <InputError
-                                        message={errors.description}
-                                        className="mt-2"
-                                    />
-                                </div>
-
-
-                                <Button
-                                    type="submit"
-                                    className="mt-2 w-full"
-                                    tabIndex={7}
-                                    data-test="register-employee-button"
-                                >
-                                    {processing && <Spinner />}
-                                    ثبت کنید
-                                </Button>
-                            </div>
-                        </form>
-                    </div>}
-                    <div className="border p-3 shadow-2xl rounded-lg bg-muted">
+                            </form>
+                        </div>}
+                    <div className="border p-3 shadow-2xl rounded-lg bg-white">
                         <div>
                             <h1 className="text-center w-full text-accent font-semibold text-xl py-5">ریکورد مصارف امروز</h1>
                             <Table>
                                 <TableCaption> مصارف تاریخ {new Date().toLocaleDateString('fa-IR')} را اینجا دیده میتانی</TableCaption>
                                 <TableHeader>
                                     <TableRow>
-                                        {role.name === "shop_clerk" && <TableHead>قابل ویرایش است؟ </TableHead>}
-                                        <TableHead>واحد پول</TableHead>
-                                        <TableHead>مقدار پول</TableHead>
-                                        <TableHead>توضیحات</TableHead>
-                                        <TableHead className="">شماره</TableHead>
+                                        <TableHead className="text-center">شماره</TableHead>
+                                        <TableHead className="text-center">توضیحات</TableHead>
+                                        <TableHead className="text-center">مقدار پول</TableHead>
+                                        <TableHead className="text-center">واحد پول</TableHead>
+                                        {role.name === "shop_clerk" && <TableHead className="text-center">قابل ویرایش</TableHead>}
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {expenses.map((expense, ind) => {
+                                    {expenses.length > 0 ? expenses.map((expense, ind) => {
                                         return (
                                             <TableRow key={expense.id} className="hover:bg-secondary hover:border">
-                                                {role.name === "shop_clerk" && <TableCell><Button onClick={() => toggleExpenseEditable(expense)}>{expense.is_editable ? 'بلی' : 'نخیر'}</Button></TableCell>}
-                                                <TableCell>{expense.currency.name}</TableCell>
-                                                <TableCell>
+                                                <TableCell className="text-center">{ind + 1}</TableCell>
+                                                <TableCell className="text-start flex-1">{expense.description}</TableCell>
+                                                <TableCell className="text-center">
                                                     <Input
                                                         value={editingAmounts[expense.id] ?? String(expense.amount)}
                                                         readOnly={!canBeEditedBySuperAdmin(expense)}
@@ -248,11 +257,13 @@ const Create = ({ currencies, todaysExpenses }: Props) => {
                                                         className={`w-full ${canBeEditedBySuperAdmin(expense) ? 'border' : 'bg-transparent border-none'} ${updatingExpenseId === expense.id ? 'opacity-50 cursor-not-allowed' : ''}`}
                                                     />
                                                 </TableCell>
-                                                <TableCell className="font-medium flex-1">{expense.description}</TableCell>
-                                                <TableCell className="text-center">{ind + 1}</TableCell>
+                                                <TableCell className="text-center">{getDariCurrency(expense.currency.name)}</TableCell>
+                                                {role.name === "shop_clerk" && <TableCell><Button onClick={() => toggleExpenseEditable(expense)}>{expense.is_editable ? 'بلی' : 'نخیر'}</Button></TableCell>}
                                             </TableRow>
                                         );
-                                    })}
+                                    }) : <TableRow>
+                                        <TableCell colSpan={5} className="text-sm text-gray-400 text-center">کدام مصراف ثبت نشده</TableCell>
+                                    </TableRow>}
                                 </TableBody>
                                 <TableFooter>
                                     <TableRow>

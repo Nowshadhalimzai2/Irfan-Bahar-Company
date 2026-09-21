@@ -140,6 +140,7 @@ class PaymentController extends Controller
                 'notes' => $payment->notes,
             ],
             'invoice' => [
+                'id' =>$invoice->id,
                 'number' => $invoice->invoice_number,
                 'customer' => $invoice->bill_to_name,
                 'phone' => $invoice->bill_to_phone,

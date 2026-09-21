@@ -20,6 +20,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import PageHead from '@/components/page-head';
 import { Coins } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface Props {
     expenses: Expense[];
@@ -79,12 +80,13 @@ const Index = ({ expenses }: Props) => {
                             <PopoverDescription className="text-center pt-1 text-sm"> لطف نموده تاریخ را انتخاب کنین</PopoverDescription>
                             <Calendar
                                 mode="range"
-                                defaultMonth={dateRange?.from}
+                                defaultMonth={new Date()}
                                 selected={dateRange}
                                 onSelect={setDateRange}
                                 numberOfMonths={2}
                                 className="rounded-lg border"
                             />
+                                                        
                         </PopoverContent>
                     </Popover>
                 </div>

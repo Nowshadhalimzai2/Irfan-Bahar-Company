@@ -14,6 +14,7 @@ type ReceiptPageProps = {
         notes?: string;
     };
     invoice: {
+        id:number;
         number: string;
         customer: string;
         phone?: string;
@@ -37,6 +38,7 @@ export default function PaymentReceipt({ payment, invoice }: ReceiptPageProps) {
         <AppLayout
             breadcrumbs={[
                 { title: 'پرداخت‌ها', href: '/payments' },
+                { title: 'پرداخت‌ها ' + invoice.number, href: `/sales/invoice/${invoice.id}/payments` },
                 {
                     title: `رسید ${payment.receiptNumber}`,
                     href: `/payments/${payment.receiptNumber}/receipt`,
@@ -181,9 +183,9 @@ export default function PaymentReceipt({ payment, invoice }: ReceiptPageProps) {
                             )}
                         </div>
                         <footer className="fixed bottom-10 ">
-                        <div className='mb-1 py-2 px-8'>
-                            <b className='text-xs text-gray-400'>مهر یا امضا: .............................</b>
-                        </div>
+                            <div className='mb-1 py-2 px-8'>
+                                <b className='text-xs text-gray-400'>مهر یا امضا: .............................</b>
+                            </div>
                             <div className='border-slate-200 px-8 py-2 text-center text-xs text-slate-400 border-t'>این رسید توسط سیستم مدیریت عرفان بهار صادر شده است.</div>
                         </footer>
                     </article>

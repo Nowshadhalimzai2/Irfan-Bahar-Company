@@ -64,29 +64,42 @@ class ExpenseController extends Controller
     public function update(Request $request, Expense $expense)
     {
         $user = Auth::user();
+        DB::beginTransaction();
+        try {
 
-        if (! ($user instanceof User) || ! $user->hasRole('super_admin')) {
-            abort(403);
+            if (! ($user instanceof User) || ! $user->hasRole('super_admin')) {
+                abort(403);
+            }
+
+            if (! $expense->is_editable) {
+                return response()->json(['message' => 'This expense is not editable.'], 403);
+            }
+
+            $data = $request->validate([
+                'amount' => 'required|numeric|min:1',
+            ]);
+            // return response()->json('data');
+            $oldAmount = $expense->amount;
+            $currency_id = $expense->currency_id;
+            $account = new SHA();
+            $account->debit($data['amount'], $currency_id);
+            $account->credit($oldAmount, $currency_id);
+            $expense->forceFill([
+                'amount' => $data['amount'],
+                'is_editable' => false,
+            ])->save();
+            DB::commit();
+            return response()->json([
+                'id' => $expense->id,
+                'amount' => $expense->amount,
+                'is_editable' => $expense->is_editable,
+            ]);
+        } catch (\Exception $th) {
+
+            DB::rollBack();
+            Inertia::flash('toast', ['type' => 'success', 'message' => ' مشکل در وجود امد هنګام ویرایش ' . $th->getMessage()]);
+            return redirect()->back();
         }
-
-        if (! $expense->is_editable) {
-            return response()->json(['message' => 'This expense is not editable.'], 403);
-        }
-
-        $data = $request->validate([
-            'amount' => 'required|numeric|min:1',
-        ]);
-
-        $expense->forceFill([
-            'amount' => $data['amount'],
-            'is_editable' => false,
-        ])->save();
-
-        return response()->json([
-            'id' => $expense->id,
-            'amount' => $expense->amount,
-            'is_editable' => $expense->is_editable,
-        ]);
     }
 
     public function expensesRange(Request $request)
@@ -110,7 +123,7 @@ class ExpenseController extends Controller
 
     public function toggleEditable(Request $request, Expense $expense)
     {
-        
+
         Gate::authorize('allow-shop-clerk');
 
         $data = $request->validate([

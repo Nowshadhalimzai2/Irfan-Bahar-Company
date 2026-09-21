@@ -25,9 +25,9 @@ type Invoice = {
     paid: number;
     due: number;
     status: string;
-    issuedOn: string;
+    issuedOn: Date;
     payments: Payment[];
-    saleId:number;
+    saleId: number;
 };
 type Props = { invoices: Invoice[] };
 type QuickFilter = 'all' | 'due' | 'paid';
@@ -101,10 +101,10 @@ export default function Payments({ invoices }: Props) {
                     </section>
 
                     <section className="grid gap-4 sm:grid-cols-3">
-                       <Summary title="جمع دریافت‌شده" value={money(collected, summaryCurrency)} icon={CircleDollarSign} tone="blue" />
+                        <Summary title="جمع دریافت‌شده" value={money(collected, summaryCurrency)} icon={CircleDollarSign} tone="blue" />
                         <Summary title="بل‌های باقی‌مانده" value={summaryInvoices.filter((invoice) => invoice.due > 0).length.toString()} icon={Receipt} tone="green" />
                         <Summary title="باقی‌مانده قابل دریافت" value={money(outstanding, summaryCurrency)} icon={CircleDollarSign} tone="amber" />
-                    
+
                     </section>
 
                     <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
@@ -157,7 +157,7 @@ export default function Payments({ invoices }: Props) {
                                 <thead className="border-b text-xs text-slate-400"><tr><th className="px-5 py-3 font-medium">فاکتور</th><th className="py-3 font-medium">مشتری</th><th className="py-3 font-medium">کل</th><th className="py-3 font-medium">دریافت</th><th className="py-3 font-medium">باقی‌مانده</th><th className="py-3 font-medium">وضعیت</th><th className="py-3 font-medium">عملیات</th></tr></thead>
                                 <tbody>
                                     {filtered.map((invoice) => <tr key={invoice.id} className="border-b last:border-0 hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                                        <td className="px-5 py-4"><b className="text-primary hover:cursor-pointer hover:underline" title='تاریخ پرداخت ها را بل بیبنین' onClick={()=>router.get(`/sales/invoice/${invoice.id}/payments`)}>{invoice.number}</b><small className="mt-1 block text-xs text-slate-400">{invoice.issuedOn}</small></td>
+                                        <td className="px-5 py-4"><b className="text-primary hover:cursor-pointer hover:underline" title='تاریخ پرداخت ها را بل بیبنین' onClick={() => router.get(`/sales/invoice/${invoice.id}/payments`)}>{invoice.number}</b><small className="mt-1 block text-xs text-slate-400">{new Date(invoice.issuedOn).toLocaleDateString('fa-AF')}</small></td>
                                         <td className="py-4 font-medium">{invoice.customer === 'مشتری ګذری' ? 'پرچون' : invoice.customer}<small className="mt-1 block text-xs text-slate-400">{invoice.phone ?? 'پرچون'}</small></td>
                                         <td className="py-4 font-semibold">{money(invoice.total, invoice.currency)}</td><td className="py-4 text-emerald-600">{money(invoice.paid, invoice.currency)}</td><td className="py-4 font-bold text-amber-600">{money(invoice.due, invoice.currency)}</td>
                                         <td className="py-4"><span className={`rounded-full px-2.5 py-1 text-[11px] ${invoice.status === 'paid' || invoice.due <= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{invoice.status === 'paid' || invoice.due <= 0 ? 'تکمیل شده' : 'نیازمند دریافت'}</span></td>
