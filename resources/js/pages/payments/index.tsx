@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { getDariCurrency } from '@/components/location-translator';
 import AppLayout from '@/layouts/app-layout';
 import PaymentDialog from '@/components/sale/payment-dialog';
+import sales from '@/routes/sales';
 
 type Payment = { id: number; amount: number; method: string; reference?: string; paid_at: string };
 type Invoice = {
@@ -26,6 +27,7 @@ type Invoice = {
     status: string;
     issuedOn: string;
     payments: Payment[];
+    saleId:number;
 };
 type Props = { invoices: Invoice[] };
 type QuickFilter = 'all' | 'due' | 'paid';
@@ -159,7 +161,7 @@ export default function Payments({ invoices }: Props) {
                                         <td className="py-4 font-medium">{invoice.customer === 'مشتری ګذری' ? 'پرچون' : invoice.customer}<small className="mt-1 block text-xs text-slate-400">{invoice.phone ?? 'پرچون'}</small></td>
                                         <td className="py-4 font-semibold">{money(invoice.total, invoice.currency)}</td><td className="py-4 text-emerald-600">{money(invoice.paid, invoice.currency)}</td><td className="py-4 font-bold text-amber-600">{money(invoice.due, invoice.currency)}</td>
                                         <td className="py-4"><span className={`rounded-full px-2.5 py-1 text-[11px] ${invoice.status === 'paid' || invoice.due <= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>{invoice.status === 'paid' || invoice.due <= 0 ? 'تکمیل شده' : 'نیازمند دریافت'}</span></td>
-                                        <td className="py-4"><div className="flex items-center gap-3"><button type="button" disabled={invoice.due <= 0} onClick={() => setSelected(invoice)} className="text-xs font-semibold text-primary disabled:text-slate-300">ثبت دریافت</button><Link href={`/sales/${invoice.id}/invoice/print`} title="چاپ فاکتور" className="text-slate-400 hover:text-primary"><Printer className="size-4" /></Link></div></td>
+                                        <td className="py-4"><div className="flex items-center gap-3"><button type="button" disabled={invoice.due <= 0} onClick={() => setSelected(invoice)} className="text-xs font-semibold text-primary disabled:text-slate-300">ثبت دریافت</button><Link href={`/sales/${invoice.saleId}/invoice/print`} title="چاپ فاکتور" className="text-slate-400 hover:text-primary"><Printer className="size-4" /></Link></div></td>
                                     </tr>)}
                                 </tbody>
                             </table>
