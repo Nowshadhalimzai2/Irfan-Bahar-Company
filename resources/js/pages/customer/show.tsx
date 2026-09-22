@@ -17,7 +17,7 @@ interface Props {
 
 type Invoice = {
     id: number;
-    invoice_number:string;
+    invoice_number: string;
     customer: string;
     phone?: string;
     currency: string;
@@ -61,8 +61,11 @@ export default function Show({ customer, sales, invoices }: Props) {
         const due = currencyInvoices.reduce((sum, invoice) => sum + Number(invoice.total || 0), 0) - paid;
 
         return {
-            currency: summaryCurrency, sales: currencySales.reduce((sum, sale) =>
-                sum + Number(sale.after_descount_total || 0), 0) - refuneded, paid, due
+            currency: summaryCurrency,
+            sales: currencySales.reduce((sum, sale) =>
+                sum + Number(sale.after_descount_total || 0), 0) - refuneded,
+            paid,
+            due
         };
     });
     const latestPayment = invoices.filter(invoice => {
@@ -71,7 +74,8 @@ export default function Show({ customer, sales, invoices }: Props) {
     })[0].latest_payment;
 
     const currentCards = currencySummaries.filter(sum => sum.currency == selectedCurrency)[0];
-
+    console.log('invoices ',invoices);
+    
     return <AppLayout breadcrumbs={[{ title: 'مشتریان', href: '/stackholders' }, { title: customer.name, href: `/customers/${customer.id}` }]}>
         <div dir="rtl" className="min-h-screen space-y-6 bg-[#f6f9fc] p-3 pb-10 md:p-6">
             <section className="relative overflow-hidden rounded-4xl bg-[#092b4c] p-6 text-white shadow-xl md:p-8">
@@ -150,8 +154,10 @@ export default function Show({ customer, sales, invoices }: Props) {
                                                 disabled={
                                                     sale.invoice?.status === 'paid'
                                                 }
-                                                onClick={() =>
-                                                    setSelected(sale.invoice ? sale.invoice : null)
+                                                onClick={() =>{
+                                                    
+                                                    setSelected(invoices.filter(inv=>inv.saleId==sale.id)[0])
+                                                }
                                                 }
                                                 className="text-xs font-semibold text-primary disabled:text-slate-300"
                                             >

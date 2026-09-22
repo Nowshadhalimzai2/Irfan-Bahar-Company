@@ -7,6 +7,7 @@ use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\SaleReturn;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -77,6 +78,7 @@ class CustomerController extends Controller
                     $salePaid = (float) ($invoice->sale?->amount_paid ?? 0);
                     $paid = max($paid, $salePaid);
                     $total = (float) ($invoice->total ?? $invoice->sale?->after_descount_total ?? 0);
+                    // $returnTotal = $invoice?->saleReturns->sum(fn(SaleReturn $saleReturn)=>$saleReturn->refund_amount);
                     $due = max(0, $total - $paid);
 
                     return [
