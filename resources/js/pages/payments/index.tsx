@@ -14,7 +14,7 @@ import AppLayout from '@/layouts/app-layout';
 import PaymentDialog from '@/components/sale/payment-dialog';
 import sales from '@/routes/sales';
 
-type Payment = { id: number; amount: number; method: string; reference?: string; paid_at: string };
+type Payment = { id: number; amount: number; method: string; reference?: string; paidAt: string };
 type Invoice = {
     id: number;
     number: string;
@@ -28,6 +28,7 @@ type Invoice = {
     issuedOn: Date;
     payments: Payment[];
     saleId: number;
+    latest_payment:Payment;
 };
 type Props = { invoices: Invoice[] };
 type QuickFilter = 'all' | 'due' | 'paid';

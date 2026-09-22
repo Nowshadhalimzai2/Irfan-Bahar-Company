@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Custome\Log;
+use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -57,13 +58,14 @@ class CustomerController extends Controller
     public function show(Customer $customer)
     {
         $customer->load([
-            'sales' => fn ($query) => $query->latest('sold_at'),
+            'sales' => fn($query) => $query->latest('sold_at'),
             'sales.currency',
             'sales.invoice.sale',
-            'sales.invoice.payments' => fn ($query) => $query->latest('paid_at'),
+            'sales.invoice.payments' => fn($query) => $query->latest('paid_at'),
             'sales.saleReturns'
         ]);
-        
+
+
         return Inertia::render('customer/show', [
             'customer' => $customer,
             'sales' => $customer->sales,
@@ -90,7 +92,8 @@ class CustomerController extends Controller
                         'status' => $invoice->status,
                         'issuedOn' => $invoice->issued_on ? Carbon::parse($invoice->issued_on)->format('Y/m/d') : '',
                         'dueOn' => $invoice->due_on ? Carbon::parse($invoice->due_on)->format('Y/m/d') : null,
-                        'payments' => $invoice->payments->map(fn (Payment $payment) => [
+                        'latest_payment' =>$invoice->payments()->latest()->first(),
+                        'payments' => $invoice->payments->map(fn(Payment $payment) => [
                             'id' => $payment->id,
                             'amount' => (float) $payment->amount,
                             'method' => $payment->method,
@@ -131,7 +134,7 @@ class CustomerController extends Controller
         }, 3);
     }
 
-   
+
     public function status(Customer $customer)
     {
         return DB::transaction(function () use ($customer) {

@@ -3,19 +3,21 @@ import { Accessibility, ArrowRight, Banknote, CalendarDays, CheckCircle2, Circle
 import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
 import { getDariCurrency } from '@/components/location-translator';
 import AppLayout from '@/layouts/app-layout';
-import type { Customer } from '@/types';
-import { useState } from 'react';
-// import Invoice from '../sale/invoice';
+import type { Currency, Customer } from '@/types';
+import { useMemo, useState } from 'react';
 import PaymentDialog from '@/components/sale/payment-dialog';
 
-type Payment = { id: number; amount: number; method: string; reference?: string; paid_at: string };
-// type Invoice = { id: number; number: string; status: string; total: number; currency: string; payments: Payment[] };
+type Payment = { id: number; amount: number; method: string; reference?: string; paidAt: string };
 type CustomerSale = { id: number; status: string; after_descount_total: number; amount_paid: number; sold_at: string; currency: { name: string }; invoice?: Invoice, sale_returns: { id: number; refund_amount: number }[] };
-interface Props { customer: Customer; sales: CustomerSale[]; invoices: Invoice[] }
+interface Props {
+    customer: Customer;
+    sales: CustomerSale[];
+    invoices: Invoice[];
+}
 
 type Invoice = {
     id: number;
-    number: string;
+    invoice_number:string;
     customer: string;
     phone?: string;
     currency: string;
@@ -23,20 +25,24 @@ type Invoice = {
     paid: number;
     due: number;
     status: string;
-    issuedOn: string;
+    issuedOn: Date;
     payments: Payment[];
+    saleId: number;
+    latest_payment: Payment;
 };
 
-const money = (value: number, currency: string) => `${Number(value || 0).toString()} ${getDariCurrency(currency)}`;
+const money = (value: number, currency: string) => `${Number(value || 0).toFixed(2)} ${getDariCurrency(currency)}`;
 const date = (value?: string) => value ? new Date(value).toLocaleDateString('fa-AF') : 'ثبت نشده';
 const methodLabels: Record<string, string> = { cash: 'نقدی', bank_transfer: 'حواله بانکی', office: 'دفتر', teller: 'تحویل‌دار' };
 
 export default function Show({ customer, sales, invoices }: Props) {
+
+    const accounts = useMemo(
+        () => Array.from(new Set(invoices.map((invoice) => invoice.currency))),
+        [invoices],
+    );
+    const [selectedCurrency, setSelectedCurrency] = useState<'AFG' | 'PKR' | 'USD' | string>(accounts[0] ?? 'AFG');
     const [selected, setSelected] = useState<Invoice | null>(null);
-
-    // const invoices = sales.flatMap((sale) => sale.invoice ? [sale.invoice] : []);
-    console.log('invoicessss: : ', sales);
-
     const payments = invoices.flatMap((invoice) => invoice.payments.map((payment) => ({ ...payment, invoice })));
     const currency = getDariCurrency(sales[0]?.currency?.name ?? invoices[0]?.currency ?? 'AFG');
     const currencySummaries = [...new Set(sales.map((sale) => sale.currency?.name).filter(Boolean))].map((summaryCurrency) => {
@@ -59,53 +65,125 @@ export default function Show({ customer, sales, invoices }: Props) {
                 sum + Number(sale.after_descount_total || 0), 0) - refuneded, paid, due
         };
     });
-    console.log('Currency Summery::: ');
-    const latestPayment = [...payments].sort((left, right) => new Date(right.paid_at).getTime() - new Date(left.paid_at).getTime())[0];
+    const latestPayment = invoices.filter(invoice => {
+        if (invoice.latest_payment)
+            return invoice.latest_payment;
+    })[0].latest_payment;
+
+    const currentCards = currencySummaries.filter(sum => sum.currency == selectedCurrency)[0];
 
     return <AppLayout breadcrumbs={[{ title: 'مشتریان', href: '/stackholders' }, { title: customer.name, href: `/customers/${customer.id}` }]}>
         <div dir="rtl" className="min-h-screen space-y-6 bg-[#f6f9fc] p-3 pb-10 md:p-6">
             <section className="relative overflow-hidden rounded-4xl bg-[#092b4c] p-6 text-white shadow-xl md:p-8">
                 <div className="absolute -left-16 -top-20 h-64 w-64 rounded-full border-28 border-cyan-300/10" />
                 <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-center">
-                    <div className="flex items-center gap-4"><div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20"><User size={32} /></div><div><p className="mb-1 text-sm text-cyan-200">پرونده مشتری</p><h1 className="text-2xl font-bold md:text-3xl">{customer.name}</h1><p className="mt-1 text-blue-100">{customer.nick_name || 'بدون تخلص'}</p></div></div>
-                    <div className="flex flex-wrap items-center gap-3"><span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${customer.is_active ? 'bg-emerald-400/15 text-emerald-200' : 'bg-red-400/15 text-red-200'}`}>{customer.is_active ? <CheckCircle2 size={17} /> : <XCircle size={17} />}{customer.is_active ? 'فعال' : 'غیر فعال'}</span><Link href={`/customers/${customer.id}/edit`} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#092b4c] transition hover:bg-cyan-50"><Edit3 size={17} /> ویرایش مشتری</Link><CustomeDropDownMenu items={[{ name: customer.is_active ? 'غیر فعال کنید' : 'فعال کنید', url: `/customers/status/${customer.id}` }]} method="put" /></div>
+                    <div className="flex items-center gap-4">
+                        <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white/10 ring-1 ring-white/20">
+                            <User size={32} />
+                        </div>
+                        <div>
+                            <p className="mb-1 text-sm text-cyan-200">پروفایل مشتری</p>
+                            <h1 className="text-2xl font-bold md:text-3xl">{customer.name}</h1>
+                            <p className="mt-1 text-blue-100">{customer.nick_name || 'بدون تخلص'}</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                        <span className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold ${customer.is_active ? 'bg-emerald-400/15 text-emerald-200' : 'bg-red-400/15 text-red-200'}`}>
+                            {customer.is_active ? <CheckCircle2 size={17} /> : <XCircle size={17} />
+                            }{customer.is_active ? 'فعال' : 'بلاک'}</span>
+                        <Link href={`/customers/${customer.id}/edit`} className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#092b4c] transition hover:bg-cyan-50">
+                            <Edit3 size={17} /> ویرایش مشتری
+                        </Link>
+                        <CustomeDropDownMenu items={[{ name: customer.is_active ? 'بلاک نمودن' : 'فعال نمودن', url: `/customers/status/${customer.id}` }]} method="put" />
+
+                    </div>
+
                 </div>
             </section>
-
-            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">{(currencySummaries.length ? currencySummaries : [{ currency, sales: 0, paid: 0, due: 0 }]).map((summary) => <div key={summary.currency} className="contents"><StatCard title={`مجموع فروش (${getDariCurrency(summary.currency)})`} value={money(summary.sales, summary.currency)} icon={<CircleDollarSign />} tone="blue" /><StatCard title={`دریافت‌شده (${getDariCurrency(summary.currency)})`} value={money(summary.paid, summary.currency)} icon={<HandCoins />} tone="emerald" /><StatCard title={`باقی‌مانده (${getDariCurrency(summary.currency)})`} value={money(Math.max(summary.due, 0), summary.currency)} icon={<Wallet />} tone="amber" /></div>)}<StatCard title="تعداد فروش" value={`${sales.length} فروش`} icon={<Receipt />} tone="violet" /></section>
+            <div className=''>
+                <select className='w-full bg-white shadow p-2 rounded-md' onChange={(e) => setSelectedCurrency(e.target.value as 'AFG' | 'PKR' | 'USD' | string)}>
+                    {accounts.map(account => <option value={account} key={account}>{getDariCurrency(account)}</option>)}
+                </select>
+            </div>
+            <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div key={currentCards.currency} className="contents">
+                    <StatCard title={`مجموع فروش (${getDariCurrency(currentCards.currency)})`} value={money(currentCards.sales, currentCards.currency)} icon={<CircleDollarSign />} tone="blue" />
+                    <StatCard title={`دریافت‌ شده (${getDariCurrency(currentCards.currency)})`} value={money(currentCards.paid, currentCards.currency)} icon={<HandCoins />} tone="emerald" />
+                    <StatCard title={`باقی‌ مانده (${getDariCurrency(currentCards.currency)})`} value={money(Math.max(currentCards.due, 0), currentCards.currency)} icon={<Wallet />} tone="amber" />
+                </div>
+                <StatCard title="تعداد فروش" value={`${sales.length} فروش`} icon={<Receipt />} tone="violet" />
+            </section>
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.8fr)]">
-                <section className="min-w-0 rounded-3xl border border-slate-200 bg-white shadow-sm"><div className="flex items-center justify-between border-b border-slate-100 p-5"><div><h2 className="text-xl font-bold text-slate-800">تاریخچه فروشات</h2><p className="mt-1 text-sm text-slate-500">تمام معاملات ثبت‌شده این مشتری</p></div><FileText className="text-cyan-600" /></div><div className="overflow-x-auto"><table className="w-full min-w-162.5 text-right text-sm"><thead className="bg-slate-50 text-xs text-slate-500"><tr><th className="px-5 py-3 font-medium">انوایس</th><th className="py-3 font-medium">تاریخ</th><th className="py-3 font-medium">مبلغ</th><th className="py-3 font-medium">پرداخت</th><th className="py-3 font-medium">وضعیت</th> <th className="py-3 font-medium">دربافت پرداخت</th></tr></thead><tbody>{sales.map((sale) => {
-                    const invoicePaid = sale.invoice?.payments.reduce((sum, payment) => sum + Number(payment.amount), 0) ?? Number(sale.amount_paid || 0);
+                <section className="min-w-0 rounded-3xl border border-slate-200 bg-white shadow-sm">
+                    <div className="flex items-center justify-between border-b border-slate-100 p-5">
+                        <div>
+                            <h2 className="text-xl font-bold text-slate-800">تاریخچه فروشات</h2>
+                            <p className="mt-1 text-sm text-slate-500">تمام معاملات ثبت‌شده این مشتری</p>
+                        </div>
+                        <FileText className="text-cyan-600" /></div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full min-w-162.5 text-right text-sm">
+                            <thead className="bg-slate-50 text-xs text-slate-500">
+                                <tr>
+                                    <th className="px-5 py-3 font-medium">انوایس</th>
+                                    <th className="py-3 font-medium">تاریخ</th>
+                                    <th className="py-3 font-medium">مبلغ</th>
+                                    <th className="py-3 font-medium">پرداخت</th>
+                                    <th className="py-3 font-medium">وضعیت</th>
+                                    <th className="py-3 font-medium">دربافت پرداخت</th>
+                                </tr>
+                            </thead><tbody>{sales.map((sale) => {
+                                const invoicePaid = sale.invoice?.payments.reduce((sum, payment) => sum + Number(payment.amount), 0) ?? Number(sale.amount_paid || 0);
 
-                    return <tr key={sale.id} className="border-t border-slate-100 transition hover:bg-slate-50"><td className="px-5 py-4 font-semibold text-cyan-700">{sale.invoice?.number || `فروش #${sale.id}`}</td><td className="py-4 text-slate-500">{date(sale.sold_at)}</td><td className="py-4 font-semibold">{money(Number(sale.after_descount_total), sale.currency?.name || currency)}</td><td className="py-4 text-emerald-700">{money(invoicePaid, sale.currency?.name || currency)}</td>
-                        <td className="py-4"><Status status={sale.invoice?.status || sale.status} /></td>
-                        <td className="py-4">
-                            <div className="flex items-center gap-3">
-                                <button
-                                    type="button"
-                                    disabled={
-                                        sale.invoice?.status === 'paid'
-                                    }
-                                    onClick={() =>
-                                        setSelected(sale.invoice ? sale.invoice : null)
-                                    }
-                                    className="text-xs font-semibold text-primary disabled:text-slate-300"
-                                >
-                                    ثبت دریافت
-                                </button>
-                                <Link
-                                    href={`/sales/${sale.id}/invoice/print`}
-                                    title="چاپ فاکتور"
-                                    className="text-slate-400 hover:text-primary"
-                                >
-                                    <Printer className="size-4" />
-                                </Link>
+                                return <tr key={sale.id} className="border-t border-slate-100 transition hover:bg-slate-50">
+                                    <td className="px-5 py-4 font-semibold text-cyan-700">{sale.invoice?.invoice_number ?? `فروش #${sale.id}`}</td>
+                                    <td className="py-4 text-slate-500">{date(sale.sold_at)}</td>
+                                    <td className="py-4 font-semibold">{money(Number(sale.after_descount_total), sale.currency?.name || currency)}</td>
+                                    <td className="py-4 text-emerald-700">{money(invoicePaid, sale.currency?.name || currency)}</td>
+                                    <td className="py-4"><Status status={sale.invoice?.status || sale.status} /></td>
+                                    <td className="py-4">
+                                        <div className="flex items-center gap-3">
+                                            <button
+                                                type="button"
+                                                disabled={
+                                                    sale.invoice?.status === 'paid'
+                                                }
+                                                onClick={() =>
+                                                    setSelected(sale.invoice ? sale.invoice : null)
+                                                }
+                                                className="text-xs font-semibold text-primary disabled:text-slate-300"
+                                            >
+                                                ثبت دریافت
+                                            </button>
+                                            <Link
+                                                href={`/sales/${sale.id}/invoice/print`}
+                                                title="چاپ فاکتور"
+                                                className="text-slate-400 hover:text-primary"
+                                            >
+                                                <Printer className="size-4" />
+                                            </Link>
+                                        </div>
+                                    </td>
+                                </tr>;
+                            })}</tbody></table>{!sales.length && <EmptyState text="هنوز هیچ فروشی برای این مشتری ثبت نشده است." />}</div></section>
+                <section className="rounded-3xl border border-slate-200 bg-white shadow-sm">
+                    <div className="border-b border-slate-100 p-5">
+                        <h2 className="text-xl font-bold text-slate-800">پرداخت‌های اخیر</h2>
+                        <p className="mt-1 text-sm text-slate-500">آخرین دریافت‌های ثبت‌شده</p>
+                    </div>
+                    <div className="divide-y divide-slate-100">{payments.slice(0, 6).map((payment) =>
+                        <div key={payment.id} className="flex items-start gap-3 p-4">
+                            <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600"><Banknote size={19} /></div>
+                            <div className="min-w-0 flex-1"><div className="flex justify-between gap-3">
+                                <p className="font-semibold text-slate-800">{money(Number(payment.amount), payment.invoice.currency)}</p><span className="text-xs text-slate-400">{date(payment.paidAt)}</span>
                             </div>
-                        </td>
-                    </tr>;
-                })}</tbody></table>{!sales.length && <EmptyState text="هنوز هیچ فروشی برای این مشتری ثبت نشده است." />}</div></section>
-                <section className="rounded-3xl border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-100 p-5"><h2 className="text-xl font-bold text-slate-800">پرداخت‌های اخیر</h2><p className="mt-1 text-sm text-slate-500">آخرین دریافت‌های ثبت‌شده</p></div><div className="divide-y divide-slate-100">{payments.slice(0, 6).map((payment) => <div key={payment.id} className="flex items-start gap-3 p-4"><div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600"><Banknote size={19} /></div><div className="min-w-0 flex-1"><div className="flex justify-between gap-3"><p className="font-semibold text-slate-800">{money(Number(payment.amount), payment.invoice.currency)}</p><span className="text-xs text-slate-400">{date(payment.paid_at)}</span></div><p className="mt-1 text-xs text-slate-500">{methodLabels[payment.method] || payment.method} · {payment.invoice.number}</p></div></div>)}{!payments.length && <EmptyState text="هنوز هیچ پرداختی ثبت نشده است." />}</div></section>
+                                <p className="mt-1 text-xs text-slate-500">{methodLabels[payment.method] || payment.method} · {payment.invoice.invoice_number}</p>
+                            </div>
+                        </div>)}
+                        {!payments.length && <EmptyState text="هنوز هیچ پرداختی ثبت نشده است." />}</div>
+                </section>
             </div>
 
             <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
@@ -116,9 +194,10 @@ export default function Show({ customer, sales, invoices }: Props) {
                         <Detail icon={<Mail />} label="ایمیل" value={customer.email || 'ثبت نشده'} /><Detail icon={<MapPin />} label="آدرس" value={customer.address || 'ثبت نشده'} />
                         <Detail icon={<CalendarDays />} label="تاریخ عضویت" value={date(String(customer.created_at))} /></div></section><section className="rounded-3xl bg-[#092b4c] p-6 text-white shadow-lg"><div className="mb-6 flex items-center justify-between"><div><p className="text-sm text-cyan-200">خلاصه حساب</p><h2 className="mt-1 text-xl font-bold">وضعیت مالی</h2></div>
                             <CreditCard className="text-cyan-200" /></div><div className="space-y-4 text-sm">
+
                         <SummaryRow label="تعداد انوایسها" value={`${invoices.length}`} />
-                        <SummaryRow label="آخرین پرداخت" value={latestPayment ? date(latestPayment.paid_at) : 'ثبت نشده'} />
-                        <SummaryRow label="آخرین مبلغ دریافتی" value={latestPayment ? money(Number(latestPayment.amount), latestPayment.invoice.currency) : 'ثبت نشده'} />
+                        <SummaryRow label="آخرین پرداخت" value={latestPayment ? date(latestPayment.paidAt) : 'ثبت نشده'} />
+                        <SummaryRow label="آخرین مبلغ دریافتی" value={latestPayment ? money(Number(latestPayment.amount), 'AFG') : 'ثبت نشده'} />
                     </div>
                 </section>
             </div>

@@ -13,16 +13,17 @@ const methods = {
     bank_transfer: { label: 'حواله بانکی', icon: Landmark },
     other: { label: 'سایر', icon: Receipt },
 };
-const money = (value: number, currency: string) =>{
+const money = (value: number, currency: string) => {
     const total = value ?? 0;
-    return `${total.toFixed(2).toString()} ${getDariCurrency(currency)}`;}
+    return `${total.toFixed(2).toString()} ${getDariCurrency(currency)}`;
+}
 
-type Payment = { id: number; amount: number; method: string; reference?: string; paid_at: string };
+type Payment = { id: number; amount: number; method: string; reference?: string; paidAt: string };
 
 
 type Invoice = {
     id: number;
-    number: string;
+    invoice_number: string;
     customer: string;
     phone?: string;
     currency: string;
@@ -32,8 +33,10 @@ type Invoice = {
     status: string;
     issuedOn: Date;
     payments: Payment[];
-    saleId:number;
+    saleId: number;
+    latest_payment: Payment;
 };
+
 function PaymentDialog({
     invoice,
     onClose,
@@ -43,7 +46,7 @@ function PaymentDialog({
 }) {
 
     console.log('dialog inoive', invoice);
-    
+
     const { data, setData, post, processing, errors } = useForm({
         invoice_id: invoice.id,
         amount: invoice.due,
@@ -66,7 +69,7 @@ function PaymentDialog({
                             ثبت دریافت برای
                         </p>
                         <h2 className="mt-1 text-xl font-bold">
-                            {invoice.number}
+                            {invoice.invoice_number}
                         </h2>
                         <p className="mt-1 text-sm text-slate-500">
                             {invoice.customer}
@@ -87,11 +90,11 @@ function PaymentDialog({
                                 پرداخت‌شده تاکنون
                             </span>
                             <b className="mt-1 block text-emerald-600">
-                                {money(invoice.paid , invoice.currency)}
+                                {money(invoice.paid, invoice.currency)}
                             </b>
                         </div>
                         <div>
-                            <span className="block text-xs text-slate-500">
+                        <span className="block text-xs text-slate-500">
                                 باقی‌مانده
                             </span>
                             <b className="mt-1 block text-amber-600">
