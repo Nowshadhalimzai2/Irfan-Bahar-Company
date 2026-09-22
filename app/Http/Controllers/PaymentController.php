@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Custome\SHA;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\User;
+use App\Notifications\PaymentCreated;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
 class PaymentController extends Controller
@@ -88,7 +91,7 @@ class PaymentController extends Controller
                         'notes' => 'پرداخت اولیه قبلی',
                     ]);
                 }
-                $paymentID = max(Payment::max('id'), 0)+1;
+                $paymentID = max(Payment::max('id'), 0) + 1;
                 $payment = $invoice->payments()->create([
                     'amount' => $data['amount'],
                     'method' => $data['method'],
@@ -108,7 +111,11 @@ class PaymentController extends Controller
                 if ($invoice->sale) {
                     $invoice->sale->update(['amount_paid' => $newPaid]);
                 }
-
+                $admins = User::query()
+                    ->with('role:id,name')
+                    ->whereHas('role', fn($query) => $query->whereIn('name', ['admin', 'super_admin']))
+                    ->get();
+                Notification::send($admins, new PaymentCreated($payment));
                 return $payment;
             });
 
@@ -132,7 +139,7 @@ class PaymentController extends Controller
         return Inertia::render('payments/receipt', [
             'payment' => [
                 'id' => $payment->id,
-                'receiptNumber' => $payment->payment_number ?? 'REC-'.$payment->id,
+                'receiptNumber' => $payment->payment_number ?? 'REC-' . $payment->id,
                 'amount' => (float) $payment->amount,
                 'method' => $payment->method,
                 'reference' => $payment->reference,
@@ -140,7 +147,7 @@ class PaymentController extends Controller
                 'notes' => $payment->notes,
             ],
             'invoice' => [
-                'id' =>$invoice->id,
+                'id' => $invoice->id,
                 'number' => $invoice->invoice_number,
                 'customer' => $invoice->bill_to_name,
                 'phone' => $invoice->bill_to_phone,
@@ -174,13 +181,13 @@ class PaymentController extends Controller
                 'after_descount_total' => $invoice->sale->after_descount_total,
                 'total_paid_amount' => $invoice->payments()->sum('amount'),
                 'sale_id' => $invoice->sale->id,
-                'payments' => $invoice->payments->map(fn(Payment $payment)=>[
+                'payments' => $invoice->payments->map(fn(Payment $payment) => [
                     'id' => $payment->id,
-                    'amount'=>$payment->amount,
-                    'paid_at'=>$payment->paid_at,
+                    'amount' => $payment->amount,
+                    'paid_at' => $payment->paid_at,
                     'payment_number' => $payment->payment_number,
-                    'method' =>$payment->method,
-                    'notes' =>$payment->notes,
+                    'method' => $payment->method,
+                    'notes' => $payment->notes,
                 ])->values(),
             ],
         ]);
