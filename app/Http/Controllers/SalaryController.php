@@ -24,21 +24,14 @@ class SalaryController extends Controller
     public function getSalryBasedOnMonth(Request $request, Employee $employee)
     {
 
-    $tz = config('app.timezone');
-        $from = $request->filled('from')
-            ? Carbon::parse($request->input('from'), $tz)
-            : Carbon::now($tz);
-        $to = $request->filled('to')
-            ? Carbon::parse($request->input('to'), $tz)
-            : Carbon::now($tz);
+        $selectedDate = $request->date('date') ?? Carbon::today(config('app.timezone'));
 
-        // return response()->json([
-        //     'date' => $now->toDateTimeString(),
-        // ]);
+        $start = $selectedDate->copy()->startOfMonth();
+        $end = $selectedDate->copy()->endOfMonth();
 
-        $salaryRecords = $employee->salaries()->whereBetween('payment_date', [$from, $to])
+        $salaryRecords = $employee->salaries()->whereBetween('payment_date', [$start, $end])
             ->get();
 
-        return response()->json(['salaries' => $salaryRecords, 'startOfDate' => $from, 'endOfDate' => $from,'employee' => $employee]);
+        return response()->json(['salaries' => $salaryRecords, 'startOfDate' => $start, 'endOfDate' => $start, 'employee' => $employee]);
     }
 }

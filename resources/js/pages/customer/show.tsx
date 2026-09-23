@@ -179,7 +179,7 @@ export default function Show({ customer, sales, invoices }: Props) {
                         <h2 className="text-xl font-bold text-slate-800">پرداخت‌های اخیر</h2>
                         <p className="mt-1 text-sm text-slate-500">آخرین دریافت‌های ثبت‌شده</p>
                     </div>
-                    <div className="divide-y divide-slate-100">{payments.slice(0, 6).map((payment) =>
+                    <div className="divide-y divide-slate-100">{payments.slice(0, 5).map((payment) =>
                         <div key={payment.id} className="flex items-start gap-3 p-4">
                             <div className="rounded-xl bg-emerald-50 p-2.5 text-emerald-600"><Banknote size={19} /></div>
                             <div className="min-w-0 flex-1"><div className="flex justify-between gap-3">

@@ -70,7 +70,7 @@ const CustomerList = ({ customers }: Props) => {
                 <div className="p-5">
                     <SectionTitle title="مشتریان" />
                     <div>
-                        <div id="FILTER-SECTION" className="">
+                        <div id="FILTER-SECTION" className="pb-5">
                             <div className="relative ">
                                 <Search className="absolute top-1.5 right-2 text-gray-400" />
                                 <Input className="pr-10 bg-white shadow overflow-hidden" dir="rtl" type="text" placeholder="جستجو مشتریان به اساس اسم، شماره تماس" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />

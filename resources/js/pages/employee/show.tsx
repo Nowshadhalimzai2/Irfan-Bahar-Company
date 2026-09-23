@@ -1,13 +1,11 @@
 import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
-import EmployeeHistory from '@/components/employee/employee-history';
 import { SalaryPaymentDialog } from '@/components/employee/salary-payment_dialog';
+import { getDariEmpPosition } from '@/components/location-translator';
 import { SectionTitle } from '@/components/section-title';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
-import userPassword from '@/routes/user-password';
 import { Employee, Salary } from '@/types';
 import { router, usePage } from '@inertiajs/react';
-import globals from 'globals';
 import { Briefcase, DollarSign, Dot, LucideTrendingUp, Phone, User, UserCheck2Icon, UserX } from 'lucide-react';
 
 interface Props {
@@ -28,9 +26,9 @@ const Show = ({ employee,  thisMonthSalary, grossMonthSalary, absentDays, perDay
     };
     const {user} = usePage().props.auth as unknown as {user: {role_id: number}};
     const moreList = [
-        { name: 'رکورد معاشات پرداخت شده', url: '/employees/' + employee.id + '/salary-record' },
-        { name: 'رکورد حاضری', url: `/employees/${employee.id}/attendance-record` },
-        { name: 'ویرایش کنین', url: `/employees/${employee.id}/edit` },
+        { name: 'ریکورد معاشات', url: '/employees/' + employee.id + '/salary-record' },
+        { name: 'ریکورد حاضری', url: `/employees/${employee.id}/attendance-record` },
+        { name: 'ویرایش کارمند', url: `/employees/${employee.id}/edit` },
 
 
     ];
@@ -107,21 +105,21 @@ const Show = ({ employee,  thisMonthSalary, grossMonthSalary, absentDays, perDay
                                 <span className="text-primary">{employee.status ? "Active" : "Left"}</span>
                             </div>
                             <CardItem Icon={Phone} title="شماره تماس" value={employee.phone} />
-                            <CardItem Icon={Briefcase} title="وظیفه" value={employee.position} />
+                            <CardItem Icon={Briefcase} title="وظیفه" value={getDariEmpPosition(employee.position)} />
                             <CardItem Icon={DollarSign} title="معاش ماهان" value={employee.salary} />
                         </div>
                         <div className="moreInformation grid grid-cols-1 md:grid-cols-3 py-5 rounded-md bg-secondary px-5 place-items-center mt-5">
                             <div className="flex">
-                                <span>ادرس</span>
                                 <span>{employee.address}</span>
+                                <span> : ادرس</span>
+                            </div>
+                            <div className="flex space-x-1">
+                                <span>{new Date(employee.recruitment_date).toLocaleDateString('fa-AF')}</span>
+                                <span>:  تاریخ استخدام    </span>
                             </div>
                             <div className="flex">
-                                <span>تاریخ استخدام</span>
-                                <span>{new Date(employee.recruitment_date).toLocaleDateString()}</span>
-                            </div>
-                            <div className="flex">
-                                <span>شفت کاری</span>
                                 <span>{employee.shift === "day" ? "روز" : "شب"}</span>
+                                <span> : شفت کاری</span>
                             </div>
                         </div>
 

@@ -14,6 +14,8 @@ class AttendanceController extends Controller
 
     public function attendanceRecord(Employee $employee): Response
     {
+
+
         $tz = config('app.timezone');
         $now =  Carbon::now($tz);
 
@@ -28,19 +30,16 @@ class AttendanceController extends Controller
     public function getAttendanceBasedOnDateRange(Request $request, Employee $employee)
     {
 
+        $selectedDate = $request->date('date') ?? Carbon::today(config('app.timezone'));
 
-        $tz = config('app.timezone');
-        $from = $request->filled('from')
-            ? Carbon::parse($request->input('from'), $tz)
-            : Carbon::now($tz);
-        $to = $request->filled('to')
-            ? Carbon::parse($request->input('to'), $tz)
-            : Carbon::now($tz);
-        $attendances = $employee->attendances()->whereBetween('date', [$from, $to])->get();
+            $start = $selectedDate->copy()->startOfMonth();
+            $end = $selectedDate->copy()->endOfMonth();
+       
+        $attendances = $employee->attendances()->whereBetween('date', [$start, $end])->get();
 
-        $absentDays = $employee->attendances()->whereBetween('date', [$from, $to])->where('is_present',false)->get()->count();
-        $presentDays = $employee->attendances()->whereBetween('date', [$from, $to])->where('is_present',true)->get()->count();
+        $absentDays = $employee->attendances()->whereBetween('date', [$start, $end])->where('is_present', false)->get()->count();
+        $presentDays = $employee->attendances()->whereBetween('date', [$start, $end])->where('is_present', true)->get()->count();
 
-        return response()->json(['attendances' => $attendances,'presentDays' => $presentDays,'absentDays' => $absentDays]);
+        return response()->json(['attendances' => $attendances, 'presentDays' => $presentDays, 'absentDays' => $absentDays]);
     }
 }

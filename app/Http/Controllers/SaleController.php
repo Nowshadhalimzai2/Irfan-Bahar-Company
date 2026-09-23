@@ -22,6 +22,7 @@ use Error;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
@@ -265,8 +266,8 @@ class SaleController extends Controller
                 if ($amountPaid < $afterDiscount || $data['customer_id'] != null) {
                     $this->createInvoice($sale);
                 }
-                $this->ensureDiscountIsEnough($sale);
-
+                $this->ensureDiscountIsEnough($sale);       
+                throw new Error('not added');
                 return $sale;
             });
             Inertia::flash('toast', ['type' => 'success', 'message' => 'فروشات تکمیل شد']);

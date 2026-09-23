@@ -54,4 +54,59 @@ export const getSingleUnitWeight = (weight: number, per_pack: number = 1) => (we
 export const getDariOrderStatus = (status: string) => status === 'pending' ? 'انتظار ' : status === 'progress' ? 'جریان' : status === 'completed' ? 'تکمیل شده' : status === 'cancelled' ? 'لغو شده' : status === 'drafted' ? 'پیش نویس شده' : status;
 export const getStatusColor = (status: string) => `${status === 'cancelled' ? 'text-red-500 bg-red-500/15' : status === 'drafted' ? 'text-blue-500 bg-blue-500/15' : status === 'completed' ? 'text-green-500 bg-green-500/15' : status === 'pending' ? 'text-yellow-500 bg-yellow-500/15' : status === 'progress' ? 'text-cyan-500 bg-cyan-500/15' : ''} `;
 
-export const getDariEmpPosition = (position:string)=> position==="worker" ? "کاریګر" : position==="machine_operator" ? "استاد ماشین" : position==="shopkeeper" ? "دوکاندار" : position==="clerk" ? "منشی" : position==="other" ? "دیګر" : position;
+export const getDariEmpPosition = (position: string) => position === "worker" ? "کاریګر" : position === "machine_operator" ? "استاد ماشین" : position === "shopkeeper" ? "دوکاندار" : position === "clerk" ? "منشی" : position === "other" ? "دیګر" : position;
+
+export const getDariMonthName = (monthNumber: string) => {
+
+
+    try {
+
+        Number(monthNumber);
+        let monthName: string = '';
+
+        switch (monthNumber) {
+            case '1':
+                monthName = 'حمل';
+                break;
+            case '2':
+                monthName = 'ثور';
+                break;
+            case '3':
+                monthName = 'جوزا';
+                break;
+            case '4':
+                monthName = 'سرطان';
+                break;
+            case '5':
+                monthName = 'اسد';
+                break;
+            case '6':
+                monthName = 'سنبله';
+                break;
+            case '7':
+                monthName = 'میزان';
+                break;
+            case '8':
+                monthName = 'عقرب';
+                break;
+            case '9':
+                monthName = 'قوس';
+                break;
+            case '10':
+                monthName = 'جدی';
+                break;
+            case '11':
+                monthName = 'دلوه';
+                break;
+            case '12':
+                monthName = 'حوت';
+                break;
+
+            default:
+                monthName = 'ماه ' + monthNumber;
+        }
+        return monthName;
+    } catch (error) {
+        return 'parameter is not a number'
+    }
+}

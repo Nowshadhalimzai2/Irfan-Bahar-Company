@@ -52,7 +52,7 @@ class PaymentCreated extends Notification
                 $sale->customer->name ?? $sale->customer_name,
             ),
             'payment_id' => $this->payment->id,
-            'url' => '/payments/'.$this->payment->id,
+            'url' => '/payments/'.$this->payment->id.'/receipt',
         ];
     }
 }
