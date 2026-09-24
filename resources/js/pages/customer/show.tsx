@@ -1,9 +1,9 @@
 import { Link } from '@inertiajs/react';
-import { Accessibility, ArrowRight, Banknote, CalendarDays, CheckCircle2, CircleDollarSign, CreditCard, Edit3, FileText, HandCoins, Mail, MapPin, Phone, Printer, Receipt, User, Wallet, XCircle } from 'lucide-react';
+import {  ArrowRight, Banknote, CalendarDays, CheckCircle2, CircleDollarSign, CreditCard, Edit3, FileText, HandCoins, Mail, MapPin, Phone, Printer, Receipt, User, Wallet, XCircle } from 'lucide-react';
 import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
 import { getDariCurrency } from '@/components/location-translator';
 import AppLayout from '@/layouts/app-layout';
-import type { Currency, Customer } from '@/types';
+import type {  Customer } from '@/types';
 import { useMemo, useState } from 'react';
 import PaymentDialog from '@/components/sale/payment-dialog';
 
@@ -74,7 +74,6 @@ export default function Show({ customer, sales, invoices }: Props) {
     })[0].latest_payment;
 
     const currentCards = currencySummaries.filter(sum => sum.currency == selectedCurrency)[0];
-    console.log('invoices ',invoices);
     
     return <AppLayout breadcrumbs={[{ title: 'مشتریان', href: '/stackholders' }, { title: customer.name, href: `/customers/${customer.id}` }]}>
         <div dir="rtl" className="min-h-screen space-y-6 bg-[#f6f9fc] p-3 pb-10 md:p-6">
@@ -105,6 +104,7 @@ export default function Show({ customer, sales, invoices }: Props) {
 
                 </div>
             </section>
+
             <div className=''>
                 <select className='w-full bg-white shadow p-2 rounded-md' onChange={(e) => setSelectedCurrency(e.target.value as 'AFG' | 'PKR' | 'USD' | string)}>
                     {accounts.map(account => <option value={account} key={account}>{getDariCurrency(account)}</option>)}

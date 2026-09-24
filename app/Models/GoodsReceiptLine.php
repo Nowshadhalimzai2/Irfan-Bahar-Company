@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GoodsReceiptLine extends Model
 {
-    protected $fillable = ['item_id', 'receipt_id', 'quantity', 'unit_cost', 'currency_id'];
+    protected $fillable = ['item_id', 'receipt_id', 'quantity', 'unit_cost'];
     public function receiptLines() : HasMany {
 
         return $this->hasMany(GoodsReceiptLine::class);

@@ -80,6 +80,7 @@ export interface Supplier{
     email?:string;
     address:string;
     status:boolean;
+    has_account:boolean;
 }
 export interface Customer{
     id:number;

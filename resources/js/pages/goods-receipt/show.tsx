@@ -65,7 +65,7 @@ const Show = ({ receipt }: Props) => {
                                                 <TableCell className="text-center">{line.item.product?.weight ?? 'N/A'}</TableCell>
                                                 <TableCell className="text-center">{line.item.unit}</TableCell>
                                                 <TableCell className="text-center">{line.unit_cost}</TableCell>
-                                                <TableCell className="text-center">{line.currency.name}</TableCell>
+                                                {/* <TableCell className="text-center">{line.currency.name}</TableCell> */}
                                             </TableRow>
                                         )}
                                     </TableBody>
