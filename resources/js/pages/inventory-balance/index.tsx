@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { AlertTriangle, Boxes, CheckCircle2, Filter, PackageOpen, Search, SearchX, SlidersHorizontal, Sparkles, Store, Warehouse } from 'lucide-react';
+import { Accessibility, AlertTriangle, Boxes, CheckCircle2, Filter, PackageOpen, Search, SearchX, SlidersHorizontal, Sparkles, Store, Warehouse } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import LocationTranslator, { getDariCategory, getDariItemType, getDariItemUnit, locationColor } from '@/components/location-translator';
 import PageLinks from '@/components/page-links';
@@ -140,10 +140,11 @@ const Index = ({ items, locations }: Props) => {
                 <PageHead
                     HeadIcon={Store}
                     title="ذخیره اجناس"
-                    description="تمام اجناس که مربوط شرکت است"
+                    description={" تمام اجناس که در شرکت فروخته می شود "+items.data.filter(item=>item.inventory_balances.reduce((acc,balance)=>acc+=balance.quantity_on_hand,0)>0).length+" اقلام است."}
                     subtitle="اجناس شرکت"
                     tone='cyan'
                 />
+
                 <section className="mt-5">
                     <div className="grid grid-cols-1 gap-3">
                         <div className="rounded-2xl border bg-linear-to-br from-white via-slate-50 to-slate-100 p-4 shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/80 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 dark:ring-slate-700/80">
