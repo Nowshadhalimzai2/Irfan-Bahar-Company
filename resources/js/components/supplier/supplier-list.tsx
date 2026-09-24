@@ -53,7 +53,7 @@ const SupplierList = ({ suppliers }: Props) => {
                         <TableBody>
                             {suppliers.length > 0 ? suppliers.map((supplier, ind) => {
                                 return (
-                                    <TableRow key={supplier.id} className="hover:bg-secondary text-center hover:border" >
+                                    <TableRow key={supplier.id} className="hover:bg-secondary text-center hover:border" onClick={()=>router.get('/suppliers/'+supplier.id)}>
                                         <TableCell className='textcenter'>{ind + 1}</TableCell>
                                         <TableCell className='textcenter font-medium'>{supplier.name}</TableCell>
                                         <TableCell className='textcenter'>{supplier.phone ?? "N/A"}</TableCell>

@@ -48,6 +48,12 @@ class SupplierController extends Controller
         }
     }
 
+    public function show(Supplier $supplier){
+
+        return Inertia::render('supplier/show',[
+            'supplier' => $supplier,
+        ]);
+    }
 
     public function edit(Supplier $supplier)
     {
