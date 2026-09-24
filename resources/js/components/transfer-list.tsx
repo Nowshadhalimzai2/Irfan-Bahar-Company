@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, CalendarDays, ChevronDown, PackageCheck, Search, SlidersHorizontal, Truck, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CalendarDays, ChevronDown, PackageCheck, Search, SlidersHorizontal, Truck, UserRoundPen, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import LocationTranslator from '@/components/location-translator';
 import { SectionTitle } from '@/components/section-title';
@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { Transfer } from '@/types/item';
 import PageLinks from './page-links';
+import { Role } from '@/types';
 
 interface Props {
     transfers: {
@@ -25,12 +26,16 @@ interface Props {
 const TransferList = ({ transfers }: Props) => {
 
     const { auth, roles } = usePage().props;
-    const userRole: string = roles.filter(role => role.id === auth.user.role_id)[0].name;
+    const UserRoles = roles as Role[];
+    const userRole: string = UserRoles.filter((role: { id: number }) => role.id === auth.user.role_id)[0].name;
 
     const [search, setSearch] = useState('');
     const [source, setSource] = useState('all');
     const [destination, setDestination] = useState('all');
-    const [date, setDate] = useState('all');
+    const [period, setPeriod] = useState<'daily' | 'monthly'>('daily');
+    
+    const currentDate = period === 'daily' ? new Date().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 7);
+    const [date, setDate] = useState(currentDate);
 
     const sourceLocations = useMemo(() => Array.from(new Set(transfers.data.map((transfer) => LocationTranslator(transfer.source.name)))), [transfers.data]);
     const destinationLocations = useMemo(() => Array.from(new Set(transfers.data.map((transfer) => LocationTranslator(transfer.destination.name)))), [transfers.data]);
@@ -43,7 +48,7 @@ const TransferList = ({ transfers }: Props) => {
         return searchable.includes(search.toLowerCase())
             && (source === 'all' || source === LocationTranslator(transfer.source.name))
             && (destination === 'all' || destination === LocationTranslator(transfer.destination.name))
-            && (date === 'all' || transferredDate.toISOString().slice(0, 7) === date);
+            && (date === 'all' || (period == 'monthly' ? transferredDate.toISOString().slice(0, 7) === date : transferredDate.toISOString().slice(0, 10) === date));
     }), [date, destination, search, source, transfers.data]);
 
     const totalValue = filteredTransfers.reduce((total, transfer) => total + transfer.transfer_lines.reduce((lineTotal, line) => lineTotal + Number(line.unit_price), 0), 0);
@@ -76,20 +81,31 @@ const TransferList = ({ transfers }: Props) => {
 
             <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm md:p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2"><SlidersHorizontal className="size-4 text-primary" /><h2 className="font-semibold">جستجو و فیلتر</h2></div>
-                    {(search || source !== 'all' || destination !== 'all' || date !== 'all') && <button type="button" onClick={clearFilters} className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"><X className="size-3" /> پاک کردن</button>}
+                    <div className="flex justify-between w-full p-1">
+                        <div className="flex items-center gap-2">
+                            <SlidersHorizontal className="size-4 text-primary" /><h2 className="font-semibold">جستجو و فیلتر</h2>
+
+                        </div>
+                        {(search || source !== 'all' || destination !== 'all' || date !== 'all') && <button type="button" onClick={clearFilters} className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"><X className="size-3" /> پاک کردن</button>}
+                        <div>
+                            <select className='border p-1.5 rounded-sm w-30 md:w-50' onChange={(e) => setPeriod(e.target.value as 'daily' | 'monthly')} >
+                                <option value="daily">daily</option>
+                                <option value="monthly">monthly</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
                     <label className="relative block"><Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="جستجو به اساس حواله نمبر" className="h-11 pr-10" /></label>
                     <label className="relative block"><select value={source} onChange={(event) => setSource(event.target.value)} className="h-11 w-full appearance-none rounded-md border border-input bg-background px-3 pl-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"><option value="all">همه مراجع</option>{sourceLocations.map((item) => <option key={item} value={item}>{item}</option>)}</select><ChevronDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /></label>
                     <label className="relative block"><select value={destination} onChange={(event) => setDestination(event.target.value)} className="h-11 w-full appearance-none rounded-md border border-input bg-background px-3 pl-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"><option value="all">همه مقاصد</option>{destinationLocations.map((item) => <option key={item} value={item}>{item}</option>)}</select><ChevronDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /></label>
-                    <label className="relative block"><CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input type="month" value={date === 'all' ? '' : date} onChange={(event) => setDate(event.target.value || 'all')} className="h-11 pr-10" /></label>
+                    <label className="relative block"><CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input type={period === "daily" ? 'date' : 'month'} value={date === 'all' ? '' : date} onChange={(event) => setDate(event.target.value || 'all')} className="h-11 pr-10" /></label>
                 </div>
             </div>
 
             <div className='shadow-md bg-white rounded-2xl'>
                 <div className=" ">
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto" dir='rtl'>
                         <Table>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -110,9 +126,8 @@ const TransferList = ({ transfers }: Props) => {
                                         <TableCell className='text-center'>{LocationTranslator(transfer.source.name)}</TableCell>
                                         <TableCell className='text-center' >{LocationTranslator(transfer.destination.name)}</TableCell>
                                         <TableCell className='text-center'>{transfer.reference_no}</TableCell>
-                                        <TableCell className='text-center text-sm text-muted-foreground'>{new Date(transfer.transferred_at).toLocaleDateString('fa-IR')}</TableCell>
+                                        <TableCell className='text-center text-sm text-muted-foreground'>{new Date(transfer.transferred_at).toLocaleDateString('en-US')}</TableCell>
                                         <TableCell className='text-center font-semibold'>{transfer.transfer_lines.reduce((acc, line) => acc + Number(line.unit_price), 0).toLocaleString()}</TableCell>
-                                        <TableCell className="w-8"><ArrowRight className="size-4 text-muted-foreground" /></TableCell>
                                     </TableRow>
                                 ) : <TableRow>
                                     <TableCell colSpan={7}><p className="w-full p-10 text-center text-muted-foreground">موردی با این مشخصات پیدا نشد.</p></TableCell>
