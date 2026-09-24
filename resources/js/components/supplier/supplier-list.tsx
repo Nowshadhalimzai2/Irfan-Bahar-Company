@@ -36,32 +36,31 @@ const SupplierList = ({ suppliers }: Props) => {
                 actionURL={'/suppliers/create'}
             />
             <div className="p-2 border mt-6 bg-white shadow-2xl rounded-lg">
-                <div>
+                <div dir="rtl">
                     <Table>
-                        <TableCaption className="text-accent">همه تأمین کننده ګان در سیستم</TableCaption>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-15">ID</TableHead>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Phone</TableHead>
-                                <TableHead>Email </TableHead>
-                                <TableHead>Address</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Action</TableHead>
+                                <TableHead className="w-15 text-center">شماره</TableHead>
+                                <TableHead className="text-center">اسم تامین کننده</TableHead>
+                                <TableHead className="text-center">شماره تماس</TableHead>
+                                <TableHead className="text-center">ایمیل </TableHead>
+                                <TableHead className="text-center">آدرس</TableHead>
+                                <TableHead className="text-center">وضیعت</TableHead>
+                                <TableHead className="text-center">اجراآت</TableHead>
 
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {suppliers.length > 0 ? suppliers.map((supplier, ind) => {
                                 return (
-                                    <TableRow key={supplier.id} className="hover:bg-secondary hover:border" >
-                                        <TableCell>{ind + 1}</TableCell>
-                                        <TableCell className="font-medium">{supplier.name}</TableCell>
-                                        <TableCell>{supplier.phone ?? "N/A"}</TableCell>
-                                        <TableCell>{supplier.email ?? "N/A"}</TableCell>
-                                        <TableCell>{supplier.address}</TableCell>
-                                        <TableCell>{supplier.status ? 'Active' : 'Inactive'}</TableCell>
-                                        <TableCell>
+                                    <TableRow key={supplier.id} className="hover:bg-secondary text-center hover:border" >
+                                        <TableCell className='textcenter'>{ind + 1}</TableCell>
+                                        <TableCell className='textcenter font-medium'>{supplier.name}</TableCell>
+                                        <TableCell className='textcenter'>{supplier.phone ?? "N/A"}</TableCell>
+                                        <TableCell className='textcenter'>{supplier.email ?? "N/A"}</TableCell>
+                                        <TableCell className='textcenter'>{supplier.address}</TableCell>
+                                        <TableCell className='textcenter'>{supplier.status ? 'Active' : 'Inactive'}</TableCell>
+                                        <TableCell className="flex flex-col justify-center items-center">
                                             <CustomeDropDownMenu
                                                 items={[
                                                     { name: "ویرایش", url: `/suppliers/${supplier.id}/edit` },
@@ -84,8 +83,7 @@ const SupplierList = ({ suppliers }: Props) => {
                         </TableBody>
                         <TableFooter>
                             <TableRow>
-                                <TableCell colSpan={3} className="text-end">{suppliers.length}</TableCell>
-                                <TableCell colSpan={3} className="text-end">مجموعه تأمین کننده ګان</TableCell>
+                                <TableCell colSpan={6} className="">مجموعه تأمین کننده ګان :  {suppliers.length}</TableCell>
 
                             </TableRow>
                         </TableFooter>

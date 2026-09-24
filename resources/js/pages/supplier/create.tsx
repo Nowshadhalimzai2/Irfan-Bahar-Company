@@ -38,7 +38,7 @@ const Create = () => {
                     <SectionTitle title="ایجاد تامین کننده" description="لطفا اشخاص را اینجا ثبت کنید از کسان که شما اجناس را وارد می کنین." />
 
                     <div className="max-w-xl mx-auto w-full px-4">
-                        <form onSubmit={handleSupplier}>
+                        <form onSubmit={handleSupplier} dir="rtl">
                             <div className="grid gap-6">
                                 <div className="grid gap-2">
                                     <Label htmlFor="name">نام تأمین کننده</Label>
