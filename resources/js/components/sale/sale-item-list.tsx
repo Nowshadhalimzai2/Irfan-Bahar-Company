@@ -62,7 +62,7 @@ const SaleItemList = ({ lines, items, setLines, updateLine, getStock, removeLine
                             سبد فروش
                         </h2>
                         <p className="text-xs text-slate-500">
-                            <span className={`${lines.length==12 && "text-red-500 font-medium"}`}>{cart.length}/12 قلم ·{' '}</span>
+                            <span className={`${lines.length == 12 && "text-red-500 font-medium"}`}>{cart.length}/12 قلم ·{' '}</span>
                             {lines.reduce(
                                 (sum, line) =>
                                     sum + line.quantity,
@@ -96,17 +96,17 @@ const SaleItemList = ({ lines, items, setLines, updateLine, getStock, removeLine
                 <div className="divide-y">
                     {cart.reverse().map(({ item, quantity, unit_price }) => (
                         <div key={item.id}>
-                                    <SaleItem
-                                        currency={currency}
-                                        getStock={getStock}
-                                        item={item}
-                                        quantity={quantity}
-                                        unit_price={unit_price}
-                                        units={units}
-                                        updateLine={updateLine}
-                                        removeLine={removeLine}
-                                    />
-                          
+                            <SaleItem
+                                currency={currency}
+                                getStock={getStock}
+                                item={item}
+                                quantity={quantity}
+                                unit_price={unit_price}
+                                units={units}
+                                updateLine={updateLine}
+                                removeLine={removeLine}
+                            />
+
 
                         </div>
                     ),
