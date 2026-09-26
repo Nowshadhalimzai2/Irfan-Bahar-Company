@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Models\InventoryBalance;
+use App\Models\TransferLine;
 use App\Notifications\TransferCreated;
 use Error;
 use Illuminate\Support\Facades\Gate;
@@ -144,9 +145,25 @@ class TransferController extends Controller
      */
     public function show(Transfer $transfer)
     {
+        // TransferData = {id:number,source:string,destination:string,reference_no:string,transfered_at:Date,lines:TransferLine[]}
+        // TransferLine = {id:number,itemName:string,quantity:number;unit_price:number};
         $transfer->load('source:id,name', 'destination:id,name', 'transferLines:id,transfer_id,quantity,item_id', 'transferLines.item:id,name,unit,default_sale_price,code,sku');
         $transfer->load('transferLines.item.product:item_id,weight,per_pack,barcode');
-        return Inertia::render('transfer/show', compact('transfer'));
+        return Inertia::render('transfer/InvoicePage', [
+            'transfer' =>[
+                'id' => $transfer->id,
+                'source' => $transfer->source->name,
+                'destination' => $transfer->destination->name,
+                'reference_no' => $transfer->reference_no,
+                'transfered_at' => $transfer->transferred_at,
+                'lines' => $transfer->transferLines->map(fn(TransferLine $line)=>[
+                    'id' => $line->id,
+                    'itemName' => $line->item->name,
+                    'quantity' => $line->quantity,
+                    'unit_price' => $line->unit_price,
+                ])->values(),
+            ]
+        ]);
     }
 
 

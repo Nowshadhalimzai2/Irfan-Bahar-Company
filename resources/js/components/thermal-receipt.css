@@ -1,0 +1,65 @@
+
+
+* { box-sizing: border-box; }
+
+@media print{.thermal-receipt-toolbar {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+}
+
+.thermal-receipt-toolbar button {
+  border: 0;
+  border-radius: 6px;
+  padding: 9px 14px;
+  background: #111827;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+}
+
+.thermal-receipt {
+  width: 80mm;
+  min-height: 100mm;
+  margin: 0 auto 24px;
+  padding: 5mm 4mm;
+  background: white;
+  color: #111827;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 12px;
+}
+
+.thermal-receipt__center { text-align: center; }
+.thermal-receipt__store-name { margin: 0; font-size: 18px; font-weight: 700; }
+.thermal-receipt__muted { color: #4b5563; }
+.thermal-receipt__small { font-size: 10px; }
+.thermal-receipt__rule { border-top: 1px dashed #111827; margin: 10px 0; }
+
+.thermal-receipt__meta,
+.thermal-receipt__totals,
+.thermal-receipt__items {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.thermal-receipt__meta td:last-child,
+.thermal-receipt__totals td:last-child,
+.thermal-receipt__items th:last-child,
+.thermal-receipt__items td:last-child { text-align: right; }
+
+.thermal-receipt__items { margin-top: 8px; }
+.thermal-receipt__items th { border-bottom: 1px dashed #111827; padding-bottom: 5px; text-align: left; }
+.thermal-receipt__items td { padding: 6px 0; vertical-align: top; }
+.thermal-receipt__item-name { display: block; }
+.thermal-receipt__item-detail { display: block; color: #4b5563; font-size: 10px; }
+.thermal-receipt__totals td { padding: 3px 0; }
+.thermal-receipt__grand-total td { border-top: 1px solid #111827; padding-top: 7px; font-size: 14px; font-weight: 700; }
+.thermal-receipt__footer { margin-top: 14px; text-align: center; }
+}
+@page { size: 80mm auto; margin: 0; }
+
+@media print {
+  .thermal-receipt-toolbar { display: none; }
+  .thermal-receipt { width: 80mm; min-height: 0; margin: 0; padding: 4mm; }
+}
