@@ -53,6 +53,7 @@ export interface Transfer {
     transferred_at: Date;
     notes?: string;
     transfer_lines: TransferLine[];
+    status:'suggested' | 'cancelled' | 'completed',
 }
 export interface TransferLine {
     id: number;

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -43,6 +44,7 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => Auth::user(),
+                'role' => Auth::user()->role->name,
             ],
             'roles' => Role::query()->select('id','name')->get(),
             'logo' => Storage::url('public/logo/nobg.png'),

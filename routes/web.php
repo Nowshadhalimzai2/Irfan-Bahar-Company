@@ -206,6 +206,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // ============================  Goods Receipt and Transfers Section =====================
     Route::resource('receipts', GoodsReceiptController::class)->names('receipts');
     Route::resource('items', ItemController::class)->names('items');
+    Route::put('/transfers/{transfer}/status/{status}', [TransferController::class, 'changeStatus'])->name('transfers.status');
     Route::resource('transfers', TransferController::class)->names('items');
     Route::get('/transfers/{location}/create', [TransferController::class, 'create']);
     Route::get('/transfers/{location}/items/{item}', [TransferController::class, 'getItemBalance']);

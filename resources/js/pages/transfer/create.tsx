@@ -16,6 +16,7 @@ import type { Item } from '@/types/item';
 
 interface Props {
     locations: Location[];
+    sourceLocations: Location[];
     items: Item[];
 }
 
@@ -33,7 +34,7 @@ type TransferType = {
     transferLines: TransferLine[];
 }
 
-const Create = ({ locations, items }: Props) => {
+const Create = ({ locations, items,sourceLocations }: Props) => {
      const [lineError, setLineError] = useState<string | null>(null);
     const [itemsInLoc, setItemInLoc] = useState<Item[]>(items);
     const [transferLine, setTransferLine] = useState<TransferLine[]>([]);
@@ -44,7 +45,7 @@ const Create = ({ locations, items }: Props) => {
     }));
 
     const { data, setData, errors, post, processing } = useForm<TransferType>({
-        'source_id': locations[0]?.id ?? 1,
+        'source_id': sourceLocations[0]?.id ?? 1,
         'destination_id': locations[1]?.id ?? 1,
         'transferred_at': new Date().toISOString().slice(0, 10),
         'notes': '',
@@ -178,7 +179,7 @@ const Create = ({ locations, items }: Props) => {
                                             }}
                                         >
                                             <option value={0}>از جای که میایه را انتخاب کنید</option>
-                                            {locations.map((location) => (
+                                            {sourceLocations.map((location) => (
                                                 <option className={`${location.id === data.destination_id && 'bg-secondary'}`} value={location.id} key={location.id} disabled={location.id === data.destination_id}>
                                                     {LocationTranslator(location.name)}
                                                 </option>

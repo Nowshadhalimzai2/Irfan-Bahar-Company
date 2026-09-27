@@ -1,7 +1,7 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, ArrowRight, CalendarDays, ChevronDown, PackageCheck, Search, SlidersHorizontal, Truck, UserRoundPen, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import LocationTranslator from '@/components/location-translator';
+import { useEffect, useMemo, useState } from 'react';
+import LocationTranslator, { getDariCategory } from '@/components/location-translator';
 import { SectionTitle } from '@/components/section-title';
 import { buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,9 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import type { Transfer } from '@/types/item';
 import PageLinks from './page-links';
 import { Role } from '@/types';
+import { CustomeDropDownMenu } from './customer-dropdwon';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import axios from 'axios';
 
 interface Props {
     transfers: {
@@ -33,7 +36,7 @@ const TransferList = ({ transfers }: Props) => {
     const [source, setSource] = useState('all');
     const [destination, setDestination] = useState('all');
     const [period, setPeriod] = useState<'daily' | 'monthly'>('daily');
-    
+
     const currentDate = period === 'daily' ? new Date().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 7);
     const [date, setDate] = useState(currentDate);
 
@@ -59,6 +62,16 @@ const TransferList = ({ transfers }: Props) => {
         setDate('all');
     };
 
+
+    const getTransferStatus = (status: 'suggested' | 'cancelled' | 'completed') => status === 'suggested' ? 'پیشنهاد شده' : status === 'completed' ? 'تکمیل شده' : status === 'cancelled' ? 'لغو شده' : status;
+    const getTransferStyle = (status: 'suggested' | 'cancelled' | 'completed') => status === 'suggested' ? 'text-yellow-500 hover:bg-yellow-50 hover:text-yellow-800' : status === 'completed' ? 'text-green-500' : status === 'cancelled' ? 'text-red-500' : '';
+
+    const handleTransferStatus=(transfer:Transfer,status:'completed'|'cancelled'|'suggested')=>{
+            if(status==='suggested')
+                return;
+            
+            router.put(`/transfers/${transfer.id}/status/${status}`,{},{preserveScroll:true,preserveState:true});
+    }
     return (
         <section className="space-y-6">
             <div className="relative overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl shadow-slate-900/10 md:px-10">
@@ -69,7 +82,7 @@ const TransferList = ({ transfers }: Props) => {
                         <h1 className="text-3xl font-bold tracking-tight md:text-4xl">انتقالات داخلی</h1>
                         <p className="max-w-xl text-sm leading-6 text-slate-300">تمام جابه‌جایی‌های اجناس را در یک نمای روشن دنبال کنید.</p>
                     </div>
-                    {(userRole === 'factory_clerk' || userRole === 'shop_clerk') && <Link href="/transfers/create" className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-cyan-400 text-slate-950 hover:bg-cyan-300`}><PackageCheck className="size-4" /> جنس را انتقال دهید</Link>}
+                    {(userRole === 'factory_clerk') && <Link href="/transfers/create" className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-cyan-400 text-slate-950 hover:bg-cyan-300`}><PackageCheck className="size-4" /> جنس را انتقال دهید</Link>}
                 </div>
             </div>
 
@@ -114,20 +127,28 @@ const TransferList = ({ transfers }: Props) => {
                                     <TableHead className='text-center'>مقصود</TableHead>
                                     <TableHead className='text-center'>نمبر حواله</TableHead>
                                     <TableHead className='text-center'>تاریخ انتقال</TableHead>
-                                    <TableHead className='text-center'>جمله قیمت اجناس</TableHead>
+                                    <TableHead className='text-center'>وضیعت</TableHead>
                                     <TableHead aria-label="باز کردن" />
 
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {filteredTransfers.length > 0 ? filteredTransfers.map((transfer, ind) =>
-                                    <TableRow key={transfer.id} className="cursor-pointer transition-colors hover:bg-cyan-50/60 dark:hover:bg-cyan-950/20" onClick={() => router.get('/transfers/' + transfer.id)}>
+                                    <TableRow key={transfer.id} className="cursor-pointer transition-colors hover:bg-cyan-50/60 dark:hover:bg-cyan-950/20" onDoubleClick={() => router.get('/transfers/' + transfer.id)}>
                                         <TableCell className='text-center'>{ind + 1}</TableCell>
                                         <TableCell className='text-center'>{LocationTranslator(transfer.source.name)}</TableCell>
                                         <TableCell className='text-center' >{LocationTranslator(transfer.destination.name)}</TableCell>
                                         <TableCell className='text-center'>{transfer.reference_no}</TableCell>
                                         <TableCell className='text-center text-sm text-muted-foreground'>{new Date(transfer.transferred_at).toLocaleDateString('fa-AF')}</TableCell>
-                                        <TableCell className='text-center font-semibold'>{transfer.transfer_lines.reduce((acc, line) => acc + Number(line.unit_price), 0).toLocaleString()}</TableCell>
+                                        <TableCell className={`text-center font-semibold ${getTransferStyle(transfer.status)} `}>
+                                            <DropdownMenu>
+                                                <DropdownMenuTrigger disabled={transfer.status !== 'suggested' || usePage().props.auth.role!=='factory_clerk'}>{getTransferStatus(transfer.status)}</DropdownMenuTrigger>
+                                                <DropdownMenuContent>
+                                                    <DropdownMenuItem onClick={()=>handleTransferStatus(transfer,'completed')}>تکمیل شده</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={()=>handleTransferStatus(transfer,'cancelled')}>لغو شده</DropdownMenuItem>
+                                                </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
                                     </TableRow>
                                 ) : <TableRow>
                                     <TableCell colSpan={7}><p className="w-full p-10 text-center text-muted-foreground">موردی با این مشخصات پیدا نشد.</p></TableCell>

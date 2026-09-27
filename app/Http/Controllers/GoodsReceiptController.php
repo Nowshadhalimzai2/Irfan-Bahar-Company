@@ -7,7 +7,6 @@ use App\Custome\Log;
 use App\Models\Currency;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptLine;
-use App\Models\InventoryMovement;
 use App\Models\Item;
 use App\Models\Location;
 use App\Models\Supplier;
@@ -52,7 +51,7 @@ class GoodsReceiptController extends Controller
             }
         }
         $transfers = Transfer::with('source:id,name', 'destination:id,name', 'transferLines:id,item_id,transfer_id,quantity,unit_price', 'transferLines.item:id,name,unit,item_type')
-            ->select('id', 'source_id', 'destination_id', 'reference_no', 'notes', 'transferred_at')
+            ->select('id', 'source_id', 'destination_id', 'reference_no', 'notes', 'transferred_at','status')
             ->orderBy('id', 'desc')->paginate(10);
         return Inertia::render('goods-receipt/index', compact('goodsReceipts', 'transfers'));
     }

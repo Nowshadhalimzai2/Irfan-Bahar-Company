@@ -9,7 +9,7 @@ use Locale;
 
 class Transfer extends Model
 {
-    protected $fillable = ['source_id','destination_id','reference_no','transferred_at','notes'];
+    protected $fillable = ['source_id','destination_id','reference_no','transferred_at','notes','status'];
 
     public function source() : BelongsTo {
 

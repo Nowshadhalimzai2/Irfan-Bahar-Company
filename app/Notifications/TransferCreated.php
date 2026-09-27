@@ -7,7 +7,7 @@ use Illuminate\Notifications\Notification;
 
 class TransferCreated extends Notification
 {
-    public function __construct(public Transfer $transfer)
+    public function __construct(public Transfer $transfer,private string $title)
     {
     }
 
@@ -19,7 +19,7 @@ class TransferCreated extends Notification
     public function toArray(object $notifiable): array
     {
         return [
-            'title' => 'انتقال جدید ثبت شد',
+            'title' => $this->title,
             'message' => sprintf(
                 'انتقال %s از %s به %s ثبت گردید.',
                 $this->transfer->reference_no,

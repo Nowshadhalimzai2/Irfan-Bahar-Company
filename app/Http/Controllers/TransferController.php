@@ -13,10 +13,12 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use App\Models\InventoryBalance;
 use App\Models\TransferLine;
+use App\Models\User;
 use App\Notifications\TransferCreated;
 use Error;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
+use Throwable;
 
 class TransferController extends Controller
 {
@@ -31,9 +33,11 @@ class TransferController extends Controller
      */
     public function create(Request $request, ?Location $location)
     {
-        Gate::authorize('reject-admins');
+        Gate::authorize('allow-factory_clerk');
 
-        $locations = Location::select('id', 'name')->get();
+        $locations = Location::select('id', 'name')->whereNotIn('type', ['other'])->get();
+        $sourceLocations = Location::query()->select('id', 'name', 'type')->whereNotIn('type', ['shop', 'other'])->get();
+        // dd($sourceLocations);
         if ($location instanceof Location) {
             if ($request->expectsJson()) {
                 $items = Item::with('inventoryBalances:id,location_id,item_id,quantity_on_hand,reserved')
@@ -52,7 +56,7 @@ class TransferController extends Controller
             $query->where('quantity_on_hand', '>', 0);
         })->select('id', 'name', 'unit', 'default_sale_price')->get();
 
-        return Inertia::render('transfer/create', compact('locations', 'items'));
+        return Inertia::render('transfer/create', compact('locations', 'items', 'sourceLocations'));
     }
 
     /**
@@ -60,7 +64,7 @@ class TransferController extends Controller
      */
     public function store(Request $request)
     {
-        Gate::authorize('reject-admins');
+        Gate::authorize('allow-factory_clerk');
 
         $data = $request->validate([
             'source_id' => 'required|integer|exists:locations,id',
@@ -90,6 +94,7 @@ class TransferController extends Controller
                 'notes' => $data['notes'] ?? '',
                 'transferred_at' => $data['transferred_at'],
                 'reference_no' => '',
+                'status' => 'suggested',
             ]);
 
             $transfer->reference_no = sprintf('TR-%s-%s', Carbon::now(config('app.timezone'))->year, str_pad($transfer->id, 5, '0', STR_PAD_LEFT));
@@ -109,21 +114,17 @@ class TransferController extends Controller
                 }
 
                 $transfer->transferLines()->create($line);
-                //  ======== RECORD THE INVENTORY MOVEMENT ===
-                $inventory = new InvMovement();
-                // -------- if the quantity while being reduced not enough in location that will throw an error
-                if (!$inventory->move($data['source_id'], $line['item_id'], $line['quantity'], 'transferred_out', $data['notes'], '-')) {
-                    throw new Error("در مرجع" . ' کافی مقدار نداریم');
-                }
-                $inventory->move($data['destination_id'], $line['item_id'], $line['quantity'], 'transferred_in', $data['notes']);
-                // ======== UPDATE INVENTORY BALANCE =======
             }
-            $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' انتقال شد';
+            $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' پیشنهاد شد';
             $log->create('insert', $des);
             DB::commit();
             $transfer->load('source:id,name', 'destination:id,name');
-            $request->user()?->notifyNow(new TransferCreated($transfer));
-            Inertia::flash('toast', ['type' => 'success', 'message' => 'جنس نو امد به کارخانه .']);
+            $shopUsers = User::query()->with('role:id,name')->whereHas('role', fn($q) => $q->where('name', 'shop_clerk'))->get();
+            foreach ($shopUsers as $user) {
+                $user->notify(new TransferCreated($transfer, 'اجناس نو یشنهاد شد'));
+            }
+
+            Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
 
             // BOTH RECEIPTS AND TRANSFERS ARE IN SINGLE TABL       
             return redirect()->route('receipts.index');
@@ -132,10 +133,10 @@ class TransferController extends Controller
             if ($th instanceof ValidationException) {
                 throw $th;
             }
-            $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' انتقال نشد';
+            $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' پیشنهاد نشد';
             $log->create('insert', $des);
             DB::rollBack();
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'جنس نو وارد نشد .' . $th->getMessage()]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => $des . $th->getMessage()]);
             return redirect()->back();
         }
     }
@@ -149,18 +150,24 @@ class TransferController extends Controller
         // TransferLine = {id:number,itemName:string,quantity:number;unit_price:number};
         $transfer->load('source:id,name', 'destination:id,name', 'transferLines:id,transfer_id,quantity,item_id', 'transferLines.item:id,name,unit,default_sale_price,code,sku');
         $transfer->load('transferLines.item.product:item_id,weight,per_pack,barcode');
-        return Inertia::render('transfer/InvoicePage', [
-            'transfer' =>[
+        return Inertia::render('transfer/show', [
+            'transfer' => [
                 'id' => $transfer->id,
                 'source' => $transfer->source->name,
                 'destination' => $transfer->destination->name,
                 'reference_no' => $transfer->reference_no,
                 'transfered_at' => $transfer->transferred_at,
-                'lines' => $transfer->transferLines->map(fn(TransferLine $line)=>[
+                'status' => $transfer->status,
+                'notes' => $transfer->notes,
+                'lines' => $transfer->transferLines->map(fn(TransferLine $line) => [
                     'id' => $line->id,
                     'itemName' => $line->item->name,
+                    'itemUnit' => $line->item->unit,
+                    'itemWeight' => $line->item?->product->weight ?? '_',
+                    'itemPerPack' => $line->item?->product->per_pack ?? '_',
                     'quantity' => $line->quantity,
-                    'unit_price' => $line->unit_price,
+                    'unit_price' => $line->item->default_sale_price,
+
                 ])->values(),
             ]
         ]);
@@ -171,5 +178,47 @@ class TransferController extends Controller
     {
         $balance = InventoryBalance::with('item:id,name,unit')->where('location_id', $location->id)->where('item_id', $item->id)->first();
         return response()->json($balance);
+    }
+    public function changeStatus(Transfer $transfer, string $status)
+    {
+        Gate::authorize('allow-factory_clerk');
+
+        DB::beginTransaction();
+        try {
+
+            $transfer->status = $status;
+            $transfer->save();
+
+            if ($status === 'completed') {
+                //  ======== UPDATE INVENTORY ==========
+                foreach ($transfer->transferLines as $line) {
+                    $inventory = new InvMovement();
+                    // // -------- if the quantity while being reduced not enough in location that will throw an error
+                    if (!$inventory->move($transfer->source_id, $line->item_id, $line->quantity, 'transferred_out', '', '-')) {
+                        throw new Error("در مرجع" . ' کافی مقدار نداریم');
+                    }
+
+                    $inventory->move($transfer->destination_id, $line->item_id, $line->quantity, 'transferred_in');
+                }
+                $users = User::query()->with('role')->whereHas('role', function ($q) {
+                    $q->whereIn('name', ['admin', 'super_admin', 'shop_clerk']);
+                })->get();
+
+                foreach ($users as $user) {
+                    $user->notify(new TransferCreated($transfer, 'انتقال جنس تکمیل شد'));
+                }
+                // dd($status);
+                $log = new Log();
+                $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' تکمیل شد';
+                $log->create('insert', $des);
+                Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
+            }
+            DB::commit();
+            return redirect()->back();
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'انتقال اجناس تکمل نشد ' . $th->getMessage()]);
+            return redirect()->back();
+        }
     }
 }
