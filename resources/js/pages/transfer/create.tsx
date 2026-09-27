@@ -23,7 +23,7 @@ interface Props {
 type TransferLine = {
     item_id: number;
     quantity: number;
-    unit_price: number;
+    itemPrice: number;
 }
 
 type TransferType = {
@@ -34,14 +34,14 @@ type TransferType = {
     transferLines: TransferLine[];
 }
 
-const Create = ({ locations, items,sourceLocations }: Props) => {
-     const [lineError, setLineError] = useState<string | null>(null);
+const Create = ({ locations, items, sourceLocations }: Props) => {
+    const [lineError, setLineError] = useState<string | null>(null);
     const [itemsInLoc, setItemInLoc] = useState<Item[]>(items);
     const [transferLine, setTransferLine] = useState<TransferLine[]>([]);
     const [currentLine, setCurrentLine] = useState<TransferLine>(() => ({
         item_id: items[0]?.id ?? 0,
         quantity: 1,
-        unit_price: items[0]?.default_sale_price ?? 1,
+        itemPrice: items[0]?.default_sale_price ?? 1,
     }));
 
     const { data, setData, errors, post, processing } = useForm<TransferType>({
@@ -87,7 +87,7 @@ const Create = ({ locations, items,sourceLocations }: Props) => {
                 setCurrentLine({
                     item_id: availableItems[0]?.id ?? 0,
                     quantity: 1,
-                    unit_price: availableItems[0].default_sale_price ?? 0,
+                    itemPrice: availableItems[0]?.default_sale_price
                 });
             } else {
                 console.log('failed fetching Item data : ', response.statusText);
@@ -106,7 +106,7 @@ const Create = ({ locations, items,sourceLocations }: Props) => {
                 setCurrentLine({
                     item_id: items[0]?.id ?? 1,
                     quantity: 1,
-                    unit_price: items[0]?.default_sale_price ?? 1
+                    itemPrice: items[0]?.default_sale_price,
                 });
             },
         });
@@ -146,7 +146,7 @@ const Create = ({ locations, items,sourceLocations }: Props) => {
 
     const itemUnit = itemsInLoc.find(item => item.id === currentLine.item_id)?.unit ?? 'unit';
     const totalQuantity = transferLine.reduce((total, line) => total + line.quantity, 0);
-    const totalValue = transferLine.reduce((total, line) => total + line.quantity * line.unit_price, 0);
+    const totalValue = transferLine.reduce((total, line) => total += line.quantity * items.filter(item=>item.id===line.item_id)[0].default_sale_price, 0);
 
     return (
         <AppLayout
@@ -177,6 +177,7 @@ const Create = ({ locations, items,sourceLocations }: Props) => {
                                                 setBalance(undefined);
                                                 setData('source_id', Number(e.target.value));
                                             }}
+                                            disabled={transferLine.length>0}
                                         >
                                             <option value={0}>از جای که میایه را انتخاب کنید</option>
                                             {sourceLocations.map((location) => (
@@ -212,129 +213,105 @@ const Create = ({ locations, items,sourceLocations }: Props) => {
                                 <div className="mt-5 grid gap-2 md:grid-cols-2">
                                     <div className="grid gap-2"><Label htmlFor="transferred_at">تاریخ انتقال <span className="text-destructive">*</span></Label><div className="relative"><CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input id="transferred_at" type="date" value={data.transferred_at} onChange={(e) => setData('transferred_at', e.target.value)} className="h-11 pr-10" /></div><InputError message={errors.transferred_at} /></div>
                                     <div className="grid gap-2"><Label htmlFor="notes">یادداشت</Label>
-                                    <textarea
-                                        className="min-h-11 rounded-md border bg-transparent p-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
-                                        tabIndex={2}
-                                        name="notes"
-                                        value={data.notes}
-                                        onChange={(e) =>
-                                            setData('notes', e.target.value)
-                                        }
-                                        placeholder="نوت اختیاری است"
-                                    />
+                                        <textarea
+                                            className="min-h-11 rounded-md border bg-transparent p-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
+                                            tabIndex={2}
+                                            name="notes"
+                                            value={data.notes}
+                                            onChange={(e) =>
+                                                setData('notes', e.target.value)
+                                            }
+                                            placeholder="نوت اختیاری است"
+                                        />
 
-                                    <InputError message={errors.notes} className="mt-2" />
+                                        <InputError message={errors.notes} className="mt-2" />
                                     </div>
                                 </div>
                             </div>
 
-                                {balance?.id !== undefined ? <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
-                                    <div>
-                                        {/* ============ STOCK MONITOR ========== */}
-                                        {balance && <div>
-                                            <BalanceMonitor balance={balance} location={locations.find((location) => location.id === data.source_id) ?? locations[0]} />
-                                        </div>}
+                            {balance?.id !== undefined ? <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
+                                <div>
+                                    {/* ============ STOCK MONITOR ========== */}
+                                    {balance && <div>
+                                        <BalanceMonitor balance={balance} location={locations.find((location) => location.id === data.source_id) ?? locations[0]} />
+                                    </div>}
 
-                                        <div className="mb-5 flex items-center justify-between"><div className="flex items-center gap-2"><PackageCheck className="size-5 text-primary" /><div><h2 className="font-semibold">اقلام انتقال</h2><p className="text-xs text-muted-foreground">فقط مقدار قابل انتقال از مرجع را وارد کنید.</p></div></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{transferLine.length} جنس</span></div>
-                                        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                    <div className="mb-5 flex items-center justify-between"><div className="flex items-center gap-2"><PackageCheck className="size-5 text-primary" /><div><h2 className="font-semibold">اقلام انتقال</h2><p className="text-xs text-muted-foreground">فقط مقدار قابل انتقال از مرجع را وارد کنید.</p></div></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{transferLine.length} جنس</span></div>
+                                    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 
-                                            <div className="grid gap-2">
-                                                    <Label htmlFor="item_id">جنس <span className="text-destructive">*</span></Label>
-                                                <select
-                                                    className="border p-1.5 rounded-md"
-                                                    name="item_id"
-                                                    tabIndex={5}
-                                                    value={currentLine.item_id}
-                                                    onChange={(e) =>
-                                                        setCurrentLine((prev) => ({
-                                                            ...prev,
-                                                            item_id: Number(e.target.value),
-                                                        }))
-                                                    }
-                                                >
-                                                    {itemsInLoc.map((item) => (
-                                                        <option value={item.id} key={item.id}>
-                                                            {item.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <InputError message={errors.transferLines} className="mt-2" />
-
-                                            </div>
-
-                                            <div className="grid gap-2">
-                                                    <Label htmlFor="quantity" className="flex justify-between"><span>مقدار <span className="text-destructive">*</span></span>
-                                                    <span className="text-sm text-muted-foreground">
-                                                        {currentLine.quantity} {getDariItemUnit(itemUnit)}
-                                                    </span>
-                                                </Label>
-                                                <Input
-                                                    id="quantity"
-                                                    type="number"
-                                                    min={1}
-                                                    // max={items[currentLine.item_id]}
-                                                    value={currentLine.quantity}
-                                                    onChange={(e) =>
-                                                        setCurrentLine((prev) => ({
-                                                            ...prev,
-                                                            quantity: Number(e.target.value),
-                                                        }))
-                                                    }
-                                                    placeholder="مقدار"
-                                                    className="border p-1.5 rounded-md"
-                                                />
-                                                <InputError message={errors.transferLines} className="mt-2" />
-
-                                            </div>
-                                            <div className="grid gap-2">
-                                                <Label htmlFor="unit_price" className="flex justify-between">
-                                                    <span>قیمت واحد</span>
-                                                    <span className="text-sm text-muted-foreground">
-                                                        {currentLine.unit_price* currentLine.quantity}
-                                                    </span>
-                                                </Label>
-                                                <Input
-                                                    id="unit_price"
-                                                    type="number"
-                                                    min={1}
-                                                    // max={items[currentLine.item_id]}
-                                                    value={currentLine.unit_price}
-                                                    onChange={(e) =>
-                                                        setCurrentLine((prev) => ({
-                                                            ...prev,
-                                                            unit_price: Number(e.target.value),
-                                                        }))
-                                                    }
-                                                    placeholder="نرخ بر عدد"
-                                                    className="border p-1.5 rounded-md"
-                                                />
-                                                <InputError message={errors.transferLines} className="mt-2" />
-
-                                            </div>
-
-                                        </div>
-
-                                        <div className="mt-4">
-                                            <Button
-                                                type="button"
-                                                className="w-full"
-                                                variant={'secondary'}
-                                                tabIndex={6}
-                                                onClick={handleAddLine}
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="item_id">جنس <span className="text-destructive">*</span></Label>
+                                            <select
+                                                className="border p-1.5 rounded-md"
+                                                name="item_id"
+                                                tabIndex={5}
+                                                value={currentLine.item_id}
+                                                onChange={(e) =>
+                                                    setCurrentLine((prev) => ({
+                                                        ...prev,
+                                                        item_id: Number(e.target.value),
+                                                    }))
+                                                }
                                             >
-                                                <PackageCheck className="size-4" /> اضافه کردن جنس
-                                            </Button>
+                                                {itemsInLoc.map((item) => (
+                                                    <option value={item.id} key={item.id}>
+                                                        {item.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <InputError message={errors.transferLines} className="mt-2" />
+
                                         </div>
-                                        {lineError && <InputError message={lineError} className="mt-3" />}
+
+                                        <div className="grid gap-2">
+                                            <Label htmlFor="quantity" className="flex justify-between"><span>مقدار <span className="text-destructive">*</span></span>
+                                                <span className="text-sm text-muted-foreground">
+                                                    {currentLine.quantity} {getDariItemUnit(itemUnit)}
+                                                </span>
+                                            </Label>
+                                            <Input
+                                                id="quantity"
+                                                type="number"
+                                                min={1}
+                                                // max={items[currentLine.item_id]}
+                                                value={currentLine.quantity}
+                                                onChange={(e) =>
+                                                    setCurrentLine((prev) => ({
+                                                        ...prev,
+                                                        quantity: Number(e.target.value),
+                                                    }))
+                                                }
+                                                placeholder="مقدار"
+                                                className="border p-1.5 rounded-md"
+                                            />
+                                            <InputError message={errors.transferLines} className="mt-2" />
+
+                                        </div>
+
+
                                     </div>
-                                </section> : null}
+
+                                    <div className="mt-4">
+                                        <Button
+                                            type="button"
+                                            className="w-full"
+                                            variant={'secondary'}
+                                            tabIndex={6}
+                                            onClick={handleAddLine}
+                                        >
+                                            <PackageCheck className="size-4" /> اضافه کردن جنس
+                                        </Button>
+                                    </div>
+                                    {lineError && <InputError message={lineError} className="mt-3" />}
+                                </div>
+                            </section> : null}
 
 
 
-                                {/* ================================  RESULTS  =============================================== */}
-                                {transferLine.length > 0 && <>
+                            {/* ================================  RESULTS  =============================================== */}
+                            {transferLine.length > 0 && <>
 
-                                    <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">خلاصه انتقال</h3><span className="text-sm text-muted-foreground">{transferLine.length} قلم</span></div>
+                                <div dir='rtl' className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">خلاصه انتقال</h3><span className="text-sm text-muted-foreground">{transferLine.length} قلم</span></div>
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
@@ -342,17 +319,19 @@ const Create = ({ locations, items,sourceLocations }: Props) => {
                                                 <TableHead className='text-center'>جنس</TableHead>
                                                 <TableHead className='text-center'>مقدار</TableHead>
                                                 <TableHead className='text-center'>قیمت</TableHead>
+                                                <TableHead className='text-center'>جمله</TableHead>
                                                 <TableHead className='text-center'>حذف</TableHead>
                                             </TableRow>
                                         </TableHeader>
                                         <TableBody>
                                             {transferLine.length > 0 && (
-                                                transferLine.map((transfer, ind) =>
+                                                transferLine.map((line, ind) =>
                                                     <TableRow key={ind}>
                                                         <TableCell className='text-center'>{ind + 1}</TableCell>
-                                                        <TableCell className='text-center'>{itemsInLoc.find(item => item.id === transfer.item_id)?.name ?? transfer.item_id}</TableCell>
-                                                        <TableCell className='text-center'>{transfer.quantity}</TableCell>
-                                                        <TableCell className='text-center'>{transfer.unit_price}</TableCell>
+                                                        <TableCell className='text-center'>{itemsInLoc.find(item => item.id === line.item_id)?.name ?? line.item_id}</TableCell>
+                                                        <TableCell className='text-center'>{line.quantity}</TableCell>
+                                                        <TableCell className='text-center'>{items.filter(item=>item.id==line.item_id)[0].default_sale_price}</TableCell>
+                                                        <TableCell className='text-center'>{items.filter(item=>item.id==line.item_id)[0].default_sale_price*line.quantity}</TableCell>
                                                         <TableCell className='flex justify-center items-center'>
                                                             <button type="button" aria-label="حذف جنس" onClick={() => removeItem(ind)}><Trash2 className='size-4 text-destructive' /></button>
                                                         </TableCell>
@@ -362,24 +341,24 @@ const Create = ({ locations, items,sourceLocations }: Props) => {
                                         </TableBody>
                                     </Table>
                                     <div className="mt-4 flex flex-col gap-2 border-t border-border/60 pt-4 text-sm sm:flex-row sm:justify-between"><span>{totalQuantity} جمله مقدار</span><strong>{totalValue.toLocaleString()} جمله قیمت</strong></div>
-                                    </div>
-                                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                        <Link href="/receipts" className={`${buttonVariants({ variant: 'outline' })} gap-2`}><ArrowLeft className="size-4" /> انصراف</Link>
-                                        <Button
-                                            type="submit"
-                                            className="w-full gap-2 bg-slate-950 hover:bg-slate-800 sm:w-auto"
-                                            tabIndex={7}
-                                            data-test="register-employee-button"
-                                        >
-                                            {processing && <Spinner />}
-                                            <CheckCircle2 className="size-4" /> ثبت انتقال
-                                        </Button>
-                                    </div>
+                                </div>
+                                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                    <Link href="/receipts" className={`${buttonVariants({ variant: 'outline' })} gap-2`}><ArrowLeft className="size-4" /> انصراف</Link>
+                                    <Button
+                                        type="submit"
+                                        className="w-full gap-2 bg-slate-950 hover:bg-slate-800 sm:w-auto"
+                                        tabIndex={7}
+                                        data-test="register-employee-button"
+                                    >
+                                        {processing && <Spinner />}
+                                        <CheckCircle2 className="size-4" /> ثبت انتقال
+                                    </Button>
+                                </div>
 
-                                </>}                            </form>
-                        </div>
+                            </>}                            </form>
                     </div>
                 </div>
+            </div>
         </AppLayout>
     );
 };

@@ -36,7 +36,7 @@ class TransferController extends Controller
         Gate::authorize('allow-factory_clerk');
 
         $locations = Location::select('id', 'name')->whereNotIn('type', ['other'])->get();
-        $sourceLocations = Location::query()->select('id', 'name', 'type')->whereNotIn('type', ['shop', 'other'])->get();
+        $sourceLocations = Location::query()->select('id', 'name', 'type')->whereNotIn('type', ['shop', 'other','office'])->get();
         // dd($sourceLocations);
         if ($location instanceof Location) {
             if ($request->expectsJson()) {

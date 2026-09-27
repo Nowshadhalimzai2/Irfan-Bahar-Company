@@ -50,7 +50,7 @@ class GoodsReceiptController extends Controller
                 $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')->orderBy('id', 'desc')->paginate(10);
             }
         }
-        $transfers = Transfer::with('source:id,name', 'destination:id,name', 'transferLines:id,item_id,transfer_id,quantity,unit_price', 'transferLines.item:id,name,unit,item_type')
+        $transfers = Transfer::with('source:id,name', 'destination:id,name', 'transferLines:id,item_id,transfer_id,quantity,unit_price', 'transferLines.item:id,name,unit,item_type,default_sale_price')
             ->select('id', 'source_id', 'destination_id', 'reference_no', 'notes', 'transferred_at','status')
             ->orderBy('id', 'desc')->paginate(10);
         return Inertia::render('goods-receipt/index', compact('goodsReceipts', 'transfers'));

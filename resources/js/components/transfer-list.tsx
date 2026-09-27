@@ -1,18 +1,16 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { ArrowLeft, ArrowRight, CalendarDays, ChevronDown, PackageCheck, Search, SlidersHorizontal, Truck, UserRoundPen, X } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import LocationTranslator, { getDariCategory } from '@/components/location-translator';
-import { SectionTitle } from '@/components/section-title';
+import { CalendarDays, ChevronDown, PackageCheck, Search, SlidersHorizontal, Truck, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import LocationTranslator from '@/components/location-translator';
 import { buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import type { Transfer } from '@/types/item';
 import PageLinks from './page-links';
 import { Role } from '@/types';
-import { CustomeDropDownMenu } from './customer-dropdwon';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
-import axios from 'axios';
-
+import { Transfer } from '@/types/item';
+type TransferLine = { id: number, itemName: string, itemPrice: number, quantity: number };
+// type Transfer = { id: number, reference_no: string,status: 'completed'|'suggested'|'cancelled', source: string, destination: string, transfered_at: Date, lines: TransferLine[] }
 interface Props {
     transfers: {
         data: Transfer[];
@@ -54,7 +52,9 @@ const TransferList = ({ transfers }: Props) => {
             && (date === 'all' || (period == 'monthly' ? transferredDate.toISOString().slice(0, 7) === date : transferredDate.toISOString().slice(0, 10) === date));
     }), [date, destination, search, source, transfers.data]);
 
-    const totalValue = filteredTransfers.reduce((total, transfer) => total + transfer.transfer_lines.reduce((lineTotal, line) => lineTotal + Number(line.unit_price), 0), 0);
+
+
+    const totalValue = filteredTransfers.reduce((total, transfer) => total + transfer.transfer_lines.reduce((lineTotal, line) => lineTotal += line.quantity*line.item.default_sale_price, 0), 0);
     const clearFilters = () => {
         setSearch('');
         setSource('all');
@@ -66,11 +66,11 @@ const TransferList = ({ transfers }: Props) => {
     const getTransferStatus = (status: 'suggested' | 'cancelled' | 'completed') => status === 'suggested' ? 'پیشنهاد شده' : status === 'completed' ? 'تکمیل شده' : status === 'cancelled' ? 'لغو شده' : status;
     const getTransferStyle = (status: 'suggested' | 'cancelled' | 'completed') => status === 'suggested' ? 'text-yellow-500 hover:bg-yellow-50 hover:text-yellow-800' : status === 'completed' ? 'text-green-500' : status === 'cancelled' ? 'text-red-500' : '';
 
-    const handleTransferStatus=(transfer:Transfer,status:'completed'|'cancelled'|'suggested')=>{
-            if(status==='suggested')
-                return;
-            
-            router.put(`/transfers/${transfer.id}/status/${status}`,{},{preserveScroll:true,preserveState:true});
+    const handleTransferStatus = (transfer: Transfer, status: 'completed' | 'cancelled' | 'suggested') => {
+        if (status === 'suggested')
+            return;
+
+        router.put(`/transfers/${transfer.id}/status/${status}`, {}, { preserveScroll: true, preserveState: true });
     }
     return (
         <section className="space-y-6">
@@ -142,10 +142,10 @@ const TransferList = ({ transfers }: Props) => {
                                         <TableCell className='text-center text-sm text-muted-foreground'>{new Date(transfer.transferred_at).toLocaleDateString('fa-AF')}</TableCell>
                                         <TableCell className={`text-center font-semibold ${getTransferStyle(transfer.status)} `}>
                                             <DropdownMenu>
-                                                <DropdownMenuTrigger disabled={transfer.status !== 'suggested' || usePage().props.auth.role!=='factory_clerk'}>{getTransferStatus(transfer.status)}</DropdownMenuTrigger>
+                                                <DropdownMenuTrigger disabled={transfer.status !== 'suggested' || usePage().props.auth.role !== 'factory_clerk'}>{getTransferStatus(transfer.status)}</DropdownMenuTrigger>
                                                 <DropdownMenuContent>
-                                                    <DropdownMenuItem onClick={()=>handleTransferStatus(transfer,'completed')}>تکمیل شده</DropdownMenuItem>
-                                                    <DropdownMenuItem onClick={()=>handleTransferStatus(transfer,'cancelled')}>لغو شده</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleTransferStatus(transfer, 'completed')}>تکمیل شده</DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => handleTransferStatus(transfer, 'cancelled')}>لغو شده</DropdownMenuItem>
                                                 </DropdownMenuContent>
                                             </DropdownMenu>
                                         </TableCell>
