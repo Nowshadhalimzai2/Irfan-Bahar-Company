@@ -44,7 +44,7 @@ class HandleInertiaRequests extends Middleware
             'name' => config('app.name'),
             'auth' => [
                 'user' => Auth::user(),
-                'role' => Auth::user()->role->name,
+                'role' => Auth::user()->role->name ?? '',
             ],
             'roles' => Role::query()->select('id','name')->get(),
             'logo' => Storage::url('public/logo/nobg.png'),

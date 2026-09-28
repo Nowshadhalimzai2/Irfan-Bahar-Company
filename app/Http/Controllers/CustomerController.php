@@ -12,6 +12,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
@@ -19,11 +20,13 @@ class CustomerController extends Controller
 {
     public function create()
     {
+        Gate::authorize('manage-users');
         return Inertia::render('customer/create');
     }
 
     public function store(Request $request)
     {
+        Gate::authorize('manage-users');
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'nick_name' => 'nullable|string|max:255',
@@ -94,7 +97,7 @@ class CustomerController extends Controller
                         'status' => $invoice->status,
                         'issuedOn' => $invoice->issued_on ? Carbon::parse($invoice->issued_on)->format('Y/m/d') : '',
                         'dueOn' => $invoice->due_on ? Carbon::parse($invoice->due_on)->format('Y/m/d') : null,
-                        'latest_payment' =>$invoice->payments()->latest()->first(),
+                        'latest_payment' => $invoice->payments()->latest()->first(),
                         'payments' => $invoice->payments->map(fn(Payment $payment) => [
                             'id' => $payment->id,
                             'amount' => (float) $payment->amount,

@@ -19,6 +19,8 @@ interface Props {
     paidThisMonth: number;
     remainingSalary: number;
 }
+
+const money = (value:number)=>value.toFixed(0);
 const Show = ({ employee,  thisMonthSalary, grossMonthSalary, absentDays, perDay, paidThisMonth, remainingSalary }: Props) => {
     const toggleAttendance = async (employee: Employee) => {
 
@@ -64,19 +66,19 @@ const Show = ({ employee,  thisMonthSalary, grossMonthSalary, absentDays, perDay
                                     remainingSalary={remainingSalary}
                                 />
                                 <p className="text-muted-foreground py-1 text-sm text-end">
-                                    <strong>معاش ناخالص:</strong> {grossMonthSalary}
+                                    <strong>معاش ناخالص:</strong> {money(grossMonthSalary)}
                                 </p>
                                 <p className="text-muted-foreground py-1 text-sm text-end">
-                                    <strong>معاش تعدیل‌شده:</strong> {thisMonthSalary}
+                                    <strong>معاش تعدیل‌شده:</strong> {money(thisMonthSalary)}
                                 </p>
                                 <p className="text-muted-foreground py-1 text-sm text-end">
-                                    <strong>پرداخت‌شده این ماه:</strong> {paidThisMonth}
+                                    <strong>پرداخت‌شده این ماه:</strong> {money(paidThisMonth)}
                                 </p>
                                 <p className="text-muted-foreground py-1 text-sm text-end">
-                                    <strong>باقی‌مانده قابل پرداخت:</strong> {remainingSalary}
+                                    <strong>باقی‌مانده قابل پرداخت:</strong> {money(remainingSalary)}
                                 </p>
                                 <p className="text-muted-foreground py-1 text-sm text-end">
-                                    <strong>کسر به‌خاطر غیبت‌ها:</strong> {absentDays} روز (هر روز: {perDay})
+                                    <strong>کسر به‌خاطر غیبت‌ها:</strong> {absentDays} روز (هر روز: {money(perDay)})
                                 </p>
                             </div>
                             <div>

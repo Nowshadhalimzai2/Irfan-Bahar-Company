@@ -2,7 +2,7 @@ import PageHead from "@/components/page-head";
 import { SectionTitle } from "@/components/section-title";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import customer from "@/routes/sales/customer";
-import { Link, router } from "@inertiajs/react";
+import { Link, router, usePage } from "@inertiajs/react";
 import { DollarSign, ScanEye, Search, UserCheck, UsersIcon, UserSquareIcon, UserX } from "lucide-react";
 import { Input } from "../ui/input";
 import { useEffect, useMemo, useState } from "react";
@@ -11,8 +11,10 @@ type Customer = { id: number, name: string, nick_name: string, balance: number, 
 interface Props {
     customers: Customer[]
 }
+
 const CustomerList = ({ customers }: Props) => {
     const [searchTerm, setSearchTerm] = useState<string>('');
+    const canAddsCustomer:boolean = ['admin','super_admin'].includes(usePage().props.auth.role);
 
     const filteredCustomers = useMemo(() => customers.filter((customer) => {
         const searchable = `${customer.name} ${customer.nick_name} ${customer.phone} ${customer.is_active ? 'active' : 'block'}`.toLowerCase();
@@ -22,14 +24,22 @@ const CustomerList = ({ customers }: Props) => {
 
     return (
         <div className="space-y-6 py-5">
-            <PageHead
+           {canAddsCustomer? <PageHead
                 HeadIcon={UserSquareIcon}
                 title="مشتریان"
                 subtitle="کهاته مشتریان "
                 description="کهاته مشتریان که در سیستم ثبت شده است . شما میتانین که کهاته مشتریان را تنظیم کنید"
                 actionTitle="مشتری جدید"
                 actionURL="/customers/create"
+            />:
+            <PageHead
+            HeadIcon={UserSquareIcon}
+            title="مشتریان"
+            subtitle="کهاته مشتریان "
+            description="کهاته مشتریان که در سیستم ثبت شده است . شما میتانین که کهاته مشتریان را تنظیم کنید"
+           
             />
+        }
             <div id="SHORT-INFO-CARDS" className="">
              
                 <div id="Summery" className="grid grid-cols-1 md:grid-cols-2 gap-0 md:gap-5 lg:grid-cols-3 " dir="rtl">
