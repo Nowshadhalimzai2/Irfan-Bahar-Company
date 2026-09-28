@@ -24,7 +24,7 @@ interface Props {
 }
 const GoodsReceiptList = ({ goodsReceipts }: Props) => {
     const {auth,roles} = usePage().props;
-    const userRole:string = roles.filter(role=>role.id===auth.user.role_id)[0].name;
+    const userRole = auth.role;
     const [search, setSearch] = useState('');
     const [supplier, setSupplier] = useState('all');
     const [location, setLocation] = useState('all');
@@ -86,18 +86,17 @@ const GoodsReceiptList = ({ goodsReceipts }: Props) => {
             </div>
 
             <div className="">
-                <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm">
+                <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm" dir='rtl'>
                     <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
                             <TableRow className="bg-muted/50 hover:bg-muted/50">
                                 <TableHead className="text-center text-xs font-semibold">شماره</TableHead>
+                                <TableHead className="text-center">نمبر حواله</TableHead>
                                 <TableHead className="text-center">تأمین کننده</TableHead>
                                 <TableHead className="text-center">منزل</TableHead>
-                                <TableHead className="text-center">نمبر حواله</TableHead>
-                                <TableHead className="text-center">تاریخ آمد</TableHead>
+                                <TableHead className="text-center">تاریخ </TableHead>
                                 <TableHead className="text-center">ارزش اجناس</TableHead>
-                                <TableHead aria-label="باز کردن" />
 
                             </TableRow>
                         </TableHeader>
@@ -105,12 +104,11 @@ const GoodsReceiptList = ({ goodsReceipts }: Props) => {
                             {filteredReceipts.length > 0 ? filteredReceipts.map((receipt, ind) =>
                                 <TableRow key={receipt.id} className="cursor-pointer transition-colors hover:bg-amber-50/60 dark:hover:bg-amber-950/20" onClick={() => router.get('/receipts/' + receipt.id)}>
                                     <TableCell className="text-center">{ind + 1}</TableCell>
+                                    <TableCell className="text-center">{receipt.reference_no}</TableCell>
                                     <TableCell className="text-center">{receipt.supplier.name}</TableCell>
                                     <TableCell className="text-center">{LocationTranslator(receipt.location.name)}</TableCell>
-                                    <TableCell className="text-center">{receipt.reference_no}</TableCell>
-                                    <TableCell className="text-center text-sm text-muted-foreground">{new Date(receipt.received_at).toLocaleDateString()}</TableCell>
+                                    <TableCell className="text-center text-sm text-muted-foreground">{new Date(receipt.received_at).toLocaleDateString('fa-AF')}</TableCell>
                                     <TableCell className="text-center font-semibold">{receipt.receipt_lines.reduce((total, line) => total + Number(line.quantity) * Number(line.unit_cost), 0).toLocaleString()}</TableCell>
-                                    <TableCell className="w-8"><ArrowRight className="size-4 text-muted-foreground" /></TableCell>
                                 </TableRow>
                             ) : <TableRow>
                                 <TableCell colSpan={7}><p className="w-full p-10 text-center text-muted-foreground">موردی با این مشخصات پیدا نشد.</p></TableCell>

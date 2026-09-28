@@ -8,12 +8,13 @@ export interface GoodsReceipt {
     reference_no: string;
     received_at: Date;
     notes?: string;
+    currency: Currency;
+
 }
 export interface GoodsReceiptLine {
     id: number;
     receipt: GoodsReceipt;
     item: Item;
-    currency: Currency;
     quantity: number;
     unit_cost: number;
 }
@@ -53,7 +54,7 @@ export interface Transfer {
     transferred_at: Date;
     notes?: string;
     transfer_lines: TransferLine[];
-    status:'suggested' | 'cancelled' | 'completed',
+    status: 'suggested' | 'cancelled' | 'completed',
 }
 export interface TransferLine {
     id: number;

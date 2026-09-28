@@ -38,7 +38,7 @@ class GoodsReceiptController extends Controller
                     ->paginate(10);
             }
             if ($user->hasRole('shop_clerk')) {
-                  $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')
+                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name', 'currency:id,name')
                     ->whereIn('destination_location_id', function ($query) {
                         $query->select('id')
                             ->from('locations')
@@ -51,7 +51,7 @@ class GoodsReceiptController extends Controller
             }
         }
         $transfers = Transfer::with('source:id,name', 'destination:id,name', 'transferLines:id,item_id,transfer_id,quantity,unit_price', 'transferLines.item:id,name,unit,item_type,default_sale_price')
-            ->select('id', 'source_id', 'destination_id', 'reference_no', 'notes', 'transferred_at','status')
+            ->select('id', 'source_id', 'destination_id', 'reference_no', 'notes', 'transferred_at', 'status')
             ->orderBy('id', 'desc')->paginate(10);
         return Inertia::render('goods-receipt/index', compact('goodsReceipts', 'transfers'));
     }
@@ -61,7 +61,7 @@ class GoodsReceiptController extends Controller
 
 
         $suppliers = Supplier::select('id', 'name')->get();
-        
+
         $user = Auth::user();
         if ($user instanceof User && $user->hasRole('factory_clerk')) {
             $locations = Location::select('id', 'name')
@@ -74,7 +74,7 @@ class GoodsReceiptController extends Controller
         }
 
         $currencies = Currency::select('id', 'name')->get();
-        $items = Item::with('product')->select('id', 'name', 'unit')->get();
+        $items = Item::with('product')->select('id', 'name', 'unit', 'default_sale_price', 'item_type')->get();
 
         return Inertia::render('goods-receipt/create', compact('suppliers', 'locations', 'currencies', 'items'));
     }
@@ -86,6 +86,7 @@ class GoodsReceiptController extends Controller
         // ========== VALIDATE DATA ===========
         $data = $request->validate([
             'supplier_id' => 'required|integer|exists:suppliers,id',
+            'currency_id' => 'required|integer|exists:currencies,id',
             'destination_location_id' => [
                 'required',
                 'integer',
@@ -101,7 +102,6 @@ class GoodsReceiptController extends Controller
             'receiptLines.*.item_id' => 'required|integer|exists:items,id|distinct',
             'receiptLines.*.quantity' => 'required|integer|gt:0',
             'receiptLines.*.unit_cost' => 'required|numeric|gt:0',
-            'receiptLines.*.currency_id' => 'required|integer|exists:currencies,id',
         ]);
         $log = new Log();
         DB::beginTransaction();
@@ -110,6 +110,7 @@ class GoodsReceiptController extends Controller
             $receipt = GoodsReceipt::create([
                 'supplier_id' => $data['supplier_id'],
                 'destination_location_id' => $data['destination_location_id'],
+                'currency_id' => $data['currency_id'],
                 'notes' => $data['notes'] ?? '',
                 'received_at' => $data['received_at'],
                 'reference_no' => '',
@@ -130,7 +131,7 @@ class GoodsReceiptController extends Controller
             $log->create('insert', ' جنس نو وارد شد در ' . $receipt->location->name);
             DB::commit();
 
-            Inertia::flash('toast', ['type' => 'success', 'message' => 'جنس نو امد به کارخانه .']);
+            Inertia::flash('toast', ['type' => 'success', 'message' => "جنس نو امد به {$receipt->location->name}"]);
             return redirect()->route('receipts.index');
         } catch (\Throwable $th) {
             $log->create('insert', 'جنس نو وارد نشد ');
@@ -142,8 +143,8 @@ class GoodsReceiptController extends Controller
 
     public function show(GoodsReceipt $receipt)
     {
-        $receipt->load('location:id,name', 'receiptLines:id,item_id,quantity,receipt_id,unit_cost, currency_id', 'supplier:id,name');
-        $receipt->load('receiptLines.item:id,name,unit,product_id', 'receiptLines.currency:id,name', 'receiptLines.item.product:item_id,weight');
+        $receipt->load('location:id,name','currency:id,name', 'receiptLines:id,item_id,quantity,receipt_id,unit_cost', 'supplier:id,name');
+        $receipt->load('receiptLines.item:id,name,unit,default_sale_price', 'receiptLines.item.product:item_id,weight');
         return Inertia::render('goods-receipt/show', compact('receipt'));
     }
 }

@@ -20,7 +20,6 @@ return new class extends Migration
             $table->foreignIdFor(Item::class)->constrained()->cascadeOnUpdate()->noActionOnDelete();
             $table->decimal('quantity',8,2);
             $table->decimal('unit_cost',8,2);
-            $table->foreignIdFor(Currency::class)->constrained()->cascadeOnUpdate()->noActionOnDelete();
             $table->timestamps();
         });
     }
