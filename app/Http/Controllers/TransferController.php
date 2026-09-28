@@ -76,7 +76,7 @@ class TransferController extends Controller
             // each line validation
             'transferLines.*.item_id' => 'required|integer|exists:items,id|distinct',
             'transferLines.*.quantity' => 'required|integer|gt:0',
-            'transferLines.*.unit_price' => 'required|numeric|gt:0',
+            'transferLines.*.itemPrice' => 'required|numeric|gt:0',
         ]);
 
         $log = new Log();
@@ -113,7 +113,11 @@ class TransferController extends Controller
                     throw new Error('مقدار قابل انتقال برای این جنس کافی نیست.');
                 }
 
-                $transfer->transferLines()->create($line);
+                $transfer->transferLines()->create([
+                    'item_id' =>$line->item_id,
+                    'quantity' =>$line->quantity,
+                    'unit_price' =>$line->itemPrice,
+                ]);
             }
             $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' پیشنهاد شد';
             $log->create('insert', $des);

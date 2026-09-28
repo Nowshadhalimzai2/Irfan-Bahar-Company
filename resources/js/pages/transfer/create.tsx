@@ -162,7 +162,7 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                             <div className="absolute -left-12 -top-16 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl" />
                             <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div className="space-y-3"><div className="flex items-center gap-2 text-sm font-medium text-cyan-300"><Truck className="size-4" /> مرکز جابه‌جایی اجناس</div><h1 className="text-3xl font-bold tracking-tight md:text-4xl">ثبت انتقال جدید</h1><p className="text-sm text-slate-300">مبدأ، مقصد و اجناس را بررسی کنید تا انتقال با موجودی واقعی هماهنگ باشد.</p></div><Route className="size-8 text-cyan-300" /></div>
                         </div>
-                        <form onSubmit={handleTransfer} className="space-y-6" name="receipt" id="receipt">
+                        <form onSubmit={handleTransfer} className="space-y-6" name="receipt" id="receipt" dir='rtl'>
                             <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
                                 <div className="mb-6 flex items-center gap-3 border-b border-border/60 pb-4"><div className="rounded-xl bg-primary/10 p-2 text-primary"><ClipboardList className="size-5" /></div><div><h2 className="font-semibold">جزئیات انتقال</h2><p className="text-xs text-muted-foreground">مسیر و زمان جابه‌جایی را مشخص کنید.</p></div></div>
                                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">

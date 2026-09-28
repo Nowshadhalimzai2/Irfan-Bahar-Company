@@ -32,10 +32,10 @@ const Show = ({ transfer }: Props) => {
                         <Bill>
                             <Header logo={logo as string} title='انتقال اموال' />
                             <Overview className='px-6' >
-                                <p className="font-medium">تاریخ : {new Date(transfer.transfered_at).toLocaleDateString('fa-AF')}</p>
-                                <p className="font-medium">{LocationTranslator(transfer.source)} {<ArrowLeft className='inline'/>} {LocationTranslator(transfer.destination)}</p>
-                                <p className={`font-medium`}>وضیعت : <span className={`${getTransferStyle(transfer.status)}`}>{getTransferStatus(transfer.status)}</span></p>
-                                <p className={`font-medium`}> {transfer.reference_no}  : حواله نمبر  </p>
+                                <p className="font-medium text-sm">تاریخ : {new Date(transfer.transfered_at).toLocaleDateString('fa-AF')}</p>
+                                <p className="font-normal text-sm">{LocationTranslator(transfer.source)} {<ArrowLeft className='inline'/>} {LocationTranslator(transfer.destination)}</p>
+                                <p className={`font-medium text-sm`}>وضیعت : <span className={`${getTransferStyle(transfer.status)}`}>{getTransferStatus(transfer.status)}</span></p>
+                                <p className={`font-medium text-sm`}> {transfer.reference_no}  : حواله نمبر  </p>
                             </Overview>
 
                             <Content status={transfer.status} title='انتقال جنس لغو شد'>
@@ -57,13 +57,13 @@ const Show = ({ transfer }: Props) => {
                                                     واحد جنس
                                                 </TableHead>
                                                 <TableHead className="text-center">
+                                                    قیمت
+                                                </TableHead>
+                                                <TableHead className="text-center">
                                                     وزن
                                                 </TableHead>
                                                 <TableHead className="text-center">
                                                     پر کارتن
-                                                </TableHead>
-                                                <TableHead className="text-center">
-                                                    قیمت
                                                 </TableHead>
                                             </TableRow>
                                         </TableHeader>
@@ -74,13 +74,17 @@ const Show = ({ transfer }: Props) => {
                                                     <TableCell className="text-center">{line.itemName}</TableCell>
                                                     <TableCell className="text-center">{line.quantity}</TableCell>
                                                     <TableCell className="text-center">{getDariItemUnit(line.itemUnit)}</TableCell>
+                                                    <TableCell className="text-center">{line.unit_price}</TableCell>
                                                     <TableCell className="text-center">{line.itemWeight ?? 'N/A'}</TableCell>
                                                     <TableCell className="text-center">{line.itemPerPack ?? 'N/A'}</TableCell>
-                                                    <TableCell className="text-center">{line.unit_price}</TableCell>
                                                 </TableRow>
                                             )}
                                         </TableBody>
-                                       
+                                        <TableFooter>
+                                            <TableRow>
+                                                <TableHead colSpan={5} className='text-start'>جمله : {transfer.lines.reduce((acc,line)=>acc+= line.quantity*line.unit_price,0)}</TableHead>
+                                            </TableRow>
+                                        </TableFooter>
                                     </Table>
                                 </div>
                             </Content>
