@@ -11,6 +11,9 @@ use App\Models\Location;
 use App\Models\Product;
 use App\Models\ProductionInput;
 use App\Models\ProductionOrder;
+use App\Models\User;
+use App\Notifications\NewOrderCreated;
+use App\Notifications\OrderProcessed;
 use Carbon\Carbon;
 use Error;
 use Illuminate\Http\Request;
@@ -31,7 +34,7 @@ class ProductionOrderController extends Controller
             'productionOutputs:id,production_order_id,product_id,quantity_produced',
             'productionOutputs.product:item_id,weight,per_pack',
         ])
-            ->select(['id', 'ordered_by', 'status', 'order_date', 'notes', 'bom_id','reference_no'])
+            ->select(['id', 'ordered_by', 'status', 'order_date', 'notes', 'bom_id', 'reference_no'])
             ->whereNotIn('status', ['drafted', 'cancelled'])
             ->orderBy('id', 'desc')
             ->get();
@@ -56,7 +59,7 @@ class ProductionOrderController extends Controller
     public function create()
     {
 
-        $boms = BOM::with('category:id,name')->select('id', 'formula_name', 'category_id','min_exp_qty','max_exp_qty')->get();
+        $boms = BOM::with('category:id,name')->select('id', 'formula_name', 'category_id', 'min_exp_qty', 'max_exp_qty')->get();
         if ($boms->count() == 0) {
             $des = 'هیج فورمول وجود ندارد . لطفا اول فورمول را اضافه و بعدا سفارش بدهید.';
             Inertia::flash('toast', ['type' => 'error', 'message' => $des]);
@@ -95,7 +98,13 @@ class ProductionOrderController extends Controller
 
             $des = 'سفارش ' . $data['ordered_by'] . ' در سیستم ثبت شد ';
             $log->create('insert', $des, null, '/factory/production-orders/' . $order->id);
-
+            $notifiableUsers = User::query()
+                ->with('role:id,name')
+                ->whereHas('role', fn($q) => $q->whereIn('name', ['admin', 'super_admin', 'factory_clerk']))
+                ->get();
+            foreach ($notifiableUsers as $user) {
+                $user->notify(new NewOrderCreated($order));
+            }
             DB::commit();
             Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
             return redirect()->to(route('orders.index'));
@@ -127,11 +136,12 @@ class ProductionOrderController extends Controller
         $currentStatus = $production_order->status;
         DB::beginTransaction();
         try {
-            if($currentStatus==="pending"){
-                if($status==="completed"){
-                    Inertia::flash('toast',['type'=>'error','message'=>'شما نمی توانین که از حالت منتظر به حالت تکیمل شده یک سفارش را ببرید. لطفا اول سفارش را به حالت جریان ارسال کنید!']);
+            if ($currentStatus === "pending") {
+                if ($status === "completed") {
+                    Inertia::flash('toast', ['type' => 'error', 'message' => 'شما نمی توانین که از حالت منتظر به حالت تکیمل شده یک سفارش را ببرید. لطفا اول سفارش را به حالت جریان ارسال کنید!']);
                     DB::rollBack();
-                    return redirect()->back();}
+                    return redirect()->back();
+                }
             }
             if ($status !== 'completed') {
 
@@ -149,6 +159,13 @@ class ProductionOrderController extends Controller
                 $log = new Log();
                 $des = 'حالت سفارش ' . $production_order->reference_no . ' تغیر از ' . $currentStatus . ' به' . $status . 'شد';
                 $log->create('update', $des, null, route('orders.show', $production_order->id));
+                $notifiableUsers = User::query()
+                    ->with('role:id,name')
+                    ->whereHas('role', fn($q) => $q->whereIn('name', ['admin', 'super_admin', 'shop_clerk']))
+                    ->get();
+                foreach ($notifiableUsers as $user) {
+                    $user->notify(new OrderProcessed($production_order));
+                }
                 DB::commit();
                 Inertia::flash('toast', ['type' => "success", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به شد' . $status]);
                 return redirect()->to(route('orders.show', $production_order->id));
@@ -181,11 +198,11 @@ class ProductionOrderController extends Controller
             abort(404, 'the factory is not found for processing the order');
         $balance = InventoryBalance::where('location_id', $location->id)->where('item_id', $item->id)->first();
         if ($balance === null)
-            abort(404, 'the balance is not found for the item : '.$item->name.' check the balance and retry!');
+            abort(404, 'the balance is not found for the item : ' . $item->name . ' check the balance and retry!');
         $quantity_in_stock = $balance->quantity_on_hand - $balance->reserved;
         // dd($req_qty);
         if ($quantity_in_stock < $req_qty)
-            abort(422, 'there is not enough quantity in factory for the item : '.$item->name);
+            abort(422, 'there is not enough quantity in factory for the item : ' . $item->name);
     }
 
     private function createProductionInputs(ProductionOrder $production_order)
