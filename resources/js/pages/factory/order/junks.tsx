@@ -40,7 +40,7 @@ const Index = ({ junkOrders }: Props) => {
                     <div>
 
                         <SectionTitle title='لیست سفارشات' description='تمام سفارشات ګرفته از مشتری ها اینجا دید میتانی' />
-                        <section>
+                        <section dir='rtl'>
                             <div className="max-w-4xl mx-auto px-8">
                                 <Table>
                                     <TableCaption>(<span>{junkOrders.length}</span>)  <span>سفارشات آشغال </span> </TableCaption>
@@ -64,14 +64,14 @@ const Index = ({ junkOrders }: Props) => {
                                                 <TableCell className="text-center">{new Date(order.order_date).toDateString()}</TableCell>
                                                 <TableCell className="text-center p-0">
                                                     <DropdownMenu>
-                                                        <DropdownMenuTrigger className='bg-teal-800 p-1 px-5 text-white'>
+                                                        <DropdownMenuTrigger className='bg-teal-800 p-1 px-5 text-white'  asChild>
                                                             <Recycle />
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
-                                                            <DropdownMenu>
+                                                            <DropdownMenu >
                                                                {statusController(order.status).map((status, ind) =>
                                                                     <div className='flex flex-col p-1' key={ind}>
-                                                                        <DropdownMenuItem disabled={status.value == order.status} className={`hover:bg-secondary ${status.value === order.status ? buttonVariants({ variant: 'default' }) : buttonVariants({ variant: 'secondary' })}`} onClick={() => handleOrderStatus(order.id, status.value)}>{status.label}</DropdownMenuItem>
+                                                                        <DropdownMenuItem asChild disabled={status.value == order.status} className={`hover:bg-secondary ${status.value === order.status ? buttonVariants({ variant: 'default' }) : buttonVariants({ variant: 'secondary' })}`} onClick={() => handleOrderStatus(order.id, status.value)}>{status.label}</DropdownMenuItem>
                                                                     </div>
                                                                 )}
                                                             </DropdownMenu>

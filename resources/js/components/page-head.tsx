@@ -29,7 +29,7 @@ const PageHead = ({ title, subtitle, description, HeadIcon, menuItems, actionTit
                 </div>
                 <div className="flex gap-2">
                     {menuItems && <CustomeDropDownMenu items={menuItems} />}
-                    {actionTitle && <Link href={actionURL} className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-emerald-400 text-slate-950 hover:bg-emerald-300`}><ActionIcon className="size-4" /> {actionTitle}</Link>}
+                    {actionTitle && <Link href={actionURL?.trim()} className={`${buttonVariants({ variant: 'secondary' })} gap-2 bg-emerald-400 text-slate-950 hover:bg-emerald-300`}><ActionIcon className="size-4" /> {actionTitle}</Link>}
                 </div>
             </div>
         </div>

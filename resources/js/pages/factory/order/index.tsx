@@ -95,22 +95,23 @@ const Index = ({ production_orders }: Props) => {
             ]}
         >
             <div className="space-y-6 p-3 md:p-6">
-                <PageHead 
+                <PageHead
                     title="سفارشات تولید"
                     subtitle="مدیریت و ردیابی سفارشات"
                     description="سفارش‌ها را اولویت‌بندی کنید و پیشرفت تولید را از همین‌جا کنترل کنید."
                     HeadIcon={Factory}
                     actionTitle="سفارش جدید"
+                    actionURL='/factory/production-orders/create'
                     menuItems={options}
                 />
 
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-3" dir='rtl'>
                     <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs text-muted-foreground">همه سفارشات</p><ClipboardList className="size-4 text-primary" /></div><p className="mt-2 text-2xl font-bold">{production_orders.length}</p></div>
                     <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs text-muted-foreground">در حال بررسی</p><Activity className="size-4 text-amber-500" /></div><p className="mt-2 text-2xl font-bold text-amber-600">{statusCounts.pending ?? 0}</p></div>
                     <div className="rounded-xl border border-border/70 bg-card p-4 shadow-sm"><div className="flex items-center justify-between"><p className="text-xs text-muted-foreground">در حال تولید</p><Activity className="size-4 text-sky-500" /></div><p className="mt-2 text-2xl font-bold text-sky-600">{statusCounts.progress ?? 0}</p></div>
                 </div>
 
-                <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm md:p-5">
+                <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm md:p-5" dir='rtl'>
                     <div className="mb-4 flex items-center justify-between gap-3"><div><div className="flex items-center gap-2"><Filter className="size-4 text-primary" /><h2 className="font-semibold">صف سفارش‌ها</h2></div><p className="mt-1 text-xs text-muted-foreground">برای باز کردن جزئیات، روی ردیف دوبار کلیک کنید.</p></div>{(search || selectedStatus !== 'all') && <button type="button" onClick={clearFilters} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"><X className="size-3" /> پاک کردن</button>}</div>
                     <div className="mb-5 grid gap-3 md:grid-cols-[1.5fr_1fr]">
                         <label className="relative block"><Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="جستجو در سفارش‌دهنده، جنس یا شماره سفارش..." className="h-11 w-full rounded-md border border-input bg-background px-3 pr-10 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" /></label>
@@ -119,15 +120,39 @@ const Index = ({ production_orders }: Props) => {
                     <div className="overflow-x-auto">
                         <Table>
                             <TableCaption>نمایش {filteredOrders.length} از {production_orders.length} سفارش</TableCaption>
-                            <TableHeader><TableRow className="bg-muted/50 hover:bg-muted/50"><TableHead className="w-20 text-center">شماره</TableHead><TableHead className="text-center">سفارش کننده</TableHead><TableHead className="text-center">جنس</TableHead><TableHead className="text-center">حالت سفارش</TableHead><TableHead className="text-center">تاریخ سفارش</TableHead><TableHead className="text-center">تغییر حالت</TableHead><TableHead aria-label="باز کردن" /></TableRow></TableHeader>
+                            <TableHeader>
+                                <TableRow className="bg-muted/50 hover:bg-muted/50">
+                                    {/* <TableHead className="w-20 text-center">شماره</TableHead> */}
+                                    <TableHead className='text-center'>نمبر سفارش</TableHead>
+                                    <TableHead className="text-center">سفارش کننده</TableHead>
+                                    <TableHead className="text-center">جنس</TableHead>
+                                    <TableHead className="text-center">حالت سفارش</TableHead>
+                                    <TableHead className="text-center">تاریخ سفارش</TableHead>
+                                    <TableHead className="text-center">تغییر حالت</TableHead>
+                                </TableRow>
+                            </TableHeader>
                             <TableBody>{filteredOrders.length > 0 ? filteredOrders.map((order, ind) =>
                                 <TableRow aria-disabled={order.status === 'cancelled'} className="cursor-pointer transition-colors hover:bg-emerald-50/60 dark:hover:bg-emerald-950/20" key={order.id} onDoubleClick={() => openOrder(order.id)}>
-                                    <TableCell className="text-center">{ind + 1}</TableCell>
+                                    {/* <TableCell className="text-center">{ind + 1}</TableCell> */}
+                                     <TableCell className="w-8">{order.reference_no}</TableCell>
                                     <TableCell className="text-center">{order.ordered_by}</TableCell>
                                     <TableCell className="text-center">{getDariCategory(order.bom.category.name)}</TableCell>
                                     <TableCell className={`text-center font-medium ${getStatusColor(order.status)}`}>{getDariOrderStatus(order.status)}</TableCell>
                                     <TableCell className="text-center text-sm text-muted-foreground">{getOrderAge(order.order_date)}</TableCell>
-                                    <TableCell className="p-0 text-center"><DropdownMenu><DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md bg-slate-900 p-2 text-white hover:bg-slate-700"><Recycle className="size-4" /></DropdownMenuTrigger><DropdownMenuContent>{statusController(order.status).map((status) => <DropdownMenuItem key={status.value} disabled={status.value === order.status} className={status.value === order.status ? buttonVariants({ variant: 'default' }) : buttonVariants({ variant: 'secondary' })} onClick={() => handleOrderStatus(order.id, status.value)}>{status.label}</DropdownMenuItem>)}</DropdownMenuContent></DropdownMenu></TableCell><TableCell className="w-8"><ArrowLeft className="size-4 text-muted-foreground" /></TableCell></TableRow>) : <TableRow><TableCell colSpan={7} className="p-10 text-center text-sm text-muted-foreground">سفارشی با این مشخصات پیدا نشد.</TableCell></TableRow>}</TableBody>
+                                    <TableCell className="p-0 text-center">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md bg-slate-900 p-2 text-white hover:bg-slate-700"><Recycle className="size-4" /></DropdownMenuTrigger>
+                                            <DropdownMenuContent>{statusController(order.status).map((status) =>
+                                                <DropdownMenuItem key={status.value} disabled={status.value === order.status} className={status.value === order.status ? buttonVariants({ variant: 'default' }) : buttonVariants({ variant: 'secondary' })} onClick={() => handleOrderStatus(order.id, status.value)}>{status.label}</DropdownMenuItem>)}
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                   
+                                </TableRow>) :
+                                <TableRow>
+                                    <TableCell colSpan={7} className="p-10 text-center text-sm text-muted-foreground">سفارشی با این مشخصات پیدا نشد.</TableCell>
+                                </TableRow>}
+                            </TableBody>
                         </Table>
                     </div>
                 </section>

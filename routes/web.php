@@ -93,7 +93,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $totalLoans = $dashbaordService->todaysLoans();
         // $totalIncomes
         $overallLoans = $dashbaordService->totalOverallLoans();
-        return Inertia::render('dashboard', compact('overallLoans','todayIncomes', 'sa', 'todaysExpenses', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses', 'totalPayments', 'totalLoans'));
+        return Inertia::render('dashboard', compact('overallLoans', 'todayIncomes', 'sa', 'todaysExpenses', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses', 'totalPayments', 'totalLoans'));
     })->name('dashboard')->middleware('refuseFactoryClerk');
 
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index')->middleware('superadmin');
@@ -188,7 +188,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('sales/invoice/{invoice}/payments', [PaymentController::class, 'invoicePayments'])->name('invoices.payments');
         Route::get('/sales/{sale}/returns/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');
         Route::post('/sales/{sale}/returns', [SaleReturnController::class, 'store'])->name('sales.returns.store');
-        
+
 
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
@@ -251,13 +251,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 ->get();
             return Inertia::render('factory/home', compact('items', 'pendingOrders', 'productionChart', 'topProductionCategories'));
         })->name('factory');
-        Route::get('/production-orders/junks', [ProductionOrderController::class, 'junks'])->name('orders.junks');
         Route::get('/proudction-orders/{production_order}', [ProductionOrderController::class, 'show'])
-            ->name('orders.show-typo');
-
+        ->name('orders.show-typo');
+        
+        Route::get('/production-orders/junks', [ProductionOrderController::class, 'junks'])->name('orders.junks');
         Route::get('/production-orders/{production_order}/{status}/confirm-order-inputs', [ProductionInputController::class, 'confirmInputs'])->name('orders.confirm-inputs');
         Route::put('/production-inputs/{production_order}', [ProductionInputController::class, 'update'])->name('order-inputs.update');
-
+        
         Route::resource('production-orders', ProductionOrderController::class)->names('orders');
         Route::get('/production-orders/get-related-products/{category}', [ProductionOrderController::class, 'getCategoryBasedProducts']);
         Route::get('/production-orders/{production_order}/production-inputs', [ProductionInputController::class, 'getInputs']);

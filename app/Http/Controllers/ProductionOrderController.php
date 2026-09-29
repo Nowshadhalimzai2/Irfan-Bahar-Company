@@ -31,7 +31,7 @@ class ProductionOrderController extends Controller
             'productionOutputs:id,production_order_id,product_id,quantity_produced',
             'productionOutputs.product:item_id,weight,per_pack',
         ])
-            ->select(['id', 'ordered_by', 'status', 'order_date', 'notes', 'bom_id'])
+            ->select(['id', 'ordered_by', 'status', 'order_date', 'notes', 'bom_id','reference_no'])
             ->whereNotIn('status', ['drafted', 'cancelled'])
             ->orderBy('id', 'desc')
             ->get();
@@ -56,7 +56,7 @@ class ProductionOrderController extends Controller
     public function create()
     {
 
-        $boms = BOM::with('category:id,name')->select('id', 'formula_name', 'category_id')->get();
+        $boms = BOM::with('category:id,name')->select('id', 'formula_name', 'category_id','min_exp_qty','max_exp_qty')->get();
         if ($boms->count() == 0) {
             $des = 'هیج فورمول وجود ندارد . لطفا اول فورمول را اضافه و بعدا سفارش بدهید.';
             Inertia::flash('toast', ['type' => 'error', 'message' => $des]);
@@ -160,7 +160,7 @@ class ProductionOrderController extends Controller
     public function getCategoryBasedProducts(Category $category)
     {
 
-        $products = Product::with(['item:id,name,unit,category_id', 'item.category:id,name'])
+        $products = Product::with(['item:id,name,unit,category_id,default_sale_price', 'item.category:id,name'])
             ->whereHas('item.category', function ($query) use ($category) {
                 $query->where('name', $category->name);
             })
