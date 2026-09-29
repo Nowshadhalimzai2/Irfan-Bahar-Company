@@ -57,7 +57,7 @@ const Create = ({ categories }: Props) => {
                 <section>
                     <div>
                         <SectionTitle title='فورم جنس جدید قبلا ثبت نشده' />
-                        <div className="section">
+                        <div className="section" dir='rtl'>
                             <form onSubmit={handleItem}>
                                 <div className="grid gap-6 grid-cols-2 md:grid-cols-3">
                                     <div className="grid gap-2">
@@ -157,7 +157,7 @@ const Create = ({ categories }: Props) => {
                                         >
                                             <option value="">نوع جنس را انتخاب کنین</option>
                                             <option value="raw_material">مواد خام</option>
-                                            <option value="product">جنس تیارشده</option>
+                                            <option value="product">محصول</option>
                                             <option value="packing">پیکنګ</option>
                                         </select>
                                         <InputError

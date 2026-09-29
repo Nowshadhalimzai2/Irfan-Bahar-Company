@@ -1,4 +1,5 @@
-import { getDariItemUnit } from '@/components/location-translator';
+import { getDariItemType, getDariItemUnit } from '@/components/location-translator';
+import PageHead from '@/components/page-head';
 import PageLinks from '@/components/page-links';
 import { SectionTitle } from '@/components/section-title';
 import { buttonVariants } from '@/components/ui/button';
@@ -6,14 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import { Item } from '@/types/item';
-import { Link } from '@inertiajs/react';
-import { ArrowUpDown } from 'lucide-react';
+import { Link, router, usePage } from '@inertiajs/react';
+import { ArrowUpDown, Package, PackagePlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Props {
   items: {
     data: Item[];
-     current_page: number;
+    current_page: number;
     from: number;
     last_page: number;
     links: {
@@ -39,98 +40,117 @@ const Index = ({ items }: Props) => {
       setAllItems(filteredData);
     }
   }, [searchTerm]);
+  const userRole = usePage().props.auth.role;
+  console.log('role:: ', userRole);
 
+  const canModifyItems: boolean = ['admin', 'super_admin'].includes(userRole);
   return (
     <AppLayout breadcrumbs={[
       { title: 'کارخانه', href: '/factory/home' },
       { title: 'اجناس', href: '/items' }
     ]}>
-      <div className=" section">
-        <section className="section">
-          {/* <div className="flex justify-end items-end px-10">
-          </div> */}
-          <SectionTitle title='لیست اجناس ' />
-          <div className="max-w-4xl mx-auto">
-            <div className="flex gap-2">
-              <Input placeholder='جستجوی اجناس به اساس نام، اسکی یو، بار کود  و کد نمبر' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-              <Link href={'/items/create'} className={`${buttonVariants({ variant: 'secondary' })} `}>جنس جدید</Link>
+      <div className="py-5">
+        {canModifyItems ? <PageHead
+          HeadIcon={PackagePlus}
+          subtitle='اجناس شرکت'
+          title='لیست اجناس '
+          description='اجناس که فروخت در شرکت میشه لیست شان ذیل است'
+          actionTitle='جنس جدید'
+          actionURL='/items/create'
+        /> :
+          <PageHead
+            HeadIcon={PackagePlus}
+            subtitle='اجناس شرکت'
+            title='لیست اجناس '
+            description='اجناس که فروخت در شرکت میشه لیست شان ذیل است'
+          />}
+        <section className="max-w-4xl mx-auto mt-8" dir='rtl'>
+          <div className=" grid grid-cols-1 gap-5 ">
+            <div className="flex gap-2 ">
+              <Input className='bg-white shadow-xl ' placeholder='جستجوی اجناس به اساس نام، اسکی یو، بار کود  و کد نمبر' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              {/* <Link href={'/items/create'} className={`shadow-xl bg-white ${buttonVariants({ variant: 'secondary' })} `}>جنس جدید</Link> */}
 
             </div>
-            <Table className=" mt-5">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="">
-                    <div className="flex justify-center items-center gap-1">
-                      <ArrowUpDown className="size-4" />
-                      <span>SKU</span>
-                    </div>
-                  </TableHead>
-                  <TableHead className="">
-                    <div className="flex justify-center items-center gap-1">
-                      <ArrowUpDown className="size-4" />
-                      <span>Item</span>
-                    </div>
-                  </TableHead>
-                  <TableHead className="">
-                    <div className="flex justify-center items-center gap-1">
-                      <ArrowUpDown className="size-4" />
-                      <span>Type</span>
-                    </div>
-                  </TableHead>
-                  <TableHead className="">
-                    <div className="flex justify-center items-center gap-1">
-                      <ArrowUpDown className="size-4" />
-                      <span>Code</span>
-                    </div>
-                  </TableHead>
-                  <TableHead className="">
-                    <div className="flex justify-center items-center gap-1">
-                      <ArrowUpDown className="size-4" />
-                      <span>Unit</span>
-                    </div>
-                  </TableHead>
-                  <TableHead className="">
-                    <div className="flex justify-center items-center gap-1">
-                      <ArrowUpDown className="size-4" />
-                      <span>Default Price</span>
-                    </div>
-                  </TableHead>
-                  <TableHead className="">
-                    <div className="flex justify-center items-center gap-1">
-                      <ArrowUpDown className="size-4" />
-                      <span>Weight</span>
-                    </div>
-                  </TableHead>
-                  <TableHead className="">
-                    <div className="flex justify-center items-center gap-1">
-                      <ArrowUpDown className="size-4" />
-                      <span>Per Pack</span>
-                    </div>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {allItems.length > 0 ? allItems.map((item, ind) =>
-                  <TableRow key={ind}>
-                    <TableCell className="text-center">{item.sku}</TableCell>
-                    <TableCell className="text-center">{item.name}</TableCell>
-                    <TableCell className={`text-center ${item.item_type === 'product' ? 'text-green-500' : item.item_type === 'raw_material' ? 'text-blue-500' : 'text-pink-500'}`}>{item.item_type}</TableCell>
-                    <TableCell className="text-center">{item.code}</TableCell>
-                    <TableCell className="text-center">{getDariItemUnit(item.unit)}</TableCell>
-                    <TableCell className="text-center">{item.default_sale_price}</TableCell>
-                    <TableCell className="text-center">{item.product?.weight ?? 'N/A'}</TableCell>
-                    <TableCell className="text-center">{item.product?.per_pack ?? 'N/A'}</TableCell>
-
+            <div className='bg-white shadow-xl border rounded-xl'>
+              <Table className=" mt-5 ">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="">
+                      <div className="flex justify-center items-center gap-1">
+                        <ArrowUpDown className="size-4" />
+                        <span>اسکی یو</span>
+                      </div>
+                    </TableHead>
+                    <TableHead className="">
+                      <div className="flex justify-center items-center gap-1">
+                        <ArrowUpDown className="size-4" />
+                        <span>جنس</span>
+                      </div>
+                    </TableHead>
+                    <TableHead className="">
+                      <div className="flex justify-center items-center gap-1">
+                        <ArrowUpDown className="size-4" />
+                        <span>نوع</span>
+                      </div>
+                    </TableHead>
+                    <TableHead className="">
+                      <div className="flex justify-center items-center gap-1">
+                        <ArrowUpDown className="size-4" />
+                        <span>کود</span>
+                      </div>
+                    </TableHead>
+                    <TableHead className="">
+                      <div className="flex justify-center items-center gap-1">
+                        <ArrowUpDown className="size-4" />
+                        <span>واحد جنس</span>
+                      </div>
+                    </TableHead>
+                    <TableHead className="">
+                      <div className="flex justify-center items-center gap-1">
+                        <ArrowUpDown className="size-4" />
+                        <span>نرخ فروش</span>
+                      </div>
+                    </TableHead>
+                    <TableHead className="">
+                      <div className="flex justify-center items-center gap-1">
+                        <ArrowUpDown className="size-4" />
+                        <span>وزن</span>
+                      </div>
+                    </TableHead>
+                    <TableHead className="">
+                      <div className="flex justify-center items-center gap-1">
+                        <ArrowUpDown className="size-4" />
+                        <span>مقدار پر پیک</span>
+                      </div>
+                    </TableHead>
                   </TableRow>
-                ) : <TableRow>
-                  <TableCell colSpan={6} className="text-muted-foreground text-center text-sm p-5">
-                    ریکورد وجود ندارد
-                  </TableCell>
-                </TableRow>}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {allItems.length > 0 ? allItems.map((item, ind) =>
+                    <TableRow key={ind} onClick={()=>{
+                      if(userRole==='admin' || userRole==='super_admin'){
+                        router.get(`/items/${item.id}/edit`)
+                      }
+                    }}>
+                      <TableCell className="text-center">{item.sku}</TableCell>
+                      <TableCell className="text-center">{item.name}</TableCell>
+                      <TableCell className={`text-center ${item.item_type === 'product' ? 'text-green-500' : item.item_type === 'raw_material' ? 'text-blue-500' : 'text-pink-500'}`}>{getDariItemType(item.item_type)}</TableCell>
+                      <TableCell className="text-center">{item.code}</TableCell>
+                      <TableCell className="text-center">{getDariItemUnit(item.unit)}</TableCell>
+                      <TableCell className="text-center">{item.default_sale_price}</TableCell>
+                      <TableCell className="text-center">{item.product?.weight ?? 'N/A'}</TableCell>
+                      <TableCell className="text-center">{item.product?.per_pack ?? 'N/A'}</TableCell>
+                    </TableRow>
+                  ) : <TableRow>
+                    <TableCell colSpan={6} className="text-muted-foreground text-center text-sm p-5">
+                      ریکورد وجود ندارد
+                    </TableCell>
+                  </TableRow>}
+                </TableBody>
+              </Table>
+          <PageLinks links={items.links} className='py-5'/>
+            </div>
           </div>
-          <PageLinks links={items.links} />
         </section>
       </div>
     </AppLayout>
