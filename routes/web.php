@@ -248,6 +248,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             $pendingOrders = ProductionOrder::with('bom:id,category_id', 'bom.category:id,name', 'productionOutputs:id,production_order_id,quantity_produced')
                 ->select('id', 'ordered_by', 'order_date', 'status', 'bom_id')
                 ->where('status', 'pending')
+                ->orderBy('id')
+                ->take(3)
                 ->get();
             return Inertia::render('factory/home', compact('items', 'pendingOrders', 'productionChart', 'topProductionCategories'));
         })->name('factory');

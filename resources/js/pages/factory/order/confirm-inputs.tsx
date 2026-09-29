@@ -12,7 +12,8 @@ import {  getDariItemUnit } from '@/components/location-translator';
 import {  Item } from '@/types/item';
 import { ProductionOrder } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import {  DeleteIcon } from 'lucide-react';
+import {  DeleteIcon, LockKeyholeOpen } from 'lucide-react';
+import PageHead from '@/components/page-head';
 
 interface Props {
     items: Item[];
@@ -106,16 +107,21 @@ const Create = ({ items, status, production_order }: Props) => {
         <AppLayout
             breadcrumbs={[
                 { title: 'کارخانه', href: '/factory/home' },
-                { title: 'لیست سفارشات', href: '/factory/production_orders' },
+                { title: 'لیست سفارشات', href: '/factory/production-orders' },
                 { title: production_order.ordered_by, href: '/factory/production-orders/' + production_order.id },
                 { title: 'تائید مواد خام', href: '/factory/production-orders/confirm-order-inputs' },
             ]}
         >
-            <div className="">
+            <div className="px-1 md:px-3">
                 <section>
                     <div className="max-w-3xl mx-auto p-5">
-                        <SectionTitle title='تائید مواد خام' description='لطفا مواد خام قبل از ثبت نمودن در سیستم چک و خوده مطمئین بسازد' />
-                        <div className="">
+                    <PageHead
+                        HeadIcon={LockKeyholeOpen}
+                        subtitle={'سفارش '+production_order.ordered_by}
+                        title="تائید مواد خام"
+                        description={`لطف نموده مواد خام که در سفارش بالا استفاده شده قبل از پیش رفتن یک بار تائید کنید`}
+                    />
+                        <div className="" dir='rtl'>
                             <form onSubmit={handleProductionInput} name="boms" id="boms">
 
                                 <section className=" ITEMSection mt-8">
@@ -207,7 +213,7 @@ const Create = ({ items, status, production_order }: Props) => {
                                         {OrderInput.length > 0 && (
                                             OrderInput.map((input, ind) =>
                                                 <TableRow key={ind}>
-                                                    <TableCell className='text-center'>{ind}</TableCell>
+                                                    <TableCell className='text-center'>{ind+1}</TableCell>
                                                     <TableCell className='text-center'>{items.filter(item => item.id === input.item_id)[0].name}</TableCell>
                                                     <TableCell className='text-center'>{input.quantity_used}</TableCell>
                                                     <TableCell className='flex justify-center items-center'>

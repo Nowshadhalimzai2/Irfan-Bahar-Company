@@ -18,7 +18,10 @@ class WasteController extends Controller
     {
 
         $categories = Category::select('id', 'name')->get();
-        $items = Item::whereNot('item_type', 'product')->get();
+        // $items = Item::whereNot('item_type', 'product')->get();
+        $Ids = $production_order->productionInputs->pluck('item_id');
+        // dd($Ids);
+        $items = Item::query()->whereIn('id',[...$Ids])->select(['id','name','code','unit'])->get();
         return Inertia::render('factory/waste/create', compact('categories', 'items', 'production_order'));
     }
     public function store(Request $request, ProductionOrder $production_order)

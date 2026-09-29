@@ -41,18 +41,20 @@ const Show = ({ productionOrder, logo }: Props) => {
             
                     {/* BILL INFO */}
                     <Overview>
+                        <p> سفارش نمبر :  {productionOrder.reference_no} </p>
                         <p>سفارش توسط : {productionOrder.ordered_by}</p>
-                        <p>تاریخ سفارش : {new Date(productionOrder.order_date).toLocaleDateString()}</p>
-                        <p> {productionOrder.reference_no} : سفارش نمبر </p>
+                        <p>تاریخ سفارش : {new Date(productionOrder.order_date).toLocaleDateString('fa-AF')}</p>
+                        <p> سفارش وضیعت :  {productionOrder.status} </p>
                     </Overview>
 
                     {/*  BILL CONTENT */}
-                    <Content status={productionOrder.status} >
+                    <Content status={productionOrder.status} className="" >
                         <div>
                             <Table className="border">
                                 <TableHeader>
                                     <TableRow>
                                         <TableHead className="text-center">شماره</TableHead>
+                                        <TableHead className="text-center">کود جنس</TableHead>
                                         <TableHead className="text-center">جنس</TableHead>
                                         <TableHead className="text-center">مقدار</TableHead>
                                         <TableHead className="text-center">وزن</TableHead>
@@ -62,8 +64,9 @@ const Show = ({ productionOrder, logo }: Props) => {
                                 <TableBody>
                                     {
                                         productionOrder.production_outputs.map((output, ind) =>
-                                            <TableRow key={ind}>
+                                            <TableRow key={ind} className="">
                                                 <TableCell className="text-center">{ind + 1}</TableCell>
+                                                <TableCell className="text-center">{output.product.item.code ?? '_'}</TableCell>
                                                 <TableCell className="text-center">{output.product.item.name}</TableCell>
                                                 <TableCell className="text-center">{output.quantity_produced} {getDariItemUnit(output.product.item.unit)}</TableCell>
                                                 <TableCell className="text-center">ګرام {((output.product.weight / output.product.per_pack) * 1000).toFixed()}</TableCell>
@@ -76,8 +79,7 @@ const Show = ({ productionOrder, logo }: Props) => {
 
                                 <TableFooter>
                                     <TableRow>
-                                        <TableCell>جمله وزن سفارش : </TableCell>
-                                        <TableCell colSpan={4} className="text-center">{totalOrderWeight}</TableCell>
+                                        <TableCell>جمله وزن سفارش : {totalOrderWeight}</TableCell>
                                     </TableRow>
                                 </TableFooter>
                             </Table>

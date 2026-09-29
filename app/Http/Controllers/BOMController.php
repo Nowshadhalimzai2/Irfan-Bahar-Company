@@ -184,7 +184,7 @@ class BOMController extends Controller
             DB::commit();
             return redirect()->to(route('boms.index'));
         } catch (\Throwable $th) {
-            // if($th instanceof )
+            
             DB::rollBack();
             $des = ' فورمول به نام ' . $bom->formula_name . ' حذف نشد ';
             Inertia::flash('toast', ['type' => 'success', 'message' => $des]);

@@ -267,7 +267,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                         </div>
 
                                         <div className="grid gap-2">
-                                            <Label htmlFor="unit_cost">قیمت واحد <span className="text-destructive">*</span></Label>
+                                            <Label htmlFor="unit_cost">قیمت <span className="text-destructive">*</span></Label>
                                             <Input
                                                 id="unit_cost"
                                                 type="number"

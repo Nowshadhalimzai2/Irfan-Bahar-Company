@@ -18,7 +18,7 @@ const Bill = ({ children, production_order_id=0, className = '' }: Props) => {
 
     };
     return (
-        <div className={className}>
+        <div className={className} dir='rtl'>
             <div className="max-w-4xl py-3 w-full mt-5 mx-auto ">
                 <div className="p-5 flex justify-between items-center">
                     {/* ========== PRINT BUTTON  ================ */}

@@ -122,7 +122,7 @@ const Index = ({ production_orders }: Props) => {
                             <TableCaption>نمایش {filteredOrders.length} از {production_orders.length} سفارش</TableCaption>
                             <TableHeader>
                                 <TableRow className="bg-muted/50 hover:bg-muted/50">
-                                    {/* <TableHead className="w-20 text-center">شماره</TableHead> */}
+                                    <TableHead className="w-20 text-center">شماره</TableHead>
                                     <TableHead className='text-center'>نمبر سفارش</TableHead>
                                     <TableHead className="text-center">سفارش کننده</TableHead>
                                     <TableHead className="text-center">جنس</TableHead>
@@ -133,7 +133,7 @@ const Index = ({ production_orders }: Props) => {
                             </TableHeader>
                             <TableBody>{filteredOrders.length > 0 ? filteredOrders.map((order, ind) =>
                                 <TableRow aria-disabled={order.status === 'cancelled'} className="cursor-pointer transition-colors hover:bg-emerald-50/60 dark:hover:bg-emerald-950/20" key={order.id} onDoubleClick={() => openOrder(order.id)}>
-                                    {/* <TableCell className="text-center">{ind + 1}</TableCell> */}
+                                    <TableCell className="text-center">{ind + 1}</TableCell>
                                      <TableCell className="w-8">{order.reference_no}</TableCell>
                                     <TableCell className="text-center">{order.ordered_by}</TableCell>
                                     <TableCell className="text-center">{getDariCategory(order.bom.category.name)}</TableCell>

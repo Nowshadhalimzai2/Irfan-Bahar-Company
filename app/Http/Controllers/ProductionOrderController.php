@@ -117,7 +117,7 @@ class ProductionOrderController extends Controller
     {
         $logo = Storage::url('public/logo/nobg.png');
         $productionOrder->load('bom:id,category_id', 'bom.category:id,name');
-        $productionOrder->load('productionOutputs:id,product_id,quantity_produced,production_order_id', 'productionOutputs.product:item_id,per_pack,weight', 'productionOutputs.product.item:id,name,unit');
+        $productionOrder->load('productionOutputs:id,product_id,quantity_produced,production_order_id', 'productionOutputs.product:item_id,per_pack,weight', 'productionOutputs.product.item:id,name,unit,code');
 
         return Inertia::render('factory/order/show', compact('productionOrder', 'logo'));
     }
@@ -127,6 +127,12 @@ class ProductionOrderController extends Controller
         $currentStatus = $production_order->status;
         DB::beginTransaction();
         try {
+            if($currentStatus==="pending"){
+                if($status==="completed"){
+                    Inertia::flash('toast',['type'=>'error','message'=>'شما نمی توانین که از حالت منتظر به حالت تکیمل شده یک سفارش را ببرید. لطفا اول سفارش را به حالت جریان ارسال کنید!']);
+                    DB::rollBack();
+                    return redirect()->back();}
+            }
             if ($status !== 'completed') {
 
                 // check the inventory if there's enough items in factory
@@ -177,6 +183,7 @@ class ProductionOrderController extends Controller
         if ($balance === null)
             abort(404, 'the balance is not found for the item : '.$item->name.' check the balance and retry!');
         $quantity_in_stock = $balance->quantity_on_hand - $balance->reserved;
+        // dd($req_qty);
         if ($quantity_in_stock < $req_qty)
             abort(422, 'there is not enough quantity in factory for the item : '.$item->name);
     }
@@ -207,7 +214,7 @@ class ProductionOrderController extends Controller
         foreach ($production_order->bom->bomLines as $bom_line) {
             $quantity_used = round(
                 ($bom_line->required_quantity * $ordered_qty) / $max_exp_qty,
-                2
+                4
             );
 
             ProductionInput::updateOrCreate(

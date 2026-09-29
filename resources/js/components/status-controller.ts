@@ -6,7 +6,6 @@ export const statusController = (status: StatusType): { value: StatusType, label
         return [
             { value: 'pending', label: 'منتظر' },
             { value: 'progress', label: 'جریان' },
-            { value: 'completed', label: 'تکمیل شده' },
             { value: 'cancelled', label: 'لغو شده' },
         ];
     else if (status === 'progress')

@@ -53,7 +53,7 @@ const Create = ({ categories, items, production_order }: Props) => {
 
     const handleWaste = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        post('/factory/wastes/'+production_order.id, {
+        post('/factory/wastes/' + production_order.id, {
             onFinish: () => {
                 setWasteLine([]);
                 setCurrentLine({
@@ -95,6 +95,10 @@ const Create = ({ categories, items, production_order }: Props) => {
         return items.filter(item => item.id === currentLine.item_id)[0].unit;
 
     }, [currentLine]);
+
+    const getItem = (item_id: number) => {
+        return items.filter(item => item.id === item_id)[0];
+    }
     return (
         <AppLayout
             breadcrumbs={[
@@ -109,7 +113,7 @@ const Create = ({ categories, items, production_order }: Props) => {
                         <SectionTitle
                             title={'فورم ضایعات '}
                             description={production_order.reference_no + ' .اګر شما صفحه را ترک کردین شما دیګر نمی توانین این صفحه دوباره روجع کنید. پس احتیاط کنید'} />
-                        <div className=" py-5">
+                        <div className=" py-5" dir='rtl'>
                             <form onSubmit={handleWaste} name="boms" id="boms">
                                 <div className="mt-5">
                                     <div className="grid gap-2 py-3 border-b">
@@ -117,7 +121,7 @@ const Create = ({ categories, items, production_order }: Props) => {
                                         <textarea
                                             tabIndex={0}
                                             id='reasone'
-                                            minLength={10}
+                                            
                                             maxLength={300}
                                             required
                                             value={data.reason}
@@ -167,6 +171,7 @@ const Create = ({ categories, items, production_order }: Props) => {
                                                 <Input
                                                     id="quantity"
                                                     type="number"
+                                                    dir='ltr'
                                                     min={1}
                                                     // max={items[currentLine.item_id]}
                                                     value={currentLine.wasted_quantity}
@@ -210,6 +215,7 @@ const Create = ({ categories, items, production_order }: Props) => {
                                         <TableHeader>
                                             <TableRow>
                                                 <TableHead className='text-center'>شماره</TableHead>
+                                                <TableHead className='text-center'>کود جنس</TableHead>
                                                 <TableHead className='text-center'>جنس</TableHead>
                                                 <TableHead className='text-center'>مقدار</TableHead>
                                                 <TableHead className='text-center'>حذف</TableHead>
@@ -219,8 +225,9 @@ const Create = ({ categories, items, production_order }: Props) => {
                                             {wasteLine.length > 0 && (
                                                 wasteLine.map((waste, ind) =>
                                                     <TableRow key={ind}>
-                                                        <TableCell className='text-center'>{ind}</TableCell>
-                                                        <TableCell className='text-center'>{items.filter(item => item.id === waste.item_id)[0].name}</TableCell>
+                                                        <TableCell className='text-center'>{ind+1}</TableCell>
+                                                        <TableCell className='text-center'>{getItem(waste.item_id).code}</TableCell>
+                                                        <TableCell className='text-center'>{getItem(waste.item_id).name}</TableCell>
                                                         <TableCell className='text-center'>{waste.wasted_quantity}</TableCell>
                                                         <TableCell className='flex justify-center items-center'>
                                                             <DeleteIcon onClick={() => handleRemoveLine(ind)} className='text-destructive' />
