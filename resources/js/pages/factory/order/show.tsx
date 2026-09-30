@@ -8,6 +8,7 @@ import { BreadcrumbItem, ProductionOrder } from "@/types";
 import Bill from "../../../components/bill/bill";
 import Overview from "@/components/bill/overveiw";
 import { useMemo } from "react";
+import { CustomeDropDownMenu } from "@/components/customer-dropdwon";
 
 interface Props {
     productionOrder: ProductionOrder;
@@ -27,14 +28,20 @@ const Show = ({ productionOrder, logo }: Props) => {
             { title: 'سفارش ' + productionOrder.ordered_by, href: '/factory/production-orders/' + productionOrder.id },
         ];
     }
+    console.log(productionOrder);
+    
     const totalOrderWeight = useMemo(() => {
         return productionOrder.production_outputs.reduce((acc, output) => acc += (output.quantity_produced * output.product.weight), 0)
     }, [[productionOrder]]);
     return (
-        <AppLayout breadcrumbs={breadcrumbs}>
+        <AppLayout breadcrumbs={breadcrumbs}> 
 
             <div className="p-4">
-
+              {(productionOrder.wastes.length>0 && productionOrder.status==='completed')&& <div>
+                    <CustomeDropDownMenu items={[
+                        {name:'ضایعات',url:'/factory/production-orders/'+productionOrder.id+'/wastes'}
+                    ]}/>
+                </div>}
                 <Bill production_order_id={productionOrder.id} >
                     {/* BILL HEADER  */}
                     <Header logo={logo} title="بل سفارش" />

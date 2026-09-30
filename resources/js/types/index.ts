@@ -144,6 +144,7 @@ export interface ProductionOrder{
     status: 'pending' | 'progress' | 'completed' | 'drafted' | 'cancelled';
     notes?:string;
     production_outputs:ProductionOutput[];
+    wastes:Waste[];
     production_inputs:ProductionInput[];
     reference_no:string;
 }

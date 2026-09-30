@@ -127,7 +127,7 @@ class ProductionOrderController extends Controller
         $logo = Storage::url('public/logo/nobg.png');
         $productionOrder->load('bom:id,category_id', 'bom.category:id,name');
         $productionOrder->load('productionOutputs:id,product_id,quantity_produced,production_order_id', 'productionOutputs.product:item_id,per_pack,weight', 'productionOutputs.product.item:id,name,unit,code');
-
+        $productionOrder->load('wastes:id,production_order_id');
         return Inertia::render('factory/order/show', compact('productionOrder', 'logo'));
     }
 

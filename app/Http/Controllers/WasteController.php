@@ -67,9 +67,14 @@ class WasteController extends Controller
 
     public function show(ProductionOrder $production_order)
     {
-        $production_order->load('wastes:id,item_id,wasted_quantity,production_order_id', 'wastes.item:id,name,unit');
-            // dd($production_order);
-        Inertia::render('factory/waste/show', compact('production_order'));
+        if(!$production_order->wastes->count()>0){
+            Inertia::flash('toast',['type'=>'error','message'=>'این سفارش ضایعات ندارد یا هنګام پروسس ثبت نشده!']);
+            return redirect()->to(route('orders.show',$production_order->id));
+        }
+        $production_order->load('wastes:id,item_id,wasted_quantity,production_order_id,reason,order_date', 'wastes.item:id,name,unit,code');
+        // return $production_order;
+        // dd('done');
+       return Inertia::render('factory/waste/show',compact('production_order'));
     }
 
     private function StoreWastes(array $data, ProductionOrder $production_order)
