@@ -74,7 +74,7 @@ class GoodsReceiptController extends Controller
         }
 
         $currencies = Currency::select('id', 'name')->get();
-        $items = Item::with('product')->select('id', 'name', 'unit', 'default_sale_price', 'item_type')->get();
+        $items = Item::with('product')->select('id', 'name', 'unit', 'default_sale_price', 'item_type','code')->get();
 
         return Inertia::render('goods-receipt/create', compact('suppliers', 'locations', 'currencies', 'items'));
     }

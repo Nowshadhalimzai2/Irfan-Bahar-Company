@@ -20,7 +20,7 @@ return new class extends Migration
             $table->enum('movement_type',['receipt','transferred_out','transferred_in','production_consumption','production_output','sale','sale_return','adjustment_in','adjustment_out']);
             $table->decimal('quantity',6,2);
             // $table->decimal('unit_cost')
-            $table->string('reference_no',12)->unique('idx_reference_no');
+            $table->string('reference_no',20)->unique('idx_reference_no');
             $table->date('occured_at');
             $table->string('notes',255);
             $table->timestamps();

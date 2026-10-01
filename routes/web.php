@@ -212,7 +212,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/transfers/{location}/items/{item}', [TransferController::class, 'getItemBalance']);
     Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
     Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])->name('movements.index');
-    Route::resource('boms', BOMController::class)->names('boms');
+    Route::resource('boms', BOMController::class)->names('boms')->except('destroy');
+    Route::put('/boms/{bom}/block',[BOMController::class,'block'])->name('boms.block');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');

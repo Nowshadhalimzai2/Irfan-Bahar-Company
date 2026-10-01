@@ -128,6 +128,7 @@ export interface BOM{
     min_exp_qty:number;
     max_exp_qty:number;
     is_active:boolean;
+    code:string;
 }
 export interface BOMLine{
     id:number;

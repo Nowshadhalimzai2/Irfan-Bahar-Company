@@ -12,7 +12,7 @@ class BOM extends Model
 {
     protected $table = 'boms';
 
-    protected $fillable = ['formula_name', 'category_id', 'min_exp_qty', 'max_exp_qty', 'is_active'];
+    protected $fillable = ['formula_name', 'category_id', 'min_exp_qty', 'max_exp_qty', 'is_active','code'];
 
     public function category(): BelongsTo
     {

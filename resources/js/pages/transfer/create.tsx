@@ -146,7 +146,7 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
 
     const itemUnit = itemsInLoc.find(item => item.id === currentLine.item_id)?.unit ?? 'unit';
     const totalQuantity = transferLine.reduce((total, line) => total + line.quantity, 0);
-    const totalValue = transferLine.reduce((total, line) => total += line.quantity * items.filter(item=>item.id===line.item_id)[0].default_sale_price, 0);
+    const totalValue = transferLine.reduce((total, line) => total += line.quantity * items.filter(item => item.id === line.item_id)[0].default_sale_price, 0);
 
     return (
         <AppLayout
@@ -177,7 +177,7 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                                                 setBalance(undefined);
                                                 setData('source_id', Number(e.target.value));
                                             }}
-                                            disabled={transferLine.length>0}
+                                            disabled={transferLine.length > 0}
                                         >
                                             <option value={0}>از جای که میایه را انتخاب کنید</option>
                                             {sourceLocations.map((location) => (
@@ -255,7 +255,7 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                                             >
                                                 {itemsInLoc.map((item) => (
                                                     <option value={item.id} key={item.id}>
-                                                        {item.name}
+                                                        {item.name} {item.code}
                                                     </option>
                                                 ))}
                                             </select>
@@ -273,6 +273,7 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                                                 id="quantity"
                                                 type="number"
                                                 min={1}
+                                                dir='ltr'
                                                 // max={items[currentLine.item_id]}
                                                 value={currentLine.quantity}
                                                 onChange={(e) =>
@@ -315,8 +316,9 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                                     <Table>
                                         <TableHeader>
                                             <TableRow>
-                                                <TableHead className='text-center'>شماره</TableHead>
-                                                <TableHead className='text-center'>جنس</TableHead>
+                                                <TableHead className='text-center w-15'>شماره</TableHead>
+                                                <TableHead className='text-center min-w-20'>کود جنس</TableHead>
+                                                <TableHead className='text-center min-w-20'>جنس</TableHead>
                                                 <TableHead className='text-center'>مقدار</TableHead>
                                                 <TableHead className='text-center'>قیمت</TableHead>
                                                 <TableHead className='text-center'>جمله</TableHead>
@@ -328,10 +330,11 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                                                 transferLine.map((line, ind) =>
                                                     <TableRow key={ind}>
                                                         <TableCell className='text-center'>{ind + 1}</TableCell>
-                                                        <TableCell className='text-center'>{itemsInLoc.find(item => item.id === line.item_id)?.name ?? line.item_id}</TableCell>
+                                                        <TableCell className='text-center'>{itemsInLoc.find(item => item.id === line.item_id)?.code}</TableCell>
+                                                        <TableCell className='text-center'>{itemsInLoc.find(item => item.id === line.item_id)?.name}</TableCell>
                                                         <TableCell className='text-center'>{line.quantity}</TableCell>
-                                                        <TableCell className='text-center'>{items.filter(item=>item.id==line.item_id)[0].default_sale_price}</TableCell>
-                                                        <TableCell className='text-center'>{items.filter(item=>item.id==line.item_id)[0].default_sale_price*line.quantity}</TableCell>
+                                                        <TableCell className='text-center'>{items.filter(item => item.id == line.item_id)[0].default_sale_price}</TableCell>
+                                                        <TableCell className='text-center'>{items.filter(item => item.id == line.item_id)[0].default_sale_price * line.quantity}</TableCell>
                                                         <TableCell className='flex justify-center items-center'>
                                                             <button type="button" aria-label="حذف جنس" onClick={() => removeItem(ind)}><Trash2 className='size-4 text-destructive' /></button>
                                                         </TableCell>
@@ -366,14 +369,69 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
 const BalanceMonitor = ({ balance, location }: { balance: InventoryBalance, location?: Location }) => {
 
     return (
-        <div className='mb-5 grid grid-cols-2'>
-            <div className='bg-secondary border  rounded-sm p-3 shadow-md backdrop-blur-sm'>
-                <h5 className='text-center font-medium'>{balance.item?.name ?? 'نامشخص'}</h5>
-                <div className='grid place-items-center text-primary grid-cols-2 gap-3 p-3'>
-                    <li className='list-none font-semibold text-2xl '> {balance.quantity_on_hand} {getDariItemUnit(balance.item?.unit ?? '')}</li>
-                    <li className='list-none font-medium text-muted-foreground text-sm'><span className=''>حفظ شده</span>{balance.reserved}</li>
+        <div
+            dir="rtl"
+            className="group mb-3 overflow-hidden rounded-xl border bg-card shadow-sm transition hover:shadow-md"
+        >
+            <div className="bg-linear-to-br from-primary/10 via-background to-background p-3">
+                <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                        <h3 className="truncate text-sm font-bold text-foreground">
+                            {balance.item?.name ?? 'نامشخص'}
+                        </h3>
+
+                        {balance.item?.code && (
+                            <code className="text-[10px] text-muted-foreground">
+                                {balance.item.code}
+                            </code>
+                        )}
+                    </div>
+
+                    <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${balance.quantity_on_hand > 0
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-red-100 text-red-700'
+                            }`}
+                    >
+                        {balance.quantity_on_hand > 0 ? 'موجود' : 'ناموجود'}
+                    </span>
                 </div>
-                <small className='text-center w-full text-muted-foreground text-sm'>موجوده مقدار در {location ? LocationTranslator(location.name) : 'موقعیت انتخاب نشده'}</small>
+
+                <div className="mt-3 grid grid-cols-3 divide-x divide-x-reverse rounded-lg border bg-background/70 text-center">
+                    <div className="p-2">
+                        <p className="text-[10px] text-muted-foreground">موجودی</p>
+                        <p className="mt-1 text-lg font-bold text-primary">
+                            {balance.quantity_on_hand}
+                        </p>
+                    </div>
+
+                    <div className="p-2">
+                        <p className="text-[10px] text-muted-foreground">رزرو</p>
+                        <p className="mt-1 text-lg font-bold text-amber-600">
+                            {balance.reserved}
+                        </p>
+                    </div>
+
+                    <div className="p-2">
+                        <p className="text-[10px] text-muted-foreground">قابل استفاده</p>
+                        <p className="mt-1 text-lg font-bold text-foreground">
+                            {Math.max(
+                                0,
+                                Number(balance.quantity_on_hand) -
+                                Number(balance.reserved),
+                            )}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div className="border-t px-3 py-2 text-[11px] text-muted-foreground">
+                موقعیت:{' '}
+                <span className="font-medium text-foreground">
+                    {location
+                        ? LocationTranslator(location.name)
+                        : 'انتخاب نشده'}
+                </span>
             </div>
         </div>
     )

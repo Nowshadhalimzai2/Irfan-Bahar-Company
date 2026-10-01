@@ -49,7 +49,7 @@ const Index = ({ items }: Props) => {
       { title: 'کارخانه', href: '/factory/home' },
       { title: 'اجناس', href: '/items' }
     ]}>
-      <div className="py-5">
+      <div className="py-5 px-2 md:px-5">
         {canModifyItems ? <PageHead
           HeadIcon={PackagePlus}
           subtitle='اجناس شرکت'
@@ -64,10 +64,10 @@ const Index = ({ items }: Props) => {
             title='لیست اجناس '
             description='اجناس که فروخت در شرکت میشه لیست شان ذیل است'
           />}
-        <section className="max-w-4xl mx-auto mt-8" dir='rtl'>
+        <section className="max-w-5xl mx-auto mt-8" dir='rtl'>
           <div className=" grid grid-cols-1 gap-5 ">
             <div className="flex gap-2 ">
-              <Input className='bg-white shadow-xl ' placeholder='جستجوی اجناس به اساس نام، اسکی یو، بار کود  و کد نمبر' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+              <Input className='bg-white shadow-xl h-12 ' placeholder='جستجوی اجناس به اساس نام، اسکی یو، بار کود  و کد نمبر' value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
               {/* <Link href={'/items/create'} className={`shadow-xl bg-white ${buttonVariants({ variant: 'secondary' })} `}>جنس جدید</Link> */}
 
             </div>

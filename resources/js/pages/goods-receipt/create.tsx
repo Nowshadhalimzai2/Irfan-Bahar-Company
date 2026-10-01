@@ -232,7 +232,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                             >
                                                 {items.map((item) => (
                                                     <option value={item.id} key={item.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
-                                                        {item.name}
+                                                        {item.name} {item.code}
                                                     </option>
                                                 ))}
                                             </select>
@@ -313,6 +313,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                             <TableHeader>
                                                 <TableRow>
                                                     <TableHead className='text-center'>شماره</TableHead>
+                                                    <TableHead className='text-center'>کود جنس</TableHead>
                                                     <TableHead className='text-center'>جنس</TableHead>
                                                     <TableHead className='text-center'>مقدار</TableHead>
                                                     <TableHead className='text-center'>قیمت</TableHead>
@@ -325,6 +326,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                     receiptLines.map((line, ind) =>
                                                         <TableRow key={ind}>
                                                             <TableCell className='text-center'>{ind + 1}</TableCell>
+                                                            <TableCell className='text-center'>{items.filter(item => item.id == line.item_id)[0].code}</TableCell>
                                                             <TableCell className='text-center'>{items.filter(item => item.id == line.item_id)[0].name}</TableCell>
                                                             <TableCell className='text-center'>{line.quantity}</TableCell>
                                                             <TableCell className='text-center'>{line.unit_cost}</TableCell>

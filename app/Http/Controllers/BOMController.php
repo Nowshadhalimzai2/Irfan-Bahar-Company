@@ -25,7 +25,7 @@ class BOMController extends Controller
 
     public function create(): Response
     {
-        $categories = Category::all();
+        $categories = Category::query()->select('id', 'name')->get();
         $items = Item::whereNot('item_type', 'product')->get();
         return Inertia::render('bom/create', compact('categories', 'items'));
     }
@@ -46,8 +46,8 @@ class BOMController extends Controller
             'bomLines.*.required_quantity' => 'required|numeric|gt:0',
         ]);
         $request->validate([
-            'min_exp_qty' => 'required|lte:'.$data['max_exp_qty'],
-            'max_exp_qty' => 'required|gte:'.$data['min_exp_qty'],
+            'min_exp_qty' => 'required|lte:' . $data['max_exp_qty'],
+            'max_exp_qty' => 'required|gte:' . $data['min_exp_qty'],
         ]);
         $log = new Log();
         DB::beginTransaction();
@@ -59,16 +59,19 @@ class BOMController extends Controller
                 'min_exp_qty' => $data['min_exp_qty'],
                 'max_exp_qty' => $data['max_exp_qty'],
                 'is_active' => true,
+
             ]);
-            // ===== CREATE THE BOM LINES =====
+            $bom->code = str_pad('BOM-' . $bom->id + 1, 8, '0', STR_PAD_LEFT);
+            $bom->save();
+            // e.g. "BOM-261001-X7KQ"               // ===== CREATE THE BOM LINES =====
             foreach ($data['bomLines'] as $line) {
                 $bom->bomLines()->create($line);
             }
             $des = $data['formula_name'] . ' در ثبت سیستم ثبت شد ';
-            $log->create('insert', $des,null,'/boms/'.$bom->id);
+            $log->create('insert', $des, null, '/boms/' . $bom->id);
             DB::commit();
 
-            session()->flash('toast', ['type' => 'success', 'message' => $des]);
+            Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
 
             if ($request->expectsJson()) {
                 return response()->json(['status' => 'success', 'message' => $des, 'bom' => $bom], 201);
@@ -103,12 +106,11 @@ class BOMController extends Controller
 
     public function edit(BOM $bom)
     {
-
         $bom->load('bomLines:id,bom_id,item_id,required_quantity', 'bomLines.item:id,name');
-        $bom->load('product:item_id,name');
-        $products = Product::with('item:id,name,unit,item_type')->select('item_id', 'weight', 'per_pack')->get();
+        // $bom->load('product:item_id,name');
+        $categories = Category::query()->select('id', 'name')->get();
         $items = Item::whereNot('item_type', 'product')->get();
-        return Inertia::render('bom/edit', compact('bom', 'items', 'products'));
+        return Inertia::render('bom/edit', compact('bom', 'items', 'categories'));
     }
     public function update(Request $request, BOM $bom)
     {
@@ -171,23 +173,24 @@ class BOMController extends Controller
         }
     }
 
-    public function destroy(BOM $bom): RedirectResponse
+    public function block(BOM $bom): RedirectResponse
     {
 
         DB::beginTransaction();
         try {
             $log = new Log();
-            $des = ' فورمول به نام ' . $bom->formula_name . ' حذف شد ';
+            $des = ' فورمول به نام ' . $bom->formula_name . ' بلاک شد ';
             $log->create('delete', $des);
             Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
-            $bom->delete();
+            $bom->is_active = !$bom->is_active;
+            $bom->save();
             DB::commit();
             return redirect()->to(route('boms.index'));
         } catch (\Throwable $th) {
-            
+
             DB::rollBack();
-            $des = ' فورمول به نام ' . $bom->formula_name . ' حذف نشد ';
-            Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
+            $des = ' فورمول به نام ' . $bom->formula_name . ' بلاک نشد ';
+            Inertia::flash('toast', ['type' => 'success', 'message' => $des . $th->getMessage()]);
             return redirect()->back();
         }
     }

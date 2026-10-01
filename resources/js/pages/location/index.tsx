@@ -45,9 +45,9 @@ const Index = ({ locations }: Props) => {
     return (
         <AppLayout breadcrumbs={[
             { title: 'دشبورد', href: "/dashboard" },
-            { title: 'موقعیت ها', href: '/locations' }]}>
+            { title: 'موقعیت ها', href: '/locations' }]} >
 
-            <section className="section">
+            <section className="section" dir='rtl'>
                 <div className="max-w-3xl mx-auto p-5">
                     <SectionTitle title='تمام موقعیت ها اجناس ' />
                     <div>
@@ -55,12 +55,12 @@ const Index = ({ locations }: Props) => {
 
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>شماره</TableHead>
-                                    <TableHead>نام</TableHead>
-                                    <TableHead>نوع</TableHead>
-                                    <TableHead>آدرس</TableHead>
-                                    <TableHead>حالت</TableHead>
-                                    <TableHead>اجراآت</TableHead>
+                                    <TableHead className='text-center'>شماره</TableHead>
+                                    <TableHead className='text-center'>نام</TableHead>
+                                    <TableHead className='text-center'>نوع</TableHead>
+                                    <TableHead className='text-center'>آدرس</TableHead>
+                                    <TableHead className='text-center'>حالت</TableHead>
+                                    <TableHead className='text-center'>اجراآت</TableHead>
 
                                 </TableRow>
                             </TableHeader>
@@ -68,12 +68,12 @@ const Index = ({ locations }: Props) => {
                             <TableBody>
                                 {locations.length > 0 ? locations.map((location, ind) =>
                                     <TableRow>
-                                        <TableCell>{ind + 1}</TableCell>
-                                        <TableCell>{location.name}</TableCell>
-                                        <TableCell>{location.type}</TableCell>
-                                        <TableCell>{location.address}</TableCell>
-                                        <TableCell className={`${location.is_active ? 'text-green-500 bg-green-50 ' : 'text-red-500 bg-red-50'} rounded-md text-center`}>{location.is_active ? "فعال" : "غیر فعال"}</TableCell>
-                                        <TableCell>
+                                        <TableCell className='text-center'>{ind + 1}</TableCell>
+                                        <TableCell className='text-center'>{location.name}</TableCell>
+                                        <TableCell className='text-center'>{location.type}</TableCell>
+                                        <TableCell className='text-center'>{location.address}</TableCell>
+                                        <TableCell className={` text-center ${location.is_active ? 'text-green-500 bg-green-50 ' : 'text-red-500 bg-red-50'} rounded-md text-center`}>{location.is_active ? "فعال" : "غیر فعال"}</TableCell>
+                                        <TableCell className='flex justify-center items-center'>
                                             <CustomeDropDownMenu method="put" items={[
                                                 {name: location.is_active ?'غیر فعال نمودن': 'فعال نمودن', url:`/locations/${location.id}/toggle-is-active/${location.is_active}`}
                                             ]} />
@@ -87,7 +87,7 @@ const Index = ({ locations }: Props) => {
                 </div>
             </section>
 
-            <section className="section">
+            <section className="section" dir='rtl'>
                 <div>
                     <SectionTitle title='موقعیت جدید را ثبت کنید' />
 

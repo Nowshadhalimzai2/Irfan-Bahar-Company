@@ -99,7 +99,6 @@ class TransferController extends Controller
 
             $transfer->reference_no = sprintf('TR-%s-%s', Carbon::now(config('app.timezone'))->year, str_pad($transfer->id, 5, '0', STR_PAD_LEFT));
             $transfer->save();
-
             // ===== CREATE THE GOODS RECEIPE LINES =====
             foreach ($data['transferLines'] as $line) {
 
@@ -107,16 +106,15 @@ class TransferController extends Controller
                     ->where('item_id', $line['item_id'])
                     ->lockForUpdate()
                     ->first();
-
                 $available = ($balance?->quantity_on_hand ?? 0) - ($balance?->reserved ?? 0);
                 if ($available < $line['quantity']) {
                     throw new Error('مقدار قابل انتقال برای این جنس کافی نیست.');
                 }
 
                 $transfer->transferLines()->create([
-                    'item_id' =>$line->item_id,
-                    'quantity' =>$line->quantity,
-                    'unit_price' =>$line->itemPrice,
+                    'item_id' =>$line['item_id'],
+                    'quantity' =>$line['quantity'],
+                    'unit_price' =>$line['itemPrice'],
                 ]);
             }
             $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' پیشنهاد شد';
