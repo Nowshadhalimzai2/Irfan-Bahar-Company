@@ -267,7 +267,7 @@ class SaleController extends Controller
                     $this->createInvoice($sale);
                 }
                 $this->ensureDiscountIsEnough($sale);       
-                throw new Error('not added');
+                // throw new Error('not added');
                 return $sale;
             });
             Inertia::flash('toast', ['type' => 'success', 'message' => 'فروشات تکمیل شد']);

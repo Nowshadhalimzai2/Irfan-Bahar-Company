@@ -20,7 +20,7 @@ const PageHead = ({ title, subtitle, description, HeadIcon, menuItems, actionTit
     const titleStyle = tone==='emerald' ? 'text-emerald-300' : tone==='cyan' ? 'text-cyan-300' : tone==='indigo' ? 'text-indigo-300' : tone==='pink' ? 'text-pink-300' : tone==='yellow' ? 'text-yellow-300' : '';
     return (
         <div className="relative overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl shadow-slate-900/10 md:px-10" dir='rtl'>
-            <div className={`absolute -left-12 -top-16 h-48 w-48 rounded-full ${lighting} blur-3xl`} />
+            <div className={`absolute -right-12 -top-16 h-48 w-48 rounded-full ${lighting} blur-3xl`} />
             <div className="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
                 <div className="space-y-3">
                     <div className={`flex items-center gap-2 text-sm font-medium ${titleStyle}`}><HeadIcon className="size-4" /> {title}</div>

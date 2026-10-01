@@ -275,7 +275,7 @@ const Index = ({ items, locations }: Props) => {
                                         <img src={"https://picsum.photos/275/60"} alt="" className="h-24 w-full object-cover opacity-90" />
                                         <div className="absolute inset-0 bg-linear-to-t from-slate-950/50 to-transparent" />
                                         <h2 className="absolute inset-x-4 bottom-3 text-center text-lg font-bold text-white drop-shadow-md">
-                                            <ItemDrawer item={item} trigger={item.name}/>
+                                            <ItemDrawer item={item} trigger={`${item.code} ${item.name}` }/>
                                                 
                                         </h2>
                                         <div className={`absolute right-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${totalStock(item) <= 10

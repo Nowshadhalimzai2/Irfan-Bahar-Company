@@ -258,7 +258,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         Route::get('/production-orders/junks', [ProductionOrderController::class, 'junks'])->name('orders.junks');
         Route::get('/production-orders/{production_order}/{status}/confirm-order-inputs', [ProductionInputController::class, 'confirmInputs'])->name('orders.confirm-inputs');
-        Route::put('/production-inputs/{production_order}', [ProductionInputController::class, 'update'])->name('order-inputs.update');
+        Route::get('/production-orders/{production_order}/{status}/confirm-order-outputs', [ProductionInputController::class, 'confirmOutputs'])->name('orders.confirm-outputs');
+        Route::put('/production-orders/{production_order}/{status}/confirm-order-outputs', [ProductionInputController::class, 'updateOutputs'])->name('orders.update-outputs');
+        Route::put('/production-inputs/{production_order}', [ProductionInputController::class, 'updateInputs'])->name('order-inputs.update');
         
         Route::resource('production-orders', ProductionOrderController::class)->names('orders');
         Route::get('/production-orders/get-related-products/{category}', [ProductionOrderController::class, 'getCategoryBasedProducts']);

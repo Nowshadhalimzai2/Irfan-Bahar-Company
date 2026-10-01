@@ -171,7 +171,7 @@ class ProductionOrderController extends Controller
                 return redirect()->to(route('orders.show', $production_order->id));
             }
 
-            return redirect()->to(route('orders.confirm-inputs', [$production_order, $status]));
+            return redirect()->to(route('orders.confirm-outputs', [$production_order, $status]));
         } catch (\Throwable $th) {
             DB::rollBack();
             Inertia::flash('toast', ['type' => "error", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به نشد' . $status . ': مشکل: ' . $th->getMessage()]);

@@ -17,7 +17,6 @@ class InvMovement
         }
 
         $quantity = abs($quantity) * ($operation === '-' ? -1 : 1);
-
         return DB::transaction(function () use ($locID, $itemID, $quantity, $moveType, $notes) {
             if (! $this->updateInventory($locID, $itemID, $quantity)) {
                 return false;

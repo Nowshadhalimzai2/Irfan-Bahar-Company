@@ -1,4 +1,3 @@
-import { SectionTitle } from '@/components/section-title';
 import AppLayout from '@/layouts/app-layout';
 import { useForm } from '@inertiajs/react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
@@ -119,7 +118,8 @@ const Create = ({ items, status, production_order }: Props) => {
                         HeadIcon={LockKeyholeOpen}
                         subtitle={'سفارش '+production_order.ordered_by}
                         title="تائید مواد خام"
-                        description={`لطف نموده مواد خام که در سفارش بالا استفاده شده قبل از پیش رفتن یک بار تائید کنید`}
+                        description={`لطف نموده مواد خام که در سفارش بالا استفاده شده قبل از پیش رفتن یک بار تائید کنید. مرحله : 2/3`}
+                        tone={'cyan'}
                     />
                         <div className="" dir='rtl'>
                             <form onSubmit={handleProductionInput} name="boms" id="boms">
@@ -144,7 +144,7 @@ const Create = ({ items, status, production_order }: Props) => {
                                                 >
                                                     {items.map((item) => (
                                                         <option value={item.id} key={item.id}>
-                                                            {item.name}
+                                                            {item.name} {' '}{item.code}
                                                         </option>
                                                     ))}
                                                 </select>
@@ -163,6 +163,7 @@ const Create = ({ items, status, production_order }: Props) => {
                                                     id="quantity"
                                                     type="number"
                                                     min={1}
+                                                    dir='ltr'
                                                     // max={items[currentLine.item_id]}
                                                     value={currentLine.quantity_used}
                                                     onChange={(e) =>
@@ -204,6 +205,7 @@ const Create = ({ items, status, production_order }: Props) => {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className='text-center'>شماره</TableHead>
+                                            <TableHead className='text-center'>کود جنس</TableHead>
                                             <TableHead className='text-center'>جنس</TableHead>
                                             <TableHead className='text-center'>مقدار</TableHead>
                                             <TableHead className='text-center'>حذف</TableHead>
@@ -214,6 +216,7 @@ const Create = ({ items, status, production_order }: Props) => {
                                             OrderInput.map((input, ind) =>
                                                 <TableRow key={ind}>
                                                     <TableCell className='text-center'>{ind+1}</TableCell>
+                                                    <TableCell className='text-center'>{items.filter(item => item.id === input.item_id)[0].code}</TableCell>
                                                     <TableCell className='text-center'>{items.filter(item => item.id === input.item_id)[0].name}</TableCell>
                                                     <TableCell className='text-center'>{input.quantity_used}</TableCell>
                                                     <TableCell className='flex justify-center items-center'>
