@@ -22,7 +22,6 @@ use Error;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
@@ -266,7 +265,7 @@ class SaleController extends Controller
                 if ($amountPaid < $afterDiscount || $data['customer_id'] != null) {
                     $this->createInvoice($sale);
                 }
-                $this->ensureDiscountIsEnough($sale);       
+                $this->ensureDiscountIsEnough($sale);
                 // throw new Error('not added');
                 return $sale;
             });
@@ -419,15 +418,25 @@ class SaleController extends Controller
         })->filter(fn(array $item) => $item['day'] <= $endOfMonth->day)->values();
     }
 
-    public function mostSold()
+    public function mostSold(Request $request)
     {
-        $now = now();
-        $monthStart = $now->copy()->startOfMonth();
+        $period = $request->input('period', 'monthly');
+        $data = $request->validate([
+            'period' => ['sometimes', 'in:daily,monthly'],
+            'date' => ['sometimes', 'date_format:' . ($period === 'daily' ? 'Y-m-d' : 'Y-m')],
+        ]);
+        $period = $data['period'] ?? 'monthly';
+        $date = $data['date'] ?? Carbon::now(config('app.timezone'))->format('Y-m');
+        $start = Carbon::createFromFormat($period === 'monthly' ? 'Y-m' : 'Y-m-d', $date, config('app.timezone'))->startOf($period === 'monthly' ? 'month' : 'day');
+        $end = $start->copy()->endOf($period === 'monthly' ? 'month' : 'day');
+
         $sales = Sale::query()
             ->with(['customer:id,name', 'currency:id,name', 'saleLines.item:id,name,category_id,unit', 'saleLines.item.category:id,name', 'invoice:id,sale_id,invoice_number,status'])
-            ->where(function ($query) use ($monthStart, $now) {
-                $query->whereBetween('sold_at', [$monthStart, $now])
-                    ->orWhereBetween('created_at', [$monthStart, $now]);
+            ->where(function ($query) use ($start, $end) {
+                $query->whereBetween('sold_at', [$start, $end])
+                    ->orWhere(function ($fallback) use ($start, $end) {
+                        $fallback->whereNull('sold_at')->whereBetween('created_at', [$start, $end]);
+                    });
             })
             ->latest('sold_at')
             ->latest('created_at')
@@ -447,7 +456,13 @@ class SaleController extends Controller
                     'unit' => $line->item?->unit ?? 'unit',
                 ];
             })->sortByDesc('sales')->values()->values();
-        return Inertia::render('sale/top-product', compact('topProducts'));
+        return Inertia::render('sale/top-product', [
+            'topProducts' => $topProducts,
+            'filters' => [
+                'period' => $period,
+                'date' => $date,
+            ],
+        ]);
     }
 
     public function destroyNote(Sale $sale)
@@ -529,5 +544,34 @@ class SaleController extends Controller
                 Notification::send($admins, new CustomerHighDueAlert($customer));
             }
         }
+    }
+
+    public function allSales()
+    {
+        $now = Carbon::now(config('app.timezone'));
+        // 3 months old record
+        $fromDate = $now->copy()->subMonth()->subMonth()->subMonth();
+        $sales = Sale::query()
+            ->with(['customer:id,name', 'currency:id,name', 'saleLines.item:id,name,category_id,unit', 'saleLines.item.category:id,name', 'invoice:id,sale_id,invoice_number,status'])
+              ->where(function ($query) use ($fromDate, $now) {
+                $query->whereBetween('sold_at', [$fromDate, $now])
+                    ->orWhereBetween('created_at', [$fromDate, $now]);
+            })
+            ->latest('sold_at')
+            ->latest('created_at')
+            ->get();
+        return Inertia::render('sale/allSale', [
+            'orders' => $sales->map(fn(Sale $sale) => [
+                'saleId' => $sale->id,
+                'id' => $sale->invoice?->invoice_number ?? '#SO-' . str_pad((string) $sale->id, 4, '0', STR_PAD_LEFT),
+                'invoice_id' =>$sale->invoice?->id,
+                'hasInvoice' => (bool) $sale->invoice,
+                'customer' => $sale->customer?->name ?? $sale->customer_name ?? 'مشتری گذری',
+                'date' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),
+                'amount' => (float) ($sale->after_descount_total ?: $sale->total),
+                'status' => $sale->status,
+                'currency' => $sale->currency->name,
+            ])->values(),
+        ]);
     }
 }

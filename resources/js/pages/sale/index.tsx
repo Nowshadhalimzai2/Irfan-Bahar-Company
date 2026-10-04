@@ -1,13 +1,13 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
 import {
     ArrowDownLeft,
+    ArrowLeft,
     ArrowUpRight,
     BarChart3,
     CircleDollarSign,
     Download,
     Ellipsis,
     FileText,
-    Link,
     MessageSquareText,
     MoreHorizontal,
     Package,
@@ -37,6 +37,7 @@ import { getDariCategory, getDariCurrency, getDariItemUnit } from '@/components/
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import axios from 'axios';
+import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
 
 type Stats = {
     revenue: number;
@@ -423,14 +424,14 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>
-                            <div>
-                                <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                                    {meta.revenueGrowth}٪
+                            <div dir='ltr'>
+                                <p className="text-3xl font-bold text-slate-900 dark:text-white" >
+                                    {meta.revenueGrowth}%
                                 </p>
                                 <p className="mt-1 text-xs leading-5 text-slate-500">
                                     از هدف ماهانه
                                     <br />
-                                    <span className="font-semibold text-emerald-600">
+                                    <span className={`font-semibold ${meta.revenueGrowth>0?"text-emerald-600":"text-red-600"}`}>
                                         {meta.revenueGrowth}٪ تغییر نسبت به ماه قبل
                                     </span>
                                 </p>
@@ -463,12 +464,14 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                     آخرین فعالیت‌های ثبت‌شده در فروش
                                 </p>
                             </div>
-                            <button
-                                title="گزینه‌های بیشتر"
+                            <Link
+                                href={'/sales/all'}
+                                title="بیشتر"
                                 className="rounded-lg p-2 text-slate-400 hover:bg-slate-50"
                             >
-                                <Ellipsis className="h-5 w-5" />
-                            </button>
+                                {/* <Ellipsis className="h-5 w-5" /> */}
+                                <ArrowLeft className="h-4 w-5" />
+                            </Link>
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-140 text-right text-sm">
@@ -653,8 +656,9 @@ function KpiCard({
                 </div>
             </div>
             <div className="mt-4 flex items-center gap-2 text-xs">
-                <span className="flex items-center gap-0.5 font-semibold text-emerald-600">
-                    <ArrowUpRight className="h-3.5 w-3.5" /> {change}
+                <span className="flex items-center gap-0.5 font-semibold text-emerald-600" dir='ltr'>
+                    {change}
+                    <ArrowUpRight className="h-3.5 w-3.5" /> 
                 </span>
                 <span className="text-slate-400">{detail}</span>
             </div>

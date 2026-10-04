@@ -1,15 +1,30 @@
 import { getDariCategory, getDariCurrency, getDariItemUnit } from '@/components/location-translator';
 import PageHead from '@/components/page-head';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import { router } from '@inertiajs/react';
 import { ArrowDownLeft, Package, TrendingUp } from 'lucide-react';
+import { FormEvent, useState } from 'react';
 type Product = { name: string; category: string; sales: number; units: number, unit: string };
 
-interface Props{
-     topProducts: Product[];
+interface Props {
+    topProducts: Product[];
+    filters: { period: 'daily' | 'monthly'; date: string };
 }
-const TopProduct = ({topProducts}:Props) => {
+const TopProduct = ({ topProducts, filters }: Props) => {
+    const [date, setDate] = useState(filters.date);
+    const [period, setPeriod] = useState<'daily' | 'monthly'>(filters.period);
+
+    const applyFilters = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        router.get('/sales/most-sold-products', { period, date }, { preserveScroll: true });
+    };
+
+    const changePeriod = (nextPeriod: 'daily' | 'monthly') => {
+        setPeriod(nextPeriod);
+        setDate((currentDate) => nextPeriod === 'monthly' ? currentDate.slice(0, 7) : currentDate.length === 7 ? `${currentDate}-01` : currentDate);
+    };
     return (
         <AppLayout
             breadcrumbs={[
@@ -29,6 +44,18 @@ const TopProduct = ({topProducts}:Props) => {
 
             <div className="px-2 py-1 md:px-5 md:py-3 lg:px-8 lg:py-5" dir='rtl'>
                 <div className="grid grid-cols-1 gap-5">
+                    <form onSubmit={applyFilters} className='grid grid-cols-1 md:grid-cols-3 gap-2 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900'>
+                        <select className='border rounded-lg h-11' value={period} onChange={(e) => changePeriod(e.target.value as 'daily' | 'monthly')} >
+                            <option value="monthly">ماهان</option>
+                            <option value="monthly">رزوانه</option>
+                        </select>
+                        <div className="">
+                            <Input className='h-11' type={period === 'daily' ? 'date' : 'month'} value={period === 'monthly' ? date.slice(0, 7) : date} onChange={(e) => setDate(e.target.value)} required />
+                        </div>
+                        <div className='gap-5 flex justify-center items-center'>
+                            <Button type="submit" className='h-11 w-full'>فلتر </Button>
+                        </div>
+                    </form>
                     {/* ========== MAIN CONTENT ===========*/}
                     <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900">
                         <div className="mb-5 flex items-center justify-between">
@@ -46,7 +73,7 @@ const TopProduct = ({topProducts}:Props) => {
                                 className="text-primary"
                                 onClick={() => router.get('/sales')}
                             >
-                               بازګشت به فروشات
+                                بازګشت به فروشات
                                 <ArrowDownLeft className="h-3.5 w-3.5 rotate-45" />
                             </Button>
                         </div>

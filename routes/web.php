@@ -183,6 +183,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/sales/most-sold-products', [SaleController::class, 'mostSold'])->name('sales.mostSold');
         Route::get('/sales/comments', [SaleController::class, 'comment'])->name('sales.comment');
         Route::patch('/sales/{sale}/notes', [SaleController::class, 'destroyNote'])->name('sales.destroyNote');
+        Route::get('/sales/all', [SaleController::class, 'allSales'])->name('sales.all');
         Route::resource('sales', SaleController::class)->names('sales');
         Route::post('/sales/{sale}/invoice', [SaleController::class, 'createInvoice'])->name('sales.invoice.create');
         Route::get('sales/invoice/{invoice}/payments', [PaymentController::class, 'invoicePayments'])->name('invoices.payments');
