@@ -18,7 +18,6 @@ class ReportController extends Controller
         $period = $request->input('period', 'daily') === 'monthly' ? 'monthly' : 'daily';
         $preset = $request->input('preset', 'custom');
         $selectedDate = $request->date('date') ?? Carbon::today(config('app.timezone'));
-
         $report = $reportService->buildForPeriod($period, $selectedDate, [
             'preset' => $preset,
             'business_unit' => $request->input('business_unit', 'consolidated'),
@@ -26,9 +25,9 @@ class ReportController extends Controller
             'category' => $request->input('category'),
             'vendor' => $request->input('vendor'),
             'customer' => $request->input('customer'),
-        ]);
-
-        $report['catalog'] = [
+            ]);
+            
+            $report['catalog'] = [
             'products' => Item::query()->select('id', 'name')->orderBy('name')->limit(100)->get()->map(fn ($item) => ['id' => $item->id, 'name' => $item->name])->all(),
             'categories' => Category::query()->select('id', 'name')->orderBy('name')->get()->map(fn ($category) => ['id' => $category->id, 'name' => $category->name])->all(),
             'customers' => Customer::query()->select('id', 'name')->orderBy('name')->limit(100)->get()->map(fn ($customer) => ['id' => $customer->id, 'name' => $customer->name])->all(),

@@ -23,7 +23,7 @@ interface Props {
 type TransferLine = {
     item_id: number;
     quantity: number;
-    itemPrice: number;
+    // itemPrice: number;
 }
 
 type TransferType = {
@@ -87,7 +87,7 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                 setCurrentLine({
                     item_id: availableItems[0]?.id ?? 0,
                     quantity: 1,
-                    itemPrice: availableItems[0]?.default_sale_price
+                    // itemPrice: availableItems[0]?.default_sale_price
                 });
             } else {
                 console.log('failed fetching Item data : ', response.statusText);
@@ -106,7 +106,7 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                 setCurrentLine({
                     item_id: items[0]?.id ?? 1,
                     quantity: 1,
-                    itemPrice: items[0]?.default_sale_price,
+                    // itemPrice: items[0]?.default_sale_price,
                 });
             },
         });

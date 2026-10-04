@@ -36,7 +36,7 @@ class TransferController extends Controller
         Gate::authorize('allow-factory_clerk');
 
         $locations = Location::select('id', 'name')->whereNotIn('type', ['other'])->get();
-        $sourceLocations = Location::query()->select('id', 'name', 'type')->whereNotIn('type', ['shop', 'other','office'])->get();
+        $sourceLocations = Location::query()->select('id', 'name', 'type')->whereNotIn('type', ['shop', 'other', 'office'])->get();
         // dd($sourceLocations);
         if ($location instanceof Location) {
             if ($request->expectsJson()) {
@@ -99,7 +99,7 @@ class TransferController extends Controller
 
             $transfer->reference_no = sprintf('TR-%s-%s', Carbon::now(config('app.timezone'))->year, str_pad($transfer->id, 5, '0', STR_PAD_LEFT));
             $transfer->save();
-            // ===== CREATE THE GOODS RECEIPE LINES =====
+            // ===== CREATE THE TRANSFER LINES =====
             foreach ($data['transferLines'] as $line) {
 
                 $balance = InventoryBalance::where('location_id', $data['source_id'])
@@ -112,9 +112,9 @@ class TransferController extends Controller
                 }
 
                 $transfer->transferLines()->create([
-                    'item_id' =>$line['item_id'],
-                    'quantity' =>$line['quantity'],
-                    'unit_price' =>$line['itemPrice'],
+                    'item_id' => $line['item_id'],
+                    'quantity' => $line['quantity'],
+                    'unit_price' => Item::findOrFail($line['item_id'])->default_sale_price,
                 ]);
             }
             $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' پیشنهاد شد';

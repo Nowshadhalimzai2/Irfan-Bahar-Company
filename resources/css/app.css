@@ -215,6 +215,11 @@
             width: 100%;
         }
 
+        #printArea.report-print-area {
+            position: static;
+            width: auto;
+        }
+
         .no-print {
             display: none;
         }
