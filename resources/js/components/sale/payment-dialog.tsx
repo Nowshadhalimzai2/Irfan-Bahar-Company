@@ -31,10 +31,9 @@ type Invoice = {
     paid: number;
     due: number;
     status: string;
-    issuedOn: Date;
+    issued_on: Date;
     payments: Payment[];
     saleId: number;
-    latest_payment: Payment;
 };
 
 function PaymentDialog({

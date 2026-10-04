@@ -38,4 +38,13 @@ class Sale extends Model
 
         return $this->saleReturns()->sum('refund_amount');
     }
+
+    public function returnValueForUnitPrice(float $unitPrice): float
+    {
+        $grossTotal = (float) $this->total;
+        $netTotal = (float) $this->after_descount_total;
+        $netFactor = $grossTotal > 0 ? min(1, max(0, $netTotal / $grossTotal)) : 1;
+
+        return round($unitPrice * $netFactor, 2);
+    }
 }

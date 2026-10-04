@@ -3,17 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Custome\Log;
-use App\Models\Currency;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
-use App\Models\SaleReturn;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
 class CustomerController extends Controller
@@ -65,6 +62,7 @@ class CustomerController extends Controller
             'sales' => fn($query) => $query->latest('sold_at'),
             'sales.currency',
             'sales.invoice.sale',
+            'sales.invoice.sale.saleReturns',
             'sales.invoice.payments' => fn($query) => $query->latest('paid_at'),
             'sales.saleReturns'
         ]);
@@ -77,33 +75,33 @@ class CustomerController extends Controller
                 ->pluck('invoice')
                 ->filter()
                 ->map(function (Invoice $invoice) {
-                    $paid = (float) $invoice->payments->sum('amount');
-                    $salePaid = (float) ($invoice->sale?->amount_paid ?? 0);
-                    $paid = max($paid, $salePaid);
-                    $total = (float) ($invoice->total ?? $invoice->sale?->after_descount_total ?? 0);
-                    // $returnTotal = $invoice?->saleReturns->sum(fn(SaleReturn $saleReturn)=>$saleReturn->refund_amount);
-                    $due = max(0, $total - $paid);
+                    $summary = $invoice->financialSummary();
 
                     return [
                         'id' => $invoice->id,
                         'saleId' => $invoice->sale_id,
+                        'invoice_number' => $invoice->invoice_number,
                         'number' => $invoice->invoice_number,
                         'customer' => $invoice->bill_to_name,
                         'phone' => $invoice->bill_to_phone,
                         'currency' => $invoice->currency,
-                        'total' => $total,
-                        'paid' => $paid,
-                        'due' => $due,
+                        ...$summary,
                         'status' => $invoice->status,
                         'issuedOn' => $invoice->issued_on ? Carbon::parse($invoice->issued_on)->format('Y/m/d') : '',
                         'dueOn' => $invoice->due_on ? Carbon::parse($invoice->due_on)->format('Y/m/d') : null,
-                        'latest_payment' => $invoice->payments()->latest()->first(),
+                        'latest_payment' => $invoice->payments->first() ? [
+                            'id' => $invoice->payments->first()->id,
+                            'amount' => (float) $invoice->payments->first()->amount,
+                            'method' => $invoice->payments->first()->method,
+                            'reference' => $invoice->payments->first()->reference,
+                            'paidAt' => Carbon::parse($invoice->payments->first()->paid_at)->toISOString(),
+                        ] : null,
                         'payments' => $invoice->payments->map(fn(Payment $payment) => [
                             'id' => $payment->id,
                             'amount' => (float) $payment->amount,
                             'method' => $payment->method,
                             'reference' => $payment->reference,
-                            'paidAt' => Carbon::parse($payment->paid_at)->format('Y/m/d H:i'),
+                            'paidAt' => Carbon::parse($payment->paid_at)->toISOString(),
                         ])->values(),
                     ];
                 })

@@ -35,7 +35,7 @@ class PaymentController extends Controller
                 return [
                     'id' => $invoice->id,
                     'saleId' => $invoice->sale_id,
-                    'number' => $invoice->invoice_number,
+                    'invoice_number' => $invoice->invoice_number,
                     'customer' => $invoice->bill_to_name,
                     'phone' => $invoice->bill_to_phone,
                     'currency' => $invoice->currency,
@@ -43,7 +43,7 @@ class PaymentController extends Controller
                     'paid' => $paid,
                     'due' => max(0, $total - $paid),
                     'status' => $invoice->status,
-                    'issuedOn' => $invoice->issued_on ? Carbon::parse($invoice->issued_on)->format('Y/m/d') : '',
+                    'issued_on' => $invoice->issued_on ? Carbon::parse($invoice->issued_on)->format('Y/m/d') : '',
                     'payments' => $invoice->payments->map(fn(Payment $payment) => [
                         'id' => $payment->id,
                         'amount' => (float) $payment->amount,
@@ -69,12 +69,10 @@ class PaymentController extends Controller
 
         try {
             $payment = DB::transaction(function () use ($data): Payment {
-                $invoice = Invoice::query()->with('sale')->lockForUpdate()->findOrFail($data['invoice_id']);
-                $paid = (float) $invoice->payments()->sum('amount');
-                if ($paid === 0.0) {
-                    $paid = (float) $invoice->sale?->amount_paid;
-                }
-                $remaining = (float) $invoice->total - $paid;
+                $invoice = Invoice::query()->with(['sale.saleReturns', 'payments'])->lockForUpdate()->findOrFail($data['invoice_id']);
+                $summary = $invoice->financialSummary();
+                $paid = $summary['gross_paid'];
+                $remaining = $summary['due'];
 
                 if ((float) $data['amount'] > $remaining) {
                     throw new \RuntimeException('مبلغ پرداختی از باقی‌مانده بل بیشتر است.');
@@ -102,10 +100,11 @@ class PaymentController extends Controller
                     'payment_number' => 'RCP-' . now()->format('Y') . '-' . str_pad((string) $paymentID, 6, '0', STR_PAD_LEFT),
                 ]);
 
-                $newPaid = $paid + (float) $data['amount'];
+                $newPaid = $summary['gross_paid'] + (float) $data['amount'];
+                $newNetPaid = max(0, $newPaid - $summary['refunded_amount']);
                 $invoice->update([
-                    'status' => $newPaid >= (float) $invoice->total ? 'paid' : 'partially_paid',
-                    'paid_at' => $newPaid >= (float) $invoice->total ? $data['paid_at'] : null,
+                    'status' => $newNetPaid >= $summary['total'] ? 'paid' : 'partially_paid',
+                    'paid_at' => $newNetPaid >= $summary['total'] ? $data['paid_at'] : null,
                 ]);
 
                 if ($invoice->sale) {

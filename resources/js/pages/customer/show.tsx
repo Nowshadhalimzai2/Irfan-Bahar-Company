@@ -1,4 +1,4 @@
-import { Link } from '@inertiajs/react';
+import { Link, router } from '@inertiajs/react';
 import { Accessibility, ArrowRight, Banknote, CalendarDays, CheckCircle2, CircleDollarSign, CreditCard, Edit3, FileText, HandCoins, Mail, MapPin, Phone, Printer, Receipt, User, Wallet, XCircle } from 'lucide-react';
 import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
 import { getDariCurrency } from '@/components/location-translator';
@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 import PaymentDialog from '@/components/sale/payment-dialog';
 
 type Payment = { id: number; amount: number; method: string; reference?: string; paidAt: string };
-type CustomerSale = { id: number; status: string; after_descount_total: number; amount_paid: number; sold_at: string; currency: { name: string }; invoice?: Invoice, sale_returns: { id: number; refund_amount: number }[] };
+type CustomerSale = { id: number; status: string; after_descount_total: number; amount_paid: number; sold_at: string; currency: { name: string }; invoice?: Invoice, sale_returns: { id: number; total: number; refund_amount: number }[] };
 interface Props {
     customer: Customer;
     sales: CustomerSale[];
@@ -24,11 +24,14 @@ type Invoice = {
     total: number;
     paid: number;
     due: number;
+    original_total: number;
+    return_total: number;
+    refunded_amount: number;
     status: string;
-    issuedOn: Date;
+    issued_on: Date;
     payments: Payment[];
     saleId: number;
-    latest_payment: Payment;
+
 };
 
 const money = (value: number, currency: string) => `${Number(value || 0).toFixed(2)} ${getDariCurrency(currency)}`;
@@ -36,46 +39,59 @@ const date = (value?: string) => value ? new Date(value).toLocaleDateString('fa-
 const methodLabels: Record<string, string> = { cash: 'نقدی', bank_transfer: 'حواله بانکی', office: 'دفتر', teller: 'تحویل‌دار' };
 
 export default function Show({ customer, sales, invoices }: Props) {
-
+    
     const accounts = useMemo(
-        () => Array.from(new Set(invoices.map((invoice) => invoice.currency))),
-        [invoices],
+        () => Array.from(new Set([
+            ...invoices.map((invoice) => invoice.currency),
+            ...sales.map((sale) => sale.currency?.name),
+        ].filter(Boolean))),
+        [invoices, sales],
     );
     const [selectedCurrency, setSelectedCurrency] = useState<'AFG' | 'PKR' | 'USD' | string>(accounts[0] ?? 'AFG');
     const [selected, setSelected] = useState<Invoice | null>(null);
     const payments = invoices.flatMap((invoice) => invoice.payments.map((payment) => ({ ...payment, invoice })));
+    const latestPayment = [...payments].sort((left, right) => Date.parse(right.paidAt) - Date.parse(left.paidAt))[0];
+    const invoiceBySaleId = new Map(invoices.map((invoice) => [invoice.saleId, invoice]));
     const currency = getDariCurrency(sales[0]?.currency?.name ?? invoices[0]?.currency ?? 'AFG');
-    const currencySummaries = [...new Set(sales.map((sale) => sale.currency?.name).filter(Boolean))].map((summaryCurrency) => {
+    const currencySummaries = accounts.map((summaryCurrency) => {
         const currencySales = sales.filter((sale) => sale.currency?.name === summaryCurrency);
-        const currencyInvoices = invoices.filter((invoice) => invoice.currency === summaryCurrency);
-        const paid = currencyInvoices.reduce((sum, invoice) => sum + invoice.payments.reduce((invoicePaid, payment) => invoicePaid + Number(payment.amount || 0), 0), 0);
-
-        let refuneded = 0
-        sales.forEach(sale => {
-            sale.sale_returns && sale.sale_returns.forEach(saleReturn => {
-                refuneded += saleReturn.refund_amount;
-            });
-            refuneded += 0;
-        });
-
-        const due = currencyInvoices.reduce((sum, invoice) => sum + Number(invoice.total || 0), 0) - paid;
+        const salesTotal = currencySales.reduce((sum, sale) => {
+            const returned = sale.sale_returns.reduce((returnSum, saleReturn) => returnSum + Number(saleReturn.total || 0), 0);
+            return sum + Math.max(0, Number(sale.after_descount_total || 0) - returned);
+        }, 0);
+        const refunded = currencySales.reduce((sum, sale) =>
+            sum + sale.sale_returns.reduce((returnSum, saleReturn) => returnSum + Number(saleReturn.refund_amount || 0), 0), 0);
+        const paid = currencySales.reduce((sum, sale) => {
+            const refundedForSale = sale.sale_returns.reduce((returnSum, saleReturn) => returnSum + Number(saleReturn.refund_amount || 0), 0);
+            const invoice = invoiceBySaleId.get(sale.id);
+            return sum + (invoice?.paid ?? Math.max(0, Number(sale.amount_paid || 0) - refundedForSale));
+        }, 0);
+        const due = currencySales.reduce((sum, sale) => {
+            const invoice = invoiceBySaleId.get(sale.id);
+            if (invoice) return sum + Number(invoice.due || 0);
+            const returned = sale.sale_returns.reduce((returnSum, saleReturn) => returnSum + Number(saleReturn.total || 0), 0);
+            const refundedForSale = sale.sale_returns.reduce((returnSum, saleReturn) => returnSum + Number(saleReturn.refund_amount || 0), 0);
+            const total = Math.max(0, Number(sale.after_descount_total || 0) - returned);
+            const netPaid = Math.max(0, Number(sale.amount_paid || 0) - refundedForSale);
+            return sum + Math.max(0, total - netPaid);
+        }, 0);
 
         return {
             currency: summaryCurrency,
-            sales: currencySales.reduce((sum, sale) =>
-                sum + Number(sale.after_descount_total || 0), 0) - refuneded,
+            sales: salesTotal,
             paid,
-            due
+            due,
+            refunded,
         };
     });
-    const latestPayment = invoices.filter(invoice => {
-        if (invoice.latest_payment)
-            return invoice.latest_payment;
-    })[0].latest_payment;
+    const currentCards = currencySummaries.find((summary) => summary.currency === selectedCurrency) ?? {
+        currency: selectedCurrency,
+        sales: 0,
+        paid: 0,
+        due: 0,
+        refunded: 0,
+    };
 
-    const currentCards = currencySummaries.filter(sum => sum.currency == selectedCurrency)[0];
-    console.log('invoices ',invoices);
-    
     return <AppLayout breadcrumbs={[{ title: 'مشتریان', href: '/stackholders' }, { title: customer.name, href: `/customers/${customer.id}` }]}>
         <div dir="rtl" className="min-h-screen space-y-6 bg-[#f6f9fc] p-3 pb-10 md:p-6">
             <section className="relative overflow-hidden rounded-4xl bg-[#092b4c] p-6 text-white shadow-xl md:p-8">
@@ -116,7 +132,7 @@ export default function Show({ customer, sales, invoices }: Props) {
                     <StatCard title={`دریافت‌ شده (${getDariCurrency(currentCards.currency)})`} value={money(currentCards.paid, currentCards.currency)} icon={<HandCoins />} tone="emerald" />
                     <StatCard title={`باقی‌ مانده (${getDariCurrency(currentCards.currency)})`} value={money(Math.max(currentCards.due, 0), currentCards.currency)} icon={<Wallet />} tone="amber" />
                 </div>
-                <StatCard title="تعداد فروش" value={`${sales.length} فروش`} icon={<Receipt />} tone="violet" />
+                <StatCard title="مبلغ بازپرداخت‌شده" value={money(currentCards.refunded, currentCards.currency)} icon={<Receipt />} tone="violet" />
             </section>
 
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.8fr)]">
@@ -127,38 +143,40 @@ export default function Show({ customer, sales, invoices }: Props) {
                             <p className="mt-1 text-sm text-slate-500">تمام معاملات ثبت‌شده این مشتری</p>
                         </div>
                         <FileText className="text-cyan-600" /></div>
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto ">
                         <table className="w-full min-w-162.5 text-right text-sm">
                             <thead className="bg-slate-50 text-xs text-slate-500">
                                 <tr>
-                                    <th className="px-5 py-3 font-medium">انوایس</th>
-                                    <th className="py-3 font-medium">تاریخ</th>
-                                    <th className="py-3 font-medium">مبلغ</th>
-                                    <th className="py-3 font-medium">پرداخت</th>
-                                    <th className="py-3 font-medium">وضعیت</th>
-                                    <th className="py-3 font-medium">دربافت پرداخت</th>
+                                    <th className="text-center px-5 py-3 font-medium">انوایس</th>
+                                    <th className="text-center py-3 font-medium">تاریخ</th>
+                                    <th className="text-center py-3 font-medium">مبلغ خالص</th>
+                                    <th className="text-center py-3 font-medium">برگشت</th>
+                                    <th className="text-center py-3 font-medium">باقی‌مانده</th>
+                                    <th className="text-center py-3 font-medium">وضعیت</th>
+                                    <th className="text-center py-3 font-medium">دربافت پرداخت</th>
                                 </tr>
-                            </thead><tbody>{sales.map((sale) => {
-                                const invoicePaid = sale.invoice?.payments.reduce((sum, payment) => sum + Number(payment.amount), 0) ?? Number(sale.amount_paid || 0);
-
-                                return <tr key={sale.id} className="border-t border-slate-100 transition hover:bg-slate-50">
-                                    <td className="px-5 py-4 font-semibold text-cyan-700">{sale.invoice?.invoice_number ?? `فروش #${sale.id}`}</td>
-                                    <td className="py-4 text-slate-500">{date(sale.sold_at)}</td>
-                                    <td className="py-4 font-semibold">{money(Number(sale.after_descount_total), sale.currency?.name || currency)}</td>
-                                    <td className="py-4 text-emerald-700">{money(invoicePaid, sale.currency?.name || currency)}</td>
-                                    <td className="py-4"><Status status={sale.invoice?.status || sale.status} /></td>
-                                    <td className="py-4">
+                            </thead><tbody>{sales.filter(sale=>sale.currency.name===selectedCurrency).map((sale) => {
+                                const returnTotal = sale.sale_returns.reduce((sum, saleReturn) => sum + Number(saleReturn.total || 0), 0);
+                                const refundTotal = sale.sale_returns.reduce((sum, saleReturn) => sum + Number(saleReturn.refund_amount || 0), 0);
+                                const saleTotal = Math.max(0, Number(sale.after_descount_total || 0) - returnTotal);
+                                const customerInvoice = invoiceBySaleId.get(sale.id);
+                                const invoicePaid = customerInvoice?.paid ?? Math.max(0, Number(sale.amount_paid || 0) - refundTotal);
+                                const invoiceDue = customerInvoice?.due ?? Math.max(0, saleTotal - invoicePaid);
+                                const invoice_id=sale.invoice ?sale.invoice.id:0;
+                                // const invoiceDate = new Date(sale.invoice?.issuedOn).toDateString();
+                                return <tr title={`پرداخت : ${money(invoicePaid, sale.currency?.name || currency)}`} key={sale.id} className="border-t border-slate-100 transition hover:bg-slate-50">
+                                    <td className="px-5 py-4"><b className="text-primary hover:cursor-pointer hover:underline" title='تاریخ پرداخت ها را بل بیبنین' onClick={() => router.get(`/sales/invoice/${invoice_id}/payments`)}>{sale?.invoice?.invoice_number}</b><small className="mt-1 block text-xs text-slate-400">{new Date(sale?.invoice ? sale.invoice.issued_on:'').toLocaleDateString('fa-AF')}</small></td>
+                                    <td className="text-center py-4 text-slate-500">{date(sale.sold_at)}</td>
+                                    <td className="text-center py-4 font-semibold">{money(saleTotal, sale.currency?.name || currency)}</td>
+                                    <td className="text-center py-4 text-rose-600">{returnTotal}</td>
+                                    <td className="text-center py-4 text-amber-700">{money(invoiceDue, sale.currency?.name || currency)}</td>
+                                    <td className="text-center py-4"><Status status={sale.invoice?.status || sale.status} /></td>
+                                    <td className="text-center py-4">
                                         <div className="flex items-center gap-3">
                                             <button
                                                 type="button"
-                                                disabled={
-                                                    sale.invoice?.status === 'paid'
-                                                }
-                                                onClick={() =>{
-                                                    
-                                                    setSelected(invoices.filter(inv=>inv.saleId==sale.id)[0])
-                                                }
-                                                }
+                                                disabled={!customerInvoice || customerInvoice.status === 'paid' || customerInvoice.due <= 0}
+                                                onClick={() => setSelected(customerInvoice ?? null)}
                                                 className="text-xs font-semibold text-primary disabled:text-slate-300"
                                             >
                                                 ثبت دریافت
@@ -203,7 +221,7 @@ export default function Show({ customer, sales, invoices }: Props) {
 
                         <SummaryRow label="تعداد انوایسها" value={`${invoices.length}`} />
                         <SummaryRow label="آخرین پرداخت" value={latestPayment ? date(latestPayment.paidAt) : 'ثبت نشده'} />
-                        <SummaryRow label="آخرین مبلغ دریافتی" value={latestPayment ? money(Number(latestPayment.amount), 'AFG') : 'ثبت نشده'} />
+                        <SummaryRow label="آخرین مبلغ دریافتی" value={latestPayment ? money(Number(latestPayment.amount), latestPayment.invoice.currency) : 'ثبت نشده'} />
                     </div>
                 </section>
             </div>

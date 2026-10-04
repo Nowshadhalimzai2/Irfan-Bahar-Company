@@ -23,4 +23,38 @@ class Invoice extends Model
     {
         return $this->hasMany(SaleReturn::class);
     }
+
+    public function financialSummary(): array
+    {
+        $paymentsTotal = $this->relationLoaded('payments')
+            ? (float) $this->payments->sum('amount')
+            : (float) $this->payments()->sum('amount');
+        $hasPayments = $this->relationLoaded('payments')
+            ? $this->payments->isNotEmpty()
+            : $this->payments()->exists();
+        $sale = $this->relationLoaded('sale')
+            ? $this->sale
+            : $this->sale()->first(['id', 'amount_paid']);
+        $returns = $sale && $sale->relationLoaded('saleReturns')
+            ? $sale->saleReturns
+            : SaleReturn::query()->where('sale_id', $this->sale_id)->get();
+        $grossPaid = $hasPayments
+            ? $paymentsTotal
+            : (float) ($sale?->amount_paid ?? 0);
+        $originalTotal = (float) $this->total;
+        $returnTotal = (float) $returns->sum('total');
+        $refundedAmount = (float) $returns->sum('refund_amount');
+        $netTotal = max(0, $originalTotal - $returnTotal);
+        $netPaid = max(0, $grossPaid - $refundedAmount);
+
+        return [
+            'original_total' => $originalTotal,
+            'return_total' => $returnTotal,
+            'refunded_amount' => $refundedAmount,
+            'gross_paid' => $grossPaid,
+            'total' => $netTotal,
+            'paid' => $netPaid,
+            'due' => max(0, $netTotal - $netPaid),
+        ];
+    }
 }

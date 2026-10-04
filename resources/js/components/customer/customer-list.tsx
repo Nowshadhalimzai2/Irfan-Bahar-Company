@@ -6,8 +6,9 @@ import { Link, router, usePage } from "@inertiajs/react";
 import { DollarSign, ScanEye, Search, UserCheck, UsersIcon, UserSquareIcon, UserX } from "lucide-react";
 import { Input } from "../ui/input";
 import { useEffect, useMemo, useState } from "react";
+import { getDariCurrency } from "../location-translator";
 
-type Customer = { id: number, name: string, nick_name: string, balance: number, phone: string, is_active: boolean }
+type Customer = { id: number, name: string, nick_name: string, balances: Record<string, number>, phone: string, is_active: boolean }
 interface Props {
     customers: Customer[]
 }
@@ -21,6 +22,13 @@ const CustomerList = ({ customers }: Props) => {
 
         return searchable.includes(searchTerm.toLowerCase());
     }), [searchTerm, customers]);
+    const totalBalances = filteredCustomers.reduce<Record<string, number>>((totals, customer) => {
+        Object.entries(customer.balances).forEach(([currency, balance]) => {
+            totals[currency] = (totals[currency] ?? 0) + Number(balance || 0);
+        });
+
+        return totals;
+    }, {});
 
     return (
         <div className="space-y-6 py-5">
@@ -68,7 +76,13 @@ const CustomerList = ({ customers }: Props) => {
                                 <DollarSign className="text-sky-500" />
                             </span>
                         </div>
-                        <p className="font-semibold text-2xl mt-3">{filteredCustomers.reduce((acc, customer) => acc += customer.balance, 0)}</p>
+                        <div className="mt-3 flex flex-col gap-1 font-semibold text-lg">
+                            {Object.entries(totalBalances).length > 0
+                                ? Object.entries(totalBalances).map(([currency, balance]) => (
+                                    <span key={currency}>{balance.toFixed(2)} {getDariCurrency(currency)}</span>
+                                ))
+                                : <span>0</span>}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -105,7 +119,15 @@ const CustomerList = ({ customers }: Props) => {
                                             <TableCell className="text-center">{customer.name}</TableCell>
                                             <TableCell className="text-center">{customer.nick_name ?? 'N/A'}</TableCell>
                                             <TableCell className="text-center">{customer.phone}</TableCell>
-                                            <TableCell className="text-center">{customer.balance}</TableCell>
+                                            <TableCell className="text-center">
+                                                <div className="flex flex-col gap-1">
+                                                    {Object.entries(customer.balances).length > 0
+                                                        ? Object.entries(customer.balances).map(([currency, balance]) => (
+                                                            <span key={currency}>{balance.toFixed(2)} {getDariCurrency(currency)}</span>
+                                                        ))
+                                                        : <span>0</span>}
+                                                </div>
+                                            </TableCell>
                                             <TableCell className="flex justify-center">
                                                 <ScanEye className={`${customer.is_active ? 'text-emerald-500 ' : 'text-red-500'}`} onClick={() => router.get(`/customers/${customer.id}`)} />
                                             </TableCell>

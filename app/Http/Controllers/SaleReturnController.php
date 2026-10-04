@@ -80,9 +80,10 @@ class SaleReturnController extends Controller
                     throw ValidationException::withMessages(['lines' => "مقدار قابل برگشت برای این قلم بیشتر از مقدار باقی‌مانده است."]);
                 }
 
-                $lineTotal = round($quantity * (float) $saleLine->unit_price, 2);
+                $unitPrice = $lockedSale->returnValueForUnitPrice((float) $saleLine->unit_price);
+                $lineTotal = round($quantity * $unitPrice, 2);
                 $returnTotal += $lineTotal;
-                $preparedLines[] = [$saleLine, $lineData, $quantity, $lineTotal];
+                $preparedLines[] = [$saleLine, $lineData, $quantity, $unitPrice, $lineTotal];
             }
 
             $refundAmount = (float) ($data['refund_amount'] ?? 0);
@@ -119,13 +120,13 @@ class SaleReturnController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            foreach ($preparedLines as [$saleLine, $lineData, $quantity, $lineTotal]) {
+            foreach ($preparedLines as [$saleLine, $lineData, $quantity, $unitPrice, $lineTotal]) {
                 SaleReturnLine::query()->create([
                     'sale_return_id' => $saleReturn->id,
                     'sale_line_id' => $saleLine->id,
                     'item_id' => $saleLine->item_id,
                     'quantity' => $quantity,
-                    'unit_price' => $saleLine->unit_price,
+                    'unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
                     'condition' => $lineData['condition'] ?? null,
                     'restock_action' => $lineData['restock_action'],
