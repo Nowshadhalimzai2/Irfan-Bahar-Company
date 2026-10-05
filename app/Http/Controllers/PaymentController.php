@@ -10,6 +10,7 @@ use App\Notifications\PaymentCreated;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
@@ -127,37 +128,48 @@ class PaymentController extends Controller
         }
     }
 
-    public function receipt(Payment $payment)
-    {
-        $payment->load(['invoice.sale', 'invoice.payments']);
-        $invoice = $payment->invoice;
-        $paid = (float) $invoice->payments->sum('amount');
-        if ($paid === 0.0 && $invoice->sale) {
-            $paid = (float) $invoice->sale->amount_paid;
-        }
 
-        return Inertia::render('payments/receipt', [
-            'payment' => [
-                'id' => $payment->id,
-                'receiptNumber' => $payment->payment_number ?? 'REC-' . $payment->id,
-                'amount' => (float) $payment->amount,
-                'method' => $payment->method,
-                'reference' => $payment->reference,
-                'paidAt' => Carbon::parse($payment->paid_at)->format('Y/m/d H:i'),
-                'notes' => $payment->notes,
-            ],
-            'invoice' => [
-                'id' => $invoice->id,
-                'number' => $invoice->invoice_number,
-                'customer' => $invoice->bill_to_name,
-                'phone' => $invoice->bill_to_phone,
-                'currency' => $invoice->currency,
-                'total' => (float) $invoice->total,
-                'paid' => $paid,
-                'remaining' => max(0, (float) $invoice->total - $paid),
-            ],
-        ]);
+public function receipt(Payment $payment)
+{
+    $payment->load(['invoice.sale', 'invoice.payments']);
+
+    $invoice = $payment->invoice;
+    $paidToDate = (float) $invoice->payments->sum('amount');
+
+    // Support invoices whose original payment exists only on the sale record.
+    if ($paidToDate === 0.0 && $invoice->sale) {
+        $paidToDate = (float) $invoice->sale->amount_paid;
     }
+
+    return Inertia::render('payments/receipt', [
+        'payment' => [
+            'receiptNumber' => $payment->payment_number ?? 'REC-' . $payment->id,
+            'amount' => (float) $payment->amount,
+            'method' => $payment->method,
+            'reference' => $payment->reference,
+            'paidAt' => $payment->paid_at
+                ? Carbon::parse($payment->paid_at)->format('Y/m/d H:i')
+                : '',
+            'notes' => $payment->notes,
+            'cashier' => Auth::user()?->name ?? '',
+        ],
+        'invoice' => [
+            'id' => $invoice->id,
+            'number' => $invoice->invoice_number,
+            'issuedOn' => $invoice->issued_on
+                ? Carbon::parse($invoice->issued_on)->format('Y/m/d')
+                : '',
+            'status' => $invoice->status,
+            'customer' => $invoice->bill_to_name,
+            'phone' => $invoice->bill_to_phone,
+            'currency' => $invoice->currency,
+            'total' => (float) $invoice->total,
+            'paid' => $paidToDate,
+            'remaining' => max(0, (float) $invoice->total - $paidToDate),
+        ],
+        'storeName' => config('app.name', 'Irfan Bahar Detergent Company'),
+    ]);
+}
 
     public function invoicePayments(Invoice $invoice)
     {

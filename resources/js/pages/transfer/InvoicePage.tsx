@@ -9,7 +9,6 @@ interface Props{
 export default function InvoicePage({transfer}:Props) {
 
   const userName = usePage().props.auth.user.name;
-  console.log(transfer);
   
   const invoice: ReceiptData = {
     storeName: "Irfan Bahar Detergent Company",

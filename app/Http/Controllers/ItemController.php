@@ -342,7 +342,7 @@ class ItemController extends Controller
     {
         $prefix = $this->getCategoryAcronym($item->category?->name ?? '');
 
-        return $prefix . '-' . str_pad((string) $item->id, 6, '0', STR_PAD_LEFT);
+        return $prefix . str_pad((string) $item->id, 4, '0', STR_PAD_LEFT);
     }
 
     private function failure(string $message): RedirectResponse

@@ -1,10 +1,13 @@
 import React from "react";
 import "./thermal-receipt.css";
+import { getDariItemUnit } from "./location-translator";
 
 export type ReceiptItem = {
     itemName: string;
     quantity: number;
     unit_price: number;
+    unit: string;
+    code:string;
 };
 
 export type ReceiptData = {
@@ -36,10 +39,10 @@ export const dummyReceipt: ReceiptData = {
     cashier: "Ahmad",
     customer: "Walk-in customer",
     items: [
-        { itemName: "Basmati Rice 5kg", quantity: 1, unit_price: 480 },
-        { itemName: "Cooking Oil 2L", quantity: 2, unit_price: 275 },
-        { itemName: "Green Tea 250g", quantity: 1, unit_price: 160 },
-        { itemName: "Laundry Soap", quantity: 3, unit_price: 55 },
+        {code:"code02", unit: 'Pair', itemName: "Basmati Rice 5kg", quantity: 1, unit_price: 480 },
+        {code:"code02", unit: 'Pair', itemName: "Cooking Oil 2L", quantity: 2, unit_price: 275 },
+        {code:"code02", unit: 'Pair', itemName: "Green Tea 250g", quantity: 1, unit_price: 160 },
+        {code:"code02", unit: 'Pair', itemName: "Laundry Soap", quantity: 3, unit_price: 55 },
     ],
     discount: 55,
     tax: 0,
@@ -71,7 +74,7 @@ export default function ThermalReceipt({
     const discount = receipt.discount ?? 0;
     const tax = receipt.tax ?? 0;
     const grandTotal = subtotal - discount + tax;
-    const change = Math.max(receipt.paid - grandTotal, 0);
+    const change = Math.max(grandTotal - receipt.paid, 0);
 
     const printReceipt = () => {
         if (onPrint) {
@@ -121,7 +124,7 @@ export default function ThermalReceipt({
 
                 <table className="thermal-receipt__items">
                     <thead>
-                        <tr><th>Item</th><th>Qty</th><th>Total</th></tr>
+                        <tr><th>Item</th><th>Qty</th><th>unit</th><th>Total</th></tr>
                     </thead>
                     <tbody>
                         {receipt.items.map((item) => (
@@ -129,11 +132,17 @@ export default function ThermalReceipt({
                                 <td>
                                     <span className="thermal-receipt__item-name">{item.itemName}</span>
                                     <span className="thermal-receipt__item-detail">
-                                        {item.quantity} × {money(item.unit_price, currency)}
+                                       {item.code}
                                     </span>
                                 </td>
                                 <td>{item.quantity}</td>
-                                <td>{item.quantity * item.unit_price}</td>
+                                <td>{getDariItemUnit(item.unit)}</td>
+                                <td>
+                                    {item.quantity * item.unit_price}
+                                    <span className="thermal-receipt__item-detail">
+                                        {item.quantity} × {money(item.unit_price, currency)}
+                                    </span>
+                                </td>
                             </tr>
                         ))}
                     </tbody>

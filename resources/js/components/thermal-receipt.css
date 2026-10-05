@@ -2,7 +2,7 @@
 
 * { box-sizing: border-box; }
 
-@media print{.thermal-receipt-toolbar {
+.thermal-receipt-toolbar {
   display: flex;
   justify-content: center;
   gap: 8px;
@@ -56,7 +56,7 @@
 .thermal-receipt__totals td { padding: 3px 0; }
 .thermal-receipt__grand-total td { border-top: 1px solid #111827; padding-top: 7px; font-size: 14px; font-weight: 700; }
 .thermal-receipt__footer { margin-top: 14px; text-align: center; }
-}
+
 @page { size: 80mm auto; margin: 0; }
 
 @media print {

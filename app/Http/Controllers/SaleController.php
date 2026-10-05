@@ -328,13 +328,14 @@ class SaleController extends Controller
 
     public function printInvoice(Sale $sale)
     {
-        $sale->load(['customer:id,name,phone,address', 'currency:id,name', 'saleLines.item:id,name,unit', 'invoice']);
+        $sale->load(['customer:id,name,phone,address', 'currency:id,name', 'saleLines.item:id,name,unit,code', 'invoice']);
 
         abort_unless($sale->invoice, 404);
 
         return Inertia::render('sale/invoice', [
             'sale' => [
                 'id' => $sale->id,
+                'discount'=>$sale->discount_total,
                 'customer' => $sale->customer?->name ?? $sale->customer_name ?? 'مشتری گذری',
                 'phone' => $sale->customer?->phone,
                 'address' => $sale->customer?->address,
@@ -342,6 +343,7 @@ class SaleController extends Controller
                 'amount_paid' => $sale->amount_paid,
                 'lines' => $sale->saleLines->map(fn($line) => [
                     'name' => $line->item?->name ?? 'جنس حذف‌شده',
+                    'code' => $line->item?->code ?? 'کود ندادرد',
                     'unit' => $line->unit,
                     'quantity' => (float) $line->quantity,
                     'unitPrice' => (float) $line->unit_price,
