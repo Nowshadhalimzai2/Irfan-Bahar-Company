@@ -1,7 +1,6 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
-    ArrowLeft,
-    ArrowLeftRight,
+  
     CircleDollarSign,
     Filter,
     Printer,
@@ -39,6 +38,7 @@ const money = (value: number, currency: string) =>
     `${value.toFixed(2)} ${getDariCurrency(currency)}`;
 
 export default function AllPayment({ invoices }: Props) {
+
     const [query, setQuery] = useState('');
     const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
     const [currencyFilter, setCurrencyFilter] = useState('all');

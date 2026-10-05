@@ -18,9 +18,10 @@ class PaymentController extends Controller
 {
     public function index()
     {
+
         $invoices = Invoice::query()
             ->with(['sale:id,amount_paid', 'payments:id,invoice_id,amount,method,reference,paid_at', 'sale.customer:id,name'])
-            ->whereNotIn('status', ['paid'])
+            ->whereNotIn('status', ['paid', 'refunded'])
             ->latest('issued_on')
             ->get();
 
@@ -194,11 +195,15 @@ class PaymentController extends Controller
 
     public function allPayments()
     {
+        // $now = Carbon::now(config('app.timezone'));
+        // $threeMonthsAgo = $now->copy()->subMonth()->subMonth();
+    
         $invoices = Invoice::query()
             ->with(['sale:id,amount_paid', 'payments:id,invoice_id,amount,method,reference,paid_at', 'sale.customer:id,name'])
-            ->whereIn('status', ['issued', 'partially_paid', 'paid', 'over_due',])
+            ->whereIn('status', ['issued', 'partially_paid', 'paid', 'over_due', 'refunded', 'partially_refunded'])    
             ->latest('issued_on')
-            ->get();
+            ->paginate(30);
+
 
         return Inertia::render('payments/allPayment', [
             'invoices' => $invoices->map(function (Invoice $invoice) {

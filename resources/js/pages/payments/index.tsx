@@ -39,6 +39,7 @@ const money = (value: number, currency: string) =>
     `${value.toFixed(2)} ${getDariCurrency(currency)}`;
 
 export default function Index({ invoices }: Props) {
+    
     const [query, setQuery] = useState('');
     const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
     const [currencyFilter, setCurrencyFilter] = useState('all');
