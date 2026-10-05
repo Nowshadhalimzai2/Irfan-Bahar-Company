@@ -189,8 +189,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('sales/invoice/{invoice}/payments', [PaymentController::class, 'invoicePayments'])->name('invoices.payments');
         Route::get('/sales/{sale}/returns/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');
         Route::post('/sales/{sale}/returns', [SaleReturnController::class, 'store'])->name('sales.returns.store');
-
-
+        
+        
+        Route::get('/payments/all', [PaymentController::class, 'allPayments'])->name('payments.all');
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');

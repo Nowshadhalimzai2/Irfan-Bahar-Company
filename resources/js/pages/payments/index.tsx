@@ -1,5 +1,7 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
+    ArrowLeft,
+    ArrowLeftRight,
     CircleDollarSign,
     Filter,
     Printer,
@@ -28,7 +30,7 @@ type Invoice = {
     issued_on: Date;
     payments: Payment[];
     saleId: number;
-    latest_payment:Payment;
+    latest_payment: Payment;
 };
 type Props = { invoices: Invoice[] };
 type QuickFilter = 'all' | 'due' | 'paid';
@@ -36,7 +38,7 @@ type QuickFilter = 'all' | 'due' | 'paid';
 const money = (value: number, currency: string) =>
     `${value.toFixed(2)} ${getDariCurrency(currency)}`;
 
-export default function Payments({ invoices }: Props) {
+export default function Index({ invoices }: Props) {
     const [query, setQuery] = useState('');
     const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
     const [currencyFilter, setCurrencyFilter] = useState('all');
@@ -70,8 +72,7 @@ export default function Payments({ invoices }: Props) {
         return invoices.filter((invoice) => {
             const matchesFilter =
                 quickFilter === 'all' ||
-                (quickFilter === 'due' && invoice.due > 0) ||
-                (quickFilter === 'paid' && (invoice.status === 'paid' || invoice.due <= 0));
+                (quickFilter === 'due' && invoice.due > 0) 
             const matchesCurrency =
                 currencyFilter === 'all' || invoice.currency === currencyFilter;
             const matchesQuery = `${invoice.invoice_number} ${invoice.customer} ${invoice.phone ?? ''}`
@@ -122,31 +123,37 @@ export default function Payments({ invoices }: Props) {
                             </div>
 
                             <div className="mt-5 flex flex-col gap-3 rounded-2xl bg-slate-50 p-2 sm:flex-row sm:items-center dark:bg-slate-800/60">
-                                <div className="flex items-center gap-2 px-2 text-xs font-semibold text-slate-500"><Filter className="size-4" /> دسترسی سریع</div>
                                 <div className="grid flex-1 grid-cols-3 gap-2">
-                                    <QuickFilterButton label="همه فاکتورها" count={counts.all} active={quickFilter === 'all'} onClick={() => setQuickFilter('all')} />
-                                    <QuickFilterButton label="نیازمند دریافت" count={counts.due} active={quickFilter === 'due'} onClick={() => setQuickFilter('due')} tone="amber" />
-                                    <QuickFilterButton label="تکمیل شده" count={counts.paid} active={quickFilter === 'paid'} onClick={() => setQuickFilter('paid')} tone="green" />
+                                <div className="flex items-center gap-2 px-2 text-xs font-semibold text-slate-500"><Filter className="size-4" /> دسترسی سریع</div>
+                                    <QuickFilterButton label=" همه فاکتورها" count={counts.all} active={quickFilter === 'all'} onClick={() => setQuickFilter('all')} />
+                                    {/* <QuickFilterButton label="نیازمند دریافت" count={counts.due} active={quickFilter === 'due'} onClick={() => setQuickFilter('due')} tone="amber" /> */}
+                                    {/* <QuickFilterButton label="تکمیل شده" count={counts.paid} active={quickFilter === 'paid'} onClick={() => setQuickFilter('paid')} tone="green" /> */}
                                 </div>
                             </div>
                         </div>
-                        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                            <label htmlFor="currency-filter" className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                                ارز پرداخت
-                            </label>
-                            <select
-                                id="currency-filter"
-                                value={currencyFilter}
-                                onChange={(event) => setCurrencyFilter(event.target.value)}
-                                className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-56 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
-                            >
-                                <option value="all">همه ارزها</option>
-                                {currencies.map((currency) => (
-                                    <option key={currency} value={currency}>
-                                        {getDariCurrency(currency)} ({currency})
-                                    </option>
-                                ))}
-                            </select>
+                        <div className="mt-3 flex justify-between gap-2 px-2 sm:flex-row sm:items-center">
+                            <div>
+                                <label htmlFor="currency-filter" className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                                    ارز پرداخت
+                                </label>
+                                <select
+                                    id="currency-filter"
+                                    value={currencyFilter}
+                                    onChange={(event) => setCurrencyFilter(event.target.value)}
+                                    className="h-10 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-700 outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15 sm:w-56 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                                >
+                                    <option value="all">همه ارزها</option>
+                                    {currencies.map((currency) => (
+                                        <option key={currency} value={currency}>
+                                            {getDariCurrency(currency)} ({currency})
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <Link href={'payments/all'} className='text-gray-400 hover:underline hover:text-blue-500'>
+                            <small className='text-sm'> همه</small>
+                             <ArrowLeft className='size-5  inline ' /> 
+                             </Link>
                         </div>
 
                         <div className="flex items-center justify-between px-5 py-3 text-xs text-slate-400">

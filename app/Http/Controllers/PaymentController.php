@@ -20,7 +20,7 @@ class PaymentController extends Controller
     {
         $invoices = Invoice::query()
             ->with(['sale:id,amount_paid', 'payments:id,invoice_id,amount,method,reference,paid_at', 'sale.customer:id,name'])
-            ->whereIn('status', ['issued', 'partially_paid', 'paid', 'over_due'])
+            ->whereNotIn('status', ['paid'])
             ->latest('issued_on')
             ->get();
 
@@ -189,6 +189,46 @@ class PaymentController extends Controller
                     'notes' => $payment->notes,
                 ])->values(),
             ],
+        ]);
+    }
+
+    public function allPayments()
+    {
+        $invoices = Invoice::query()
+            ->with(['sale:id,amount_paid', 'payments:id,invoice_id,amount,method,reference,paid_at', 'sale.customer:id,name'])
+            ->whereIn('status', ['issued', 'partially_paid', 'paid', 'over_due',])
+            ->latest('issued_on')
+            ->get();
+
+        return Inertia::render('payments/allPayment', [
+            'invoices' => $invoices->map(function (Invoice $invoice) {
+                $paid = (float) $invoice->payments->sum('amount');
+                if ($paid === 0.0 && $invoice->sale) {
+                    $paid = (float) $invoice->sale->amount_paid;
+                }
+                $total = (float) $invoice->total;
+
+                return [
+                    'id' => $invoice->id,
+                    'saleId' => $invoice->sale_id,
+                    'invoice_number' => $invoice->invoice_number,
+                    'customer' => $invoice->bill_to_name,
+                    'phone' => $invoice->bill_to_phone,
+                    'currency' => $invoice->currency,
+                    'total' => $total,
+                    'paid' => $paid,
+                    'due' => max(0, $total - $paid),
+                    'status' => $invoice->status,
+                    'issued_on' => $invoice->issued_on ? Carbon::parse($invoice->issued_on)->format('Y/m/d') : '',
+                    'payments' => $invoice->payments->map(fn(Payment $payment) => [
+                        'id' => $payment->id,
+                        'amount' => (float) $payment->amount,
+                        'method' => $payment->method,
+                        'reference' => $payment->reference,
+                        'paidAt' => Carbon::parse($payment->paid_at)->format('Y/m/d H:i'),
+                    ])->values(),
+                ];
+            })->values(),
         ]);
     }
 }
