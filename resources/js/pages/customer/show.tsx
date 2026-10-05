@@ -1,5 +1,5 @@
 import { Link, router } from '@inertiajs/react';
-import { Accessibility, ArrowRight, Banknote, CalendarDays, CheckCircle2, CircleDollarSign, CreditCard, Edit3, FileText, HandCoins, Mail, MapPin, Phone, Printer, Receipt, User, Wallet, XCircle } from 'lucide-react';
+import { Accessibility, ArrowLeft, ArrowRight, Banknote, CalendarDays, CheckCircle2, CircleDollarSign, CreditCard, Edit3, FileText, HandCoins, Mail, MapPin, Phone, Printer, Receipt, User, Wallet, XCircle } from 'lucide-react';
 import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
 import { getDariCurrency } from '@/components/location-translator';
 import AppLayout from '@/layouts/app-layout';
@@ -142,7 +142,12 @@ export default function Show({ customer, sales, invoices }: Props) {
                             <h2 className="text-xl font-bold text-slate-800">تاریخچه فروشات</h2>
                             <p className="mt-1 text-sm text-slate-500">تمام معاملات ثبت‌شده این مشتری</p>
                         </div>
-                        <FileText className="text-cyan-600" /></div>
+                        <div className='space-y-1'>
+                            <FileText className="text-cyan-600" />
+                            <Link className='hover:underline hover:shadow-xl hover:text-blue-500 '><ArrowLeft className='h-4 w-7 hover:h-5 transition-all'/></Link>
+                        </div>
+                        
+                        </div>
                     <div className="overflow-x-auto ">
                         <table className="w-full min-w-162.5 text-right text-sm">
                             <thead className="bg-slate-50 text-xs text-slate-500">

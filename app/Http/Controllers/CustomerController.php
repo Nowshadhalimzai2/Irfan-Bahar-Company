@@ -74,6 +74,7 @@ class CustomerController extends Controller
             'invoices' => $customer->sales
                 ->pluck('invoice')
                 ->filter()
+                // ->take(4)
                 ->map(function (Invoice $invoice) {
                     $summary = $invoice->financialSummary();
 
