@@ -3,6 +3,7 @@
 use App\Actions\Fortify\CreateNewUser;
 use App\Custome\Log;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\BarcodeController;
 use App\Http\Controllers\BOMController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmployeeController;
@@ -189,8 +190,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('sales/invoice/{invoice}/payments', [PaymentController::class, 'invoicePayments'])->name('invoices.payments');
         Route::get('/sales/{sale}/returns/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');
         Route::post('/sales/{sale}/returns', [SaleReturnController::class, 'store'])->name('sales.returns.store');
-        
-        
+
+
         Route::get('/payments/all', [PaymentController::class, 'allPayments'])->name('payments.all');
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
@@ -215,12 +216,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::resource('inventory-balances', InventoryBalanceController::class)->names('inventory-balances');
     Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])->name('movements.index');
     Route::resource('boms', BOMController::class)->names('boms')->except('destroy');
-    Route::put('/boms/{bom}/block',[BOMController::class,'block'])->name('boms.block');
+    Route::put('/boms/{bom}/block', [BOMController::class, 'block'])->name('boms.block');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');
     Route::post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
-
+    Route::get('/barcode', [BarcodeController::class, 'index'])->name('barcode.index')->middleware(['superadmin']);
+    Route::get('/barcode/image', [BarcodeController::class, 'show'])->name('barcode.image')->middleware('superadmin');
     Route::prefix('factory')->group(function () {
         Route::get('/home', function () {
 
@@ -257,14 +259,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
             return Inertia::render('factory/home', compact('items', 'pendingOrders', 'productionChart', 'topProductionCategories'));
         })->name('factory');
         Route::get('/proudction-orders/{production_order}', [ProductionOrderController::class, 'show'])
-        ->name('orders.show-typo');
-        
+            ->name('orders.show-typo');
+
         Route::get('/production-orders/junks', [ProductionOrderController::class, 'junks'])->name('orders.junks');
         Route::get('/production-orders/{production_order}/{status}/confirm-order-inputs', [ProductionInputController::class, 'confirmInputs'])->name('orders.confirm-inputs');
         Route::get('/production-orders/{production_order}/{status}/confirm-order-outputs', [ProductionInputController::class, 'confirmOutputs'])->name('orders.confirm-outputs');
         Route::put('/production-orders/{production_order}/{status}/confirm-order-outputs', [ProductionInputController::class, 'updateOutputs'])->name('orders.update-outputs');
         Route::put('/production-inputs/{production_order}', [ProductionInputController::class, 'updateInputs'])->name('order-inputs.update');
-        
+
         Route::resource('production-orders', ProductionOrderController::class)->names('orders');
         Route::get('/production-orders/get-related-products/{category}', [ProductionOrderController::class, 'getCategoryBasedProducts']);
         Route::get('/production-orders/{production_order}/production-inputs', [ProductionInputController::class, 'getInputs']);

@@ -105,6 +105,7 @@ export default function Dashboard({ todayIncomes, todaysExpenses, sa, totalPayme
     const moreOptions: { name: string; url: string }[] = [
         { name: 'موقعیت ها', url: '/locations' },
         { name: 'تاریخچه اجرآات', url: '/logs' },
+        { name: 'بارکود', url: '/barcode' },
 
     ];
 
