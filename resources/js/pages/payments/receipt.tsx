@@ -76,6 +76,7 @@ export default function PaymentReceipt({
             </div>
 
             <section
+                // id="printArea"
                 className="thermal-receipt"
                 aria-label={`Receipt ${payment.receiptNumber}`}
             >

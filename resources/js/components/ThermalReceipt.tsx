@@ -1,13 +1,12 @@
 import React from "react";
 import "./thermal-receipt.css";
-import { getDariItemUnit } from "./location-translator";
 
 export type ReceiptItem = {
     itemName: string;
     quantity: number;
     unit_price: number;
     unit: string;
-    code:string;
+    code: string;
 };
 
 export type ReceiptData = {
@@ -28,31 +27,9 @@ export type ReceiptData = {
     currency?: string;
 };
 
-export const dummyReceipt: ReceiptData = {
-    storeName: "KABUL MART",
-    tagline: "Quality goods, fair prices",
-    address: "Shahr-e-Naw, Kabul",
-    phone: "+93 700 123 456",
-    taxNumber: "1000123456",
-    invoiceNumber: "INV-2026-0042",
-    date: "24 Sep 2026 15:42",
-    cashier: "Ahmad",
-    customer: "Walk-in customer",
-    items: [
-        {code:"code02", unit: 'Pair', itemName: "Basmati Rice 5kg", quantity: 1, unit_price: 480 },
-        {code:"code02", unit: 'Pair', itemName: "Cooking Oil 2L", quantity: 2, unit_price: 275 },
-        {code:"code02", unit: 'Pair', itemName: "Green Tea 250g", quantity: 1, unit_price: 160 },
-        {code:"code02", unit: 'Pair', itemName: "Laundry Soap", quantity: 3, unit_price: 55 },
-    ],
-    discount: 55,
-    tax: 0,
-    paid: 1300,
-    paymentMethod: "Cash",
-    currency: "AFN",
-};
 
 type ThermalReceiptProps = {
-    receipt?: ReceiptData;
+    receipt: ReceiptData;
     onPrint?: () => void;
     showPrintButton?: boolean;
 };
@@ -61,7 +38,7 @@ const money = (value: number, currency: string) =>
     `${value.toLocaleString()} ${currency}`;
 
 export default function ThermalReceipt({
-    receipt = dummyReceipt,
+    receipt ,
     onPrint,
     showPrintButton = true,
 }: ThermalReceiptProps) {
@@ -124,23 +101,24 @@ export default function ThermalReceipt({
 
                 <table className="thermal-receipt__items">
                     <thead>
-                        <tr><th>Item</th><th>Qty</th><th>unit</th><th>Total</th></tr>
+                        <tr><th>Item</th><th>Qty</th><th>Total</th></tr>
                     </thead>
                     <tbody>
                         {receipt.items.map((item) => (
                             <tr key={`${item.itemName}-${item.unit_price}`}>
-                                <td>
+                                <td >
                                     <span className="thermal-receipt__item-name">{item.itemName}</span>
-                                    <span className="thermal-receipt__item-detail">
-                                       {item.code}
+                                    <span className="thermal-receipt__item-detail block">
+                                        {item.code}
                                     </span>
                                 </td>
-                                <td>{item.quantity}</td>
-                                <td>{getDariItemUnit(item.unit)}</td>
-                                <td>
-                                    {item.quantity * item.unit_price}
-                                    <span className="thermal-receipt__item-detail">
-                                        {item.quantity} × {money(item.unit_price, currency)}
+                                <td>{item.quantity}{item.unit}</td>
+                                <td className="">
+                                    <span className="thermal-receipt__item-name">
+                                        {item.quantity * item.unit_price}
+                                    </span>
+                                    <span className="thermal-receipt__item-detail block">
+                                        {item.quantity} × {item.unit_price} 
                                     </span>
                                 </td>
                             </tr>

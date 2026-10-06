@@ -258,9 +258,9 @@ class SaleController extends Controller
                     ]);
                     $invMove = new InvMovement;
                     $invMove->move($location->id, $line['item']->id, $line['quantity'], 'sale', $data['notes'] ?? 'فروش ثبت شد', '-');
-                    $sa = new SHA;
-                    $sa->credit($afterDiscount, $data['currency_id']);
                 }
+                $sa = new SHA;
+                $sa->credit($afterDiscount, $data['currency_id']);
 
                 if ($amountPaid < $afterDiscount || $data['customer_id'] != null) {
                     $this->createInvoice($sale);
@@ -335,7 +335,7 @@ class SaleController extends Controller
         return Inertia::render('sale/invoice', [
             'sale' => [
                 'id' => $sale->id,
-                'discount'=>$sale->discount_total,
+                'discount' => $sale->discount_total,
                 'customer' => $sale->customer?->name ?? $sale->customer_name ?? 'مشتری گذری',
                 'phone' => $sale->customer?->phone,
                 'address' => $sale->customer?->address,
@@ -352,7 +352,7 @@ class SaleController extends Controller
             ],
             'invoice' => [
                 'number' => $sale->invoice->invoice_number,
-                'issuedOn' => $sale->invoice->issued_on ? Carbon::parse($sale->invoice->issued_on)->format('Y/m/d') : '',
+                'issuedOn' => $sale->invoice->issued_on ? Carbon::parse($sale->invoice->issued_on)->format('Y/m/d H:i:s') : '',
                 'status' => $sale->invoice->status,
                 'currency' => $sale->invoice->currency,
                 'subtotal' => (float) $sale->invoice->subtotal,
@@ -555,7 +555,7 @@ class SaleController extends Controller
         $fromDate = $now->copy()->subMonth()->subMonth()->subMonth();
         $sales = Sale::query()
             ->with(['customer:id,name', 'currency:id,name', 'saleLines.item:id,name,category_id,unit', 'saleLines.item.category:id,name', 'invoice:id,sale_id,invoice_number,status'])
-              ->where(function ($query) use ($fromDate, $now) {
+            ->where(function ($query) use ($fromDate, $now) {
                 $query->whereBetween('sold_at', [$fromDate, $now])
                     ->orWhereBetween('created_at', [$fromDate, $now]);
             })
@@ -566,7 +566,7 @@ class SaleController extends Controller
             'orders' => $sales->map(fn(Sale $sale) => [
                 'saleId' => $sale->id,
                 'id' => $sale->invoice?->invoice_number ?? '#SO-' . str_pad((string) $sale->id, 4, '0', STR_PAD_LEFT),
-                'invoice_id' =>$sale->invoice?->id,
+                'invoice_id' => $sale->invoice?->id,
                 'hasInvoice' => (bool) $sale->invoice,
                 'customer' => $sale->customer?->name ?? $sale->customer_name ?? 'مشتری گذری',
                 'date' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),

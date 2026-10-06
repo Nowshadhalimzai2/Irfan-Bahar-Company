@@ -29,7 +29,7 @@ export default function Invoice({ sale, invoice }: InvoicePageProps) {
     const lines:ReceiptItem[] = sale.lines.map(line=>{
         return {itemName:line.name,quantity:line.quantity,unit_price:line.unitPrice,unit:line.unit,code:line.code}
     });
-
+    
     const invoiceTemplate: ReceiptData = {
         storeName: "Irfan Bahar Detergent Company",
         invoiceNumber: invoice.number,
