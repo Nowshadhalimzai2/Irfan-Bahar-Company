@@ -7,7 +7,7 @@ import ThermalReceipt, { ReceiptData } from '@/components/ThermalReceipt';
 
 type SaleLine = { name: string; unit: string; quantity: number; unitPrice: number; total: number, code:string};
 type InvoicePageProps = {
-    sale: { id: number; customer: string; phone?: string; address?: string; soldAt: Date; lines: SaleLine[], amount_paid: number,discount:number };
+    sale: { id: number; status:string; customer: string; phone?: string; address?: string; soldAt: Date; lines: SaleLine[], amount_paid: number,discount:number };
     invoice: {
         number: string; issuedOn: Date;
         status: 'paid' | 'partially_paid' | 'refunded' | 'partially_refunded';
@@ -40,6 +40,7 @@ export default function Invoice({ sale, invoice }: InvoicePageProps) {
         paid: sale.amount_paid,
         paymentMethod: "none",
         currency: "AFN",
+        status:sale.status,
     }
 
     return (

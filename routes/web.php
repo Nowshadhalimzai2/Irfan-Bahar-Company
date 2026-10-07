@@ -179,13 +179,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('expenses', ExpenseController::class)->names('expenses');
         Route::resource('customers', CustomerController::class)->except('index')->names('customers');
         Route::put('/customers/status/{customer}', [CustomerController::class, 'status'])->name('custoemrs.status');
-
+        Route::put('/sales/{sale}/cancel',[SaleController::class,'cancelSale'])->name('sales.cancel');
         Route::get('/sales/{sale}/invoice/print', [SaleController::class, 'printInvoice'])->name('sales.invoice.print');
         Route::get('/sales/most-sold-products', [SaleController::class, 'mostSold'])->name('sales.mostSold');
         Route::get('/sales/comments', [SaleController::class, 'comment'])->name('sales.comment');
         Route::patch('/sales/{sale}/notes', [SaleController::class, 'destroyNote'])->name('sales.destroyNote');
         Route::get('/sales/all', [SaleController::class, 'allSales'])->name('sales.all');
-        Route::resource('sales', SaleController::class)->names('sales');
+        Route::resource('sales', SaleController::class)->names('sales')->except(['update','show','edit']);
         Route::post('/sales/{sale}/invoice', [SaleController::class, 'createInvoice'])->name('sales.invoice.create');
         Route::get('sales/invoice/{invoice}/payments', [PaymentController::class, 'invoicePayments'])->name('invoices.payments');
         Route::get('/sales/{sale}/returns/create', [SaleReturnController::class, 'create'])->name('sales.returns.create');

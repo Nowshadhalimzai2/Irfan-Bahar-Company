@@ -39,7 +39,8 @@ const date = (value?: string) => value ? new Date(value).toLocaleDateString('fa-
 const methodLabels: Record<string, string> = { cash: 'نقدی', bank_transfer: 'حواله بانکی', office: 'دفتر', teller: 'تحویل‌دار' };
 
 export default function Show({ customer, sales, invoices }: Props) {
-    
+    console.log(sales);
+
     const accounts = useMemo(
         () => Array.from(new Set([
             ...invoices.map((invoice) => invoice.currency),
@@ -54,7 +55,7 @@ export default function Show({ customer, sales, invoices }: Props) {
     const invoiceBySaleId = new Map(invoices.map((invoice) => [invoice.saleId, invoice]));
     const currency = getDariCurrency(sales[0]?.currency?.name ?? invoices[0]?.currency ?? 'AFG');
     const currencySummaries = accounts.map((summaryCurrency) => {
-        const currencySales = sales.filter((sale) => sale.currency?.name === summaryCurrency);
+        const currencySales = sales.filter((sale) => sale.status!=='cancelled' && sale.currency?.name === summaryCurrency);
         const salesTotal = currencySales.reduce((sum, sale) => {
             const returned = sale.sale_returns.reduce((returnSum, saleReturn) => returnSum + Number(saleReturn.total || 0), 0);
             return sum + Math.max(0, Number(sale.after_descount_total || 0) - returned);
@@ -144,10 +145,10 @@ export default function Show({ customer, sales, invoices }: Props) {
                         </div>
                         <div className='space-y-1'>
                             <FileText className="text-cyan-600" />
-                            <Link className='hover:underline hover:shadow-xl hover:text-blue-500 '><ArrowLeft className='h-4 w-7 hover:h-5 transition-all'/></Link>
+                            <Link className='hover:underline hover:shadow-xl hover:text-blue-500 '><ArrowLeft className='h-4 w-7 hover:h-5 transition-all' /></Link>
                         </div>
-                        
-                        </div>
+
+                    </div>
                     <div className="overflow-x-auto ">
                         <table className="w-full min-w-162.5 text-right text-sm">
                             <thead className="bg-slate-50 text-xs text-slate-500">
@@ -160,27 +161,27 @@ export default function Show({ customer, sales, invoices }: Props) {
                                     <th className="text-center py-3 font-medium">وضعیت</th>
                                     <th className="text-center py-3 font-medium">دربافت پرداخت</th>
                                 </tr>
-                            </thead><tbody>{sales.filter(sale=>sale.currency.name===selectedCurrency).map((sale) => {
+                            </thead><tbody>{sales.filter(sale => sale.currency.name === selectedCurrency).map((sale) => {
                                 const returnTotal = sale.sale_returns.reduce((sum, saleReturn) => sum + Number(saleReturn.total || 0), 0);
                                 const refundTotal = sale.sale_returns.reduce((sum, saleReturn) => sum + Number(saleReturn.refund_amount || 0), 0);
                                 const saleTotal = Math.max(0, Number(sale.after_descount_total || 0) - returnTotal);
                                 const customerInvoice = invoiceBySaleId.get(sale.id);
                                 const invoicePaid = customerInvoice?.paid ?? Math.max(0, Number(sale.amount_paid || 0) - refundTotal);
                                 const invoiceDue = customerInvoice?.due ?? Math.max(0, saleTotal - invoicePaid);
-                                const invoice_id=sale.invoice ?sale.invoice.id:0;
+                                const invoice_id = sale.invoice ? sale.invoice.id : 0;
                                 // const invoiceDate = new Date(sale.invoice?.issuedOn).toDateString();
                                 return <tr title={`پرداخت : ${money(invoicePaid, sale.currency?.name || currency)}`} key={sale.id} className="border-t border-slate-100 transition hover:bg-slate-50">
-                                    <td className="px-5 py-4"><b className="text-primary hover:cursor-pointer hover:underline" title='تاریخ پرداخت ها را بل بیبنین' onClick={() => router.get(`/sales/invoice/${invoice_id}/payments`)}>{sale?.invoice?.invoice_number}</b><small className="mt-1 block text-xs text-slate-400">{new Date(sale?.invoice ? sale.invoice.issued_on:'').toLocaleDateString('fa-AF')}</small></td>
+                                    <td className="px-5 py-4"><b className="text-primary hover:cursor-pointer hover:underline" title='تاریخ پرداخت ها را بل بیبنین' onClick={() => router.get(`/sales/invoice/${invoice_id}/payments`)}>{sale?.invoice?.invoice_number}</b><small className="mt-1 block text-xs text-slate-400">{new Date(sale?.invoice ? sale.invoice.issued_on : '').toLocaleDateString('fa-AF')}</small></td>
                                     <td className="text-center py-4 text-slate-500">{date(sale.sold_at)}</td>
                                     <td className="text-center py-4 font-semibold">{money(saleTotal, sale.currency?.name || currency)}</td>
                                     <td className="text-center py-4 text-rose-600">{returnTotal}</td>
-                                    <td className="text-center py-4 text-amber-700">{money(invoiceDue, sale.currency?.name || currency)}</td>
-                                    <td className="text-center py-4"><Status status={sale.invoice?.status || sale.status} /></td>
+                                    <td className="text-center py-4 text-amber-700">{sale.status=='cancelled'? 0 :money(invoiceDue, sale.currency?.name || currency)}</td>
+                                    <td className="text-center py-4"><Status status={sale.status==='cancelled'? sale.status: (sale.invoice?.status || sale.status)} /></td>
                                     <td className="text-center py-4">
                                         <div className="flex items-center gap-3">
                                             <button
                                                 type="button"
-                                                disabled={!customerInvoice || customerInvoice.status === 'paid' || customerInvoice.due <= 0}
+                                                disabled={sale.status==='cancelled' || !customerInvoice || customerInvoice.status === 'paid' || customerInvoice.due <= 0}
                                                 onClick={() => setSelected(customerInvoice ?? null)}
                                                 className="text-xs font-semibold text-primary disabled:text-slate-300"
                                             >

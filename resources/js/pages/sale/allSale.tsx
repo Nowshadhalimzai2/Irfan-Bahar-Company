@@ -2,11 +2,11 @@ import { getDariCurrency } from '@/components/location-translator';
 import PageHead from '@/components/page-head';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { router } from '@inertiajs/core';
-import { Link } from '@inertiajs/react';
-import { ArrowLeft, ArrowUpRight, CircleDollarSign, FileText, RotateCcw, Search, ShoppingBag, Users } from 'lucide-react';
+import invoice from '@/routes/sales/invoice';
+import { Link, router } from '@inertiajs/react';
+import { ArrowLeft, CircleDollarSign, FileText, RotateCcw, Search, ShoppingBag, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
-type Order = { invoice_id: number, saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string, currency: 'AFG' | 'PKR' | 'USD' };
+type Order = { invoice_id: number,isCancelable:boolean; saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string, currency: 'AFG' | 'PKR' | 'USD' };
 interface Props {
     orders: Order[];
 }
@@ -24,7 +24,7 @@ const allSale = ({ orders }: Props) => {
             return  matchesQuery;
         });
     }, [query]);
-
+    
     return (
         <AppLayout
         breadcrumbs={[
@@ -116,6 +116,7 @@ const allSale = ({ orders }: Props) => {
                                         وضعیت
                                     </th>
                                     <th className="pb-3 font-medium">بل</th>
+                                    <th className="pb-3 font-medium">لغو</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -150,7 +151,7 @@ const allSale = ({ orders }: Props) => {
                                         <td className="py-3">
                                             <div className="flex items-center gap-3">
                                                 {order.hasInvoice ? (
-                                                    <button type="button" onClick={() => router.visit(`/sales/${order.saleId}/invoice/print`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+                                                    <button type="button" onClick={() => router.get(`/sales/${order.saleId}/invoice/print`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
                                                         <FileText className="size-3.5" /> چاپ
                                                     </button>
                                                 ) : (
@@ -158,14 +159,18 @@ const allSale = ({ orders }: Props) => {
                                                         <FileText className="size-3.5" /> ایجاد
                                                     </button>
                                                 )}
-                                                {order.hasInvoice ? <button disabled={order.status == 'returned'} type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className={`inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 ${order.status == 'returned' && 'text-gray-400 hover:text-gray-400'}`}>
+                                                {order.status!=='cancelled' && (order.hasInvoice ? <button disabled={order.status == 'returned'} type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className={`inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 ${order.status == 'returned' && 'text-gray-400 hover:text-gray-400'}`}>
                                                     <RotateCcw className="size-3.5" /> برگشت
 
                                                 </button>
                                                     : <p className='text-xs text-gray-400 '>بل ندارد</p>
-                                                }
+                                                )}
                                             </div>
                                         </td>
+
+                                       {order.isCancelable && <td className="py-3 text-red-200 hover:text-red-400">
+                                            <button onClick={()=>router.put(`/sales/${order.saleId}/cancel`)}>لغو!</button>
+                                        </td>}
                                     </tr>
                                 ))}
                             </tbody>

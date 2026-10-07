@@ -142,7 +142,7 @@ export default function PaymentReceipt({
                         <tr>
                             <td>{payment.amount}</td>
                             <td>{invoice.total}</td>
-                            <td>{invoice.remaining}</td>
+                            <td>{(invoice.remaining).toFixed(2)}</td>
                         </tr>
                     </tbody>
                 </table>

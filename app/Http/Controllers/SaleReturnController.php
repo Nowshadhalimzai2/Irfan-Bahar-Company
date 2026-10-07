@@ -12,6 +12,7 @@ use App\Models\SaleReturnLine;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,6 +21,7 @@ class SaleReturnController extends Controller
 {
     public function create(Sale $sale): Response
     {
+       Gate::allowIf($sale->status!='cancelled','این جنس لغو شده است.');
         $sale->load(['customer:id,name', 'currency:id,name', 'invoice', 'saleLines.item:id,name,unit', 'invoice.payments:id,invoice_id,amount']);
         $returnedQuantities = $this->returnedQuantities($sale->id);
         $locations = Location::query()->where('type', 'shop')->where('is_active', true)->orderBy('name')->get(['id', 'name']);
@@ -46,6 +48,9 @@ class SaleReturnController extends Controller
 
     public function store(Request $request, Sale $sale): RedirectResponse
     {
+        if ($sale->status == 'cancelled') {
+            abort(505,'این جنس قبلا لغو شده است. قابل بازګشت نمودن نیست');
+        }
         $data = $request->validate([
             'location_id' => ['required', 'integer', 'exists:locations,id'],
             'reason' => ['nullable', 'string', 'max:100'],
@@ -132,11 +137,11 @@ class SaleReturnController extends Controller
                     'restock_action' => $lineData['restock_action'],
                     'notes' => $lineData['notes'] ?? null,
                 ]);
-                if($data['refund_method'] == 'cash' && $refundAmount > 0){
+                if ($data['refund_method'] == 'cash' && $refundAmount > 0) {
                     Expense::create([
                         'amount' => $data['refund_amount'],
-                        'currency_id' =>$lockedSale->currency?->name ?? 'AFG',
-                        'description' => sprintf('بل %s بازګشت شد',$lockedSale->invoice->invoice_number),
+                        'currency_id' => $lockedSale->currency?->name ?? 'AFG',
+                        'description' => sprintf('بل %s بازګشت شد', $lockedSale->invoice->invoice_number),
                         'date' => now(config('app.timezone')),
                     ]);
                 }
@@ -153,7 +158,7 @@ class SaleReturnController extends Controller
             if ($lockedSale->invoice) {
                 $lockedSale->invoice->update(['status' => $returnedTotal >= (float) $lockedSale->invoice->total ? 'refunded' : 'partially_refunded']);
             }
-            Inertia::flash('toast',['type'=>'success','message' => sprintf('بل نمبر %s بازګشت شد ',$lockedSale->invoice->invoice_number)]);
+            Inertia::flash('toast', ['type' => 'success', 'message' => sprintf('بل نمبر %s بازګشت شد ', $lockedSale->invoice->invoice_number)]);
             return $saleReturn;
         }, 3);
 

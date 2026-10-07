@@ -11,6 +11,7 @@ export type ReceiptItem = {
 
 export type ReceiptData = {
     storeName: string;
+    status:string;
     tagline?: string;
     address?: string;
     phone?: string;
@@ -94,6 +95,7 @@ export default function ThermalReceipt({
                         <tr><td>Date</td><td>{receipt.date}</td></tr>
                         <tr><td>Cashier</td><td>{receipt.cashier}</td></tr>
                         {receipt.customer && <tr><td>Customer</td><td>{receipt.customer}</td></tr>}
+                        <tr><td>Status</td><td className="font-bold">{receipt.status}</td></tr>
                     </tbody>
                 </table>
 

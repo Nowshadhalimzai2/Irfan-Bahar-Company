@@ -14,6 +14,8 @@ interface Props {
 }
 
 const CustomerList = ({ customers }: Props) => {
+    console.log('balance::: ',customers);
+    
     const [searchTerm, setSearchTerm] = useState<string>('');
     const canAddsCustomer:boolean = ['admin','super_admin'].includes(usePage().props.auth.role);
 

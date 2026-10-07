@@ -67,11 +67,13 @@ class CustomerController extends Controller
             'sales.saleReturns'
         ]);
 
-
         return Inertia::render('customer/show', [
             'customer' => $customer,
-            'sales' => $customer->sales,
-            'invoices' => $customer->sales
+            'sales' => $customer->sales,   
+            'invoices' => $customer->sales()
+                ->where(function ($q) {
+                    $q->where('status', '!=', 'cancelled');
+                })->get()
                 ->pluck('invoice')
                 ->filter()
                 // ->take(4)

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Expense;
+use App\Models\Invoice;
 use App\Models\Item;
 use App\Models\Payment;
 use App\Models\Sale;
@@ -77,17 +78,21 @@ class DashboardService
     {
         $invoiceIds = Payment::query()
             ->select('invoice_id')
+            ->whereDate('paid_at',$this->today())
             ->groupBy('invoice_id')
             ->havingRaw('COUNT(*) > 1')
             ->pluck('invoice_id');
-
-        return Payment::query()
+        $invoces= Invoice::query()->with('sale:id,amount_paid')->whereIn('id',[...$invoiceIds])->get();
+        $totalSalePaid= $invoces->sum(fn(Invoice $inv)=>$inv->sale->amount_paid);
+        $todaysPayment= Payment::query()
             ->selectRaw('currency_id, SUM(amount) as total_amount')
             ->whereIn('invoice_id', $invoiceIds)
+            // ->where('method',self::CASH_PAYMENT_METHOD)
             ->whereDate('paid_at', $this->today())
             ->groupBy('currency_id')
             ->pluck('total_amount', 'currency_id');
-    }
+            return $todaysPayment;
+            }
 
     public function todaysLoans(): Collection
     {

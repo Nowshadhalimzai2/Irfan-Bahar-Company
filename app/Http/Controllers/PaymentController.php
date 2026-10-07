@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Custome\SHA;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\SaleReturn;
 use App\Models\User;
 use App\Notifications\PaymentCreated;
 use Carbon\Carbon;
@@ -75,7 +76,9 @@ class PaymentController extends Controller
                 $summary = $invoice->financialSummary();
                 $paid = $summary['gross_paid'];
                 $remaining = $summary['due'];
-
+                if($invoice->sale->status=='cancelled'){
+                    throw new \RuntimeException(('این فروش لغو شده است. قابل پرداخت نیست'));
+                }
                 if ((float) $data['amount'] > $remaining) {
                     throw new \RuntimeException('مبلغ پرداختی از باقی‌مانده بل بیشتر است.');
                 }
@@ -131,11 +134,14 @@ class PaymentController extends Controller
 
 public function receipt(Payment $payment)
 {
-    $payment->load(['invoice.sale', 'invoice.payments']);
+    $payment->load(['invoice.sale:id,amount_paid', 'invoice.payments','invoice.sale.saleReturns:id,sale_id','invoice.sale.saleReturns.lines:id,sale_return_id,line_total']);
 
     $invoice = $payment->invoice;
     $paidToDate = (float) $invoice->payments->sum('amount');
-
+    
+    $returnTotal = $invoice->sale->saleReturns->sum(function(SaleReturn $return){
+        return $return->lines->sum('line_total');
+    });
     // Support invoices whose original payment exists only on the sale record.
     if ($paidToDate === 0.0 && $invoice->sale) {
         $paidToDate = (float) $invoice->sale->amount_paid;
@@ -163,9 +169,9 @@ public function receipt(Payment $payment)
             'customer' => $invoice->bill_to_name,
             'phone' => $invoice->bill_to_phone,
             'currency' => $invoice->currency,
-            'total' => (float) $invoice->total,
+            'total' => (float) $invoice->total- $returnTotal,
             'paid' => $paidToDate,
-            'remaining' => max(0, (float) $invoice->total - $paidToDate),
+            'remaining' => max(0, (float) $invoice->total - $paidToDate-$returnTotal),
         ],
         'storeName' => config('app.name', 'Irfan Bahar Detergent Company'),
     ]);

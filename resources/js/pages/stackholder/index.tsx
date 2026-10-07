@@ -10,9 +10,7 @@ import {
 } from "@/components/ui/tabs";
 import UserList from "@/components/user/user-list";
 import AppLayout from "@/layouts/app-layout";
-import { Customer, Employee, Supplier, User } from "@/types";
 import { usePage } from "@inertiajs/react";
-import { useRoute } from "ziggy-js";
 interface Stackholders {
     customers?: any[];
     employees?: any[];

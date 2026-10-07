@@ -22,7 +22,9 @@ use Error;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
@@ -280,7 +282,7 @@ class SaleController extends Controller
                 return redirect()->route('sales.invoice.print', $sale);
             }
 
-            return redirect()->route('sales.index')->with('success', 'فروش با موفقیت ثبت شد.');
+            return redirect()->route('sales.create')->with('success', 'فروش با موفقیت ثبت شد.');
         } catch (\Throwable $exception) {
             report($exception);
             Inertia::flash('toast', ['type' => 'error', 'message' => $exception->getMessage()]);
@@ -289,6 +291,44 @@ class SaleController extends Controller
         }
     }
 
+    public function cancelSale(Sale $sale)
+    {
+        $user = Auth::user();
+        if ($user instanceof User)
+            Gate::allowIf(!$user->hasRole('factory_clerk'));
+
+        try {
+            if($sale->status==='cancelled')
+                throw new Error('این جنس قبلا لغوه شده است');      
+            $sale->load('invoice:id,sale_id,invoice_number', 'invoice.payments:id,invoice_id,amount');
+            $sale->load('saleLines:id,sale_id,item_id,quantity');
+            if ($sale->invoice->payments->count() ?? 0 > 1) {
+                throw new Error('شما نمی توانین این فروش لغو کنین');
+            }
+            DB::transaction(function () use ($sale) {
+                $sale->status = 'cancelled';
+                $sale->save();
+                $shopAccount = new SHA();
+                $shopAccount->debit($sale->amount_paid, $sale->currency_id);
+                $shop = Location::where('name', 'shop')->where('type', 'shop')->first();
+                if (!$shop) {
+                    throw new Error('دوکان پیدا نشد');
+                }
+                foreach ($sale->saleLines as $line) {
+                    $moveBalance = new InvMovement();
+                    $moveBalance->move($shop->id, $line->item_id, $line->quantity, 'sale_return', 'لغو شد');
+                }
+                // throw new Error('test action');
+            });
+        } catch (\Throwable $th) {
+            $des = sprintf(' مشکل در لغوه نمودن بل %s ' . $th->getMessage(), $sale->invoice()->exists() ? $sale->invoice->invoice_number : '#00' . $sale->id);
+            Inertia::flash('toast', ['type' => 'error', 'message' => $des]);
+            return redirect()->back();
+        }
+        $des = sprintf('فروش بل نمبر  %s  لغو شد', $sale->invoice()->exists() ? $sale->invoice->invoice_number : '#00' . $sale->id);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
+        return redirect()->back();
+    }
     private function getDiscountForEachItemAndAmount(array $item, float $saleQuantities, float $total, float $discountTotal): array
     {
         if ($saleQuantities <= 0 || $total <= 0) {
@@ -335,6 +375,7 @@ class SaleController extends Controller
         return Inertia::render('sale/invoice', [
             'sale' => [
                 'id' => $sale->id,
+                'status' => $sale->status,
                 'discount' => $sale->discount_total,
                 'customer' => $sale->customer?->name ?? $sale->customer_name ?? 'مشتری گذری',
                 'phone' => $sale->customer?->phone,
@@ -554,7 +595,7 @@ class SaleController extends Controller
         // 3 months old record
         $fromDate = $now->copy()->subMonth()->subMonth()->subMonth();
         $sales = Sale::query()
-            ->with(['customer:id,name', 'currency:id,name', 'saleLines.item:id,name,category_id,unit', 'saleLines.item.category:id,name', 'invoice:id,sale_id,invoice_number,status'])
+            ->with(['customer:id,name', 'currency:id,name', 'saleLines.item:id,name,category_id,unit', 'saleLines.item.category:id,name', 'invoice:id,sale_id,invoice_number,status', 'invoice.payments:id,invoice_id'])
             ->where(function ($query) use ($fromDate, $now) {
                 $query->whereBetween('sold_at', [$fromDate, $now])
                     ->orWhereBetween('created_at', [$fromDate, $now]);
@@ -565,6 +606,8 @@ class SaleController extends Controller
         return Inertia::render('sale/allSale', [
             'orders' => $sales->map(fn(Sale $sale) => [
                 'saleId' => $sale->id,
+                
+                'isCancelable' =>  $sale->status != 'cancelled' ? ((!$sale->invoice ? true : (($sale?->invoice?->payments->count() ?? 0) < 2))) : false,
                 'id' => $sale->invoice?->invoice_number ?? '#SO-' . str_pad((string) $sale->id, 4, '0', STR_PAD_LEFT),
                 'invoice_id' => $sale->invoice?->id,
                 'hasInvoice' => (bool) $sale->invoice,

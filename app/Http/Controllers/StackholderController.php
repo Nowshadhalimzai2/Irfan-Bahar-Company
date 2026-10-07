@@ -41,7 +41,9 @@ class StackholderController extends Controller
             ->get();
 
         $customers = Customer::with([
-            'sales:id,after_descount_total,amount_paid,customer_id,currency_id',
+            'sales' => fn($query) => $query
+                ->where('status', '!=', 'cancelled')
+                ->select(['id', 'status', 'after_descount_total', 'amount_paid', 'customer_id', 'currency_id']),
             'sales.currency:id,name',
             'sales.saleReturns:id,sale_id,total,refund_amount',
             'sales.invoice:id,sale_id,total,currency',
@@ -57,6 +59,10 @@ class StackholderController extends Controller
             'phone' => $customer->phone,
             'is_active' => $customer->is_active,
             'balances' => $customer->sales->reduce(function (array $balances, Sale $sale) {
+                if (($sale->status ?? null) === 'cancelled') {
+                    return $balances;
+                }
+
                 if ($sale->invoice) {
                     $balance = $sale->invoice->financialSummary()['due'];
                     $currency = $sale->invoice->currency;

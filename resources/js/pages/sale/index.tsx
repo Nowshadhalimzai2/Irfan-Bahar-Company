@@ -431,7 +431,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                 <p className="mt-1 text-xs leading-5 text-slate-500">
                                     از هدف ماهانه
                                     <br />
-                                    <span className={`font-semibold ${meta.revenueGrowth>0?"text-emerald-600":"text-red-600"}`}>
+                                    <span className={`font-semibold ${meta.revenueGrowth > 0 ? "text-emerald-600" : "text-red-600"}`}>
                                         {meta.revenueGrowth}٪ تغییر نسبت به ماه قبل
                                     </span>
                                 </p>
@@ -483,9 +483,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                         <th className="pb-3 font-medium">
                                             مشتری
                                         </th>
-                                        <th className="pb-3 font-medium">
-                                            زمان
-                                        </th>
+                                        
                                         <th className="pb-3 font-medium">
                                             مبلغ
                                         </th>
@@ -503,13 +501,14 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                         >
                                             <td className="py-3 font-semibold text-primary">
                                                 {order.id}
+                                                <span className='block font-normal text-xs text-slate-400'>
+                                                    {order.date}
+                                                </span>
                                             </td>
                                             <td className="py-3 font-medium text-slate-700 dark:text-slate-200">
                                                 {order.customer}
                                             </td>
-                                            <td className="py-3 text-xs text-slate-400">
-                                                {order.date}
-                                            </td>
+                                           
                                             <td className="py-3 font-semibold text-slate-700 dark:text-slate-200">
                                                 {order.amount} {getDariCurrency(order.currency)}
                                             </td>
@@ -531,12 +530,7 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                                             <FileText className="size-3.5" /> ایجاد
                                                         </button>
                                                     )}
-                                                    {order.hasInvoice ? <button disabled={order.status == 'returned'} type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className={`inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 ${order.status == 'returned' && 'text-gray-400 hover:text-gray-400'}`}>
-                                                        <RotateCcw className="size-3.5" /> برگشت
 
-                                                    </button>
-                                                        : <p className='text-xs text-gray-400 '>بل ندارد</p>
-                                                    }
                                                 </div>
                                             </td>
                                         </tr>
@@ -658,7 +652,7 @@ function KpiCard({
             <div className="mt-4 flex items-center gap-2 text-xs">
                 <span className="flex items-center gap-0.5 font-semibold text-emerald-600" dir='ltr'>
                     {change}
-                    <ArrowUpRight className="h-3.5 w-3.5" /> 
+                    <ArrowUpRight className="h-3.5 w-3.5" />
                 </span>
                 <span className="text-slate-400">{detail}</span>
             </div>
