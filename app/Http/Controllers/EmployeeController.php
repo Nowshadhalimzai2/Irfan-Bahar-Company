@@ -18,8 +18,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
 
-class
-EmployeeController extends Controller
+class EmployeeController extends Controller
 {
 
 
@@ -306,16 +305,17 @@ EmployeeController extends Controller
             $shopAccount->save();
 
             // Add the transaction to the expesnes list.
+            $des= sprintf('برای %s در معاش وصل شد',$employee->name);
             Expense::create([
                 'amount' => $amount,
-                'description' => "پرداخت شد {$employee->name} معاش برای",
+                'description' => $des,
                 'date' => $paymentDate->toDateString(),
                 'currency_id' => 1, // Assuming currency_id is 1 for the default currency
             ]);
             DB::commit();
 
             $log = new Log();
-            $log->create('insert', "معاش برای {$employee->name} پرداخت شد");
+            $log->create('insert', sprintf('برای %s در معاش وصل شد',$employee->name),'',"/employees/$employee->id/salary-receipt/$salary->id");
 
             return redirect()->route('employees.salary.receipt', [$employee, $salary]);
         } catch (\Throwable $th) {

@@ -1,27 +1,14 @@
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogTitle,
-    DialogTrigger,
-} from '@/components/ui/dialog';
+import { useForm } from '@inertiajs/react';
+import type { FormEvent } from 'react';
+import type { Employee } from '@/types';
+import InputError from '../input-error';
+import PersionDatePicker from '../persion-date-picker';
 import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '../ui/dialog';
+import { Field } from '../ui/field';
+import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Spinner } from '../ui/spinner';
-import InputError from '../input-error';
-import { Input } from '../ui/input';
-import { useForm } from '@inertiajs/react';
-import React, { FormEvent, useState } from 'react';
-import { Employee } from '@/types';
-import { Calendar } from '../ui/calendar';
-import { format } from "date-fns"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import { Field } from '../ui/field';
-import PersionDatePicker from '../persion-date-picker';
 
 type PaySalaryType = {
     employee_id: number;
@@ -50,17 +37,17 @@ export const SalaryPaymentDialog = ({
     paidThisMonth,
     remainingSalary,
 }: SalaryPaymentDialogProps) => {
-    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [persianDate, setPersianDate] = useState<string | null>(null); const { data, setData, errors, post, processing } = useForm<PaySalaryType>({
+    const { data, setData, errors, post, processing } = useForm<PaySalaryType>({
         'amount': defaultAmount,
         'employee_id': employee.id,
-        'payment_date': selectedDate ?? new Date(),
+        'payment_date': new Date(),
     });
 
     const handleEmployee = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         post('/employees/' + employee.id + "/pay-salary");
-    }
+    };
+
     return (
         <Dialog>
             <DialogTrigger asChild>
@@ -127,11 +114,9 @@ export const SalaryPaymentDialog = ({
                                     id='salaryPayment'
                                     key={'salaryPayment'}
                                     initialDate={new Date()}
-                                    value={selectedDate}
                                     type='date'
-                                    onChange={(date,formatted)=>{
-                                        setSelectedDate(date);
-                                        setPersianDate(formatted);
+                                    onChange={(date) => {
+                                        setData('payment_date', date ?? new Date());
                                     }}
                                 />
                             </Field>

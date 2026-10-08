@@ -4,51 +4,51 @@ namespace App\Services;
 
 use App\Models\Employee;
 use Carbon\Carbon;
+use Morilog\Jalali\Jalalian;
 
 class SalaryService
 {
-    public function thisMonthSalary(Employee $employee, ?Carbon $referenceDate = null)
+    private PersianDateConverter $persianDateConverter;
+
+    public function __construct(?PersianDateConverter $persianDateConverter = null)
     {
-        if (empty($employee->recruitment_date)) {
-            return $employee->salary;
-        }
-
-        $tz = config('app.timezone');
-        $now = $referenceDate ? $referenceDate->copy()->setTimezone($tz) : Carbon::now($tz);
-        $recruitment = Carbon::parse($employee->recruitment_date)->setTimezone($tz);
-
-        if ($now->year === $recruitment->year && $now->month === $recruitment->month) {
-            $daysInMonth = $now->daysInMonth;
-            $recruitmentDay = $recruitment->day;
-            $payableDays = $daysInMonth - $recruitmentDay + 1;
-            return ($employee->salary / $daysInMonth) * $payableDays;
-        }
-
-        return $employee->salary;
+        $this->persianDateConverter = $persianDateConverter ?? new PersianDateConverter();
     }
 
-    public function reduceSalaryBasedOnAbsentDays(Employee $employee, int $thisMonthSalary, ?Carbon $referenceDate = null)
+    public function thisMonthSalary(Employee $employee, ?Carbon $referenceDate = null): float
     {
-        $tz = config('app.timezone');
-        $now = $referenceDate ? $referenceDate->copy()->setTimezone($tz) : Carbon::now($tz);
+        if (empty($employee->recruitment_date)) {
+            return (float) $employee->salary;
+        }
 
-        $startOfMonth = $now->copy()->startOfMonth()->toDateString();
-        $endOfMonth = $now->copy()->endOfMonth()->toDateString();
+        [$now, , $daysInMonth] = $this->persianMonth($referenceDate);
+        $recruitment = Jalalian::fromCarbon(Carbon::parse($employee->recruitment_date)->setTimezone(config('app.timezone')));
+        $persianNow = Jalalian::fromCarbon($now);
 
-        // If employee was recruited in the reference month, only count absences starting from recruitment date
+        if ($persianNow->getYear() === $recruitment->getYear() && $persianNow->getMonth() === $recruitment->getMonth()) {
+            $recruitmentDay = $recruitment->getDay();
+            $payableDays = $daysInMonth - $recruitmentDay + 1;
+            return ((float) $employee->salary / $daysInMonth) * $payableDays;
+        }
+
+        return (float) $employee->salary;
+    }
+
+    public function reduceSalaryBasedOnAbsentDays(Employee $employee, float $thisMonthSalary, ?Carbon $referenceDate = null): float
+    {
+        [, $monthRange, $daysInMonth] = $this->persianMonth($referenceDate);
+        $start = $monthRange['start'];
+        $end = $monthRange['end'];
+
         if (!empty($employee->recruitment_date)) {
-            $recruitment = Carbon::parse($employee->recruitment_date)->setTimezone($tz);
-            if ($recruitment->year === $now->year && $recruitment->month === $now->month) {
-                $countStart = $recruitment->toDateString();
-            } else {
-                $countStart = $startOfMonth;
+            $recruitment = Carbon::parse($employee->recruitment_date)->setTimezone(config('app.timezone'));
+            if ($recruitment->greaterThan($start)) {
+                $start = $recruitment;
             }
-        } else {
-            $countStart = $startOfMonth;
         }
 
         $absentDays = (int) $employee->attendances()
-            ->whereBetween('date', [$countStart, $endOfMonth])
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('is_present', false)
             ->count();
 
@@ -56,9 +56,7 @@ class SalaryService
             return $thisMonthSalary;
         }
 
-        $daysInMonth = $now->daysInMonth;
-
-        $perDay = $daysInMonth > 0 ? ($employee->salary / $daysInMonth) : 0;
+        $perDay = $daysInMonth > 0 ? ((float) $employee->salary / $daysInMonth) : 0;
 
         $deduction = $perDay * $absentDays;
 
@@ -69,14 +67,10 @@ class SalaryService
 
     public function paidThisMonth(Employee $employee, ?Carbon $referenceDate = null): float
     {
-        $tz = config('app.timezone');
-        $now = $referenceDate ? $referenceDate->copy()->setTimezone($tz) : Carbon::now($tz);
-
-        $startOfMonth = $now->copy()->startOfMonth()->toDateString();
-        $endOfMonth = $now->copy()->endOfMonth()->toDateString();
+        [, $monthRange] = $this->persianMonth($referenceDate);
 
         return (float) $employee->salaries()
-            ->whereBetween('payment_date', [$startOfMonth, $endOfMonth])
+            ->whereBetween('payment_date', [$monthRange['start']->toDateString(), $monthRange['end']->toDateString()])
             ->sum('amount');
     }
 
@@ -90,33 +84,40 @@ class SalaryService
 
     public function absentDays(Employee $employee, ?Carbon $referenceDate = null): int
     {
-        $tz = config('app.timezone');
-        $now = $referenceDate ? $referenceDate->copy()->setTimezone($tz) : Carbon::now($tz);
-
-        $startOfMonth = $now->copy()->startOfMonth()->toDateString();
-        $endOfMonth = $now->copy()->endOfMonth()->toDateString();
+        [, $monthRange] = $this->persianMonth($referenceDate);
+        $start = $monthRange['start'];
+        $end = $monthRange['end'];
 
         if (!empty($employee->recruitment_date)) {
-            $recruitment = Carbon::parse($employee->recruitment_date)->setTimezone($tz);
-            if ($recruitment->year === $now->year && $recruitment->month === $now->month) {
-                $countStart = $recruitment->toDateString();
-            } else {
-                $countStart = $startOfMonth;
+            $recruitment = Carbon::parse($employee->recruitment_date)->setTimezone(config('app.timezone'));
+            if ($recruitment->greaterThan($start)) {
+                $start = $recruitment;
             }
-        } else {
-            $countStart = $startOfMonth;
         }
 
         return (int) $employee->attendances()
-            ->whereBetween('date', [$countStart, $endOfMonth])
+            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->where('is_present', false)
             ->count();
     }
 
     public function daysInMonth(?Carbon $referenceDate = null): int
     {
-        $tz = config('app.timezone');
-        $now = $referenceDate ? $referenceDate->copy()->setTimezone($tz) : Carbon::now($tz);
-        return (int) $now->daysInMonth;
+        [, , $daysInMonth] = $this->persianMonth($referenceDate);
+
+        return $daysInMonth;
+    }
+
+    /**
+     * @return array{0: Carbon, 1: array{start: Carbon, end: Carbon}, 2: int}
+     */
+    private function persianMonth(?Carbon $referenceDate = null): array
+    {
+        $timezone = config('app.timezone');
+        $now = $referenceDate ? $referenceDate->copy()->setTimezone($timezone) : Carbon::now($timezone);
+        $persianNow = Jalalian::fromCarbon($now);
+        $monthRange = $this->persianDateConverter->toGregorianRange($persianNow->format('Y/m'), 'month');
+
+        return [$now, $monthRange, $persianNow->getDaysOf($persianNow->getMonth())];
     }
 }
