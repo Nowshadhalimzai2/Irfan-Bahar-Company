@@ -45,7 +45,7 @@ export default function Barcode({ products, missingBarcodeCount }: Props) {
 
     return (
         <AppLayout breadcrumbs={[
-            { title: 'دشبورد', href: dashboard() },
+            // { title: 'دشبورد', href: dashboard() },
             { title: 'بارکود', href: '/barcode' },
         ]}>
             <Head title="بارکود محصولات" />

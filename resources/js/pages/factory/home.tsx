@@ -72,6 +72,7 @@ const Home = ({ pendingOrders, items, productionChart, topProductionCategories }
             { name: 'اجناس', url: '/items' },
             { name: 'تبادله اجناس', url: '/inventory-movements' },
             { name: 'فورموله ها', url: '/boms' },
+            { name: 'بارکود ها', url: '/barcode' },
           ]}
         />
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
