@@ -11,7 +11,7 @@ import { Spinner } from '../ui/spinner';
 import InputError from '../input-error';
 import { Input } from '../ui/input';
 import { useForm } from '@inertiajs/react';
-import React, { FormEvent } from 'react';
+import React, { FormEvent, useState } from 'react';
 import { Employee } from '@/types';
 import { Calendar } from '../ui/calendar';
 import { format } from "date-fns"
@@ -21,6 +21,7 @@ import {
     PopoverTrigger,
 } from "@/components/ui/popover";
 import { Field } from '../ui/field';
+import PersionDatePicker from '../persion-date-picker';
 
 type PaySalaryType = {
     employee_id: number;
@@ -49,11 +50,11 @@ export const SalaryPaymentDialog = ({
     paidThisMonth,
     remainingSalary,
 }: SalaryPaymentDialogProps) => {
-    const [date, setDate] = React.useState<Date>(new Date());
-    const { data, setData, errors, reset, post, processing } = useForm<PaySalaryType>({
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [persianDate, setPersianDate] = useState<string | null>(null); const { data, setData, errors, post, processing } = useForm<PaySalaryType>({
         'amount': defaultAmount,
         'employee_id': employee.id,
-        'payment_date': date,
+        'payment_date': selectedDate ?? new Date(),
     });
 
     const handleEmployee = (e: FormEvent<HTMLFormElement>) => {
@@ -122,25 +123,17 @@ export const SalaryPaymentDialog = ({
                         <div className="grid gap-2">
                             <Label htmlFor="payment_date">تاریخ پرداخت</Label>
                             <Field>
-                                <Popover>
-                                    <PopoverTrigger>
-                                        <Button type="button" variant="outline" id="date-picker-simple" className="justify-start w-full font-normal">
-                                            {date ? format(date, "PPP") : <span>تاریخ را انتخاب کنید</span>}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-auto p-0" align="start">
-                                        <Calendar
-                                            mode="single"
-                                            required
-                                            selected={date}
-                                            onSelect={(selected) => {
-                                                setDate(selected as Date);
-                                                setData('payment_date', selected as Date);
-                                            }}
-                                            defaultMonth={date}
-                                        />
-                                    </PopoverContent>
-                                </Popover>
+                                <PersionDatePicker
+                                    id='salaryPayment'
+                                    key={'salaryPayment'}
+                                    initialDate={new Date()}
+                                    value={selectedDate}
+                                    type='date'
+                                    onChange={(date,formatted)=>{
+                                        setSelectedDate(date);
+                                        setPersianDate(formatted);
+                                    }}
+                                />
                             </Field>
                         </div>
 

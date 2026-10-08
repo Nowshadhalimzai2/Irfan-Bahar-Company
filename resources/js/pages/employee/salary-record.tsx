@@ -1,17 +1,7 @@
-import { SectionTitle } from '@/components/section-title';
-import {
-    Popover,
-    PopoverContent,
-    PopoverDescription,
-    PopoverTrigger,
-} from "@/components/ui/popover";
+
 import { Employee, Salary } from '@/types';
-import React, { useEffect, useMemo, useState } from 'react'
-import { Button, buttonVariants } from '@/components/ui/button';
-import { Field } from '@/components/ui/field';
-import { Label } from '@/components/ui/label';
-import { Calendar } from '@/components/ui/calendar';
-import { addDays } from "date-fns"
+import { useEffect, useMemo, useState } from 'react'
+import { buttonVariants } from '@/components/ui/button';
 
 import {
     Table,
@@ -26,10 +16,10 @@ import {
 import axios from 'axios';
 import { Link } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
-import { DateRange } from 'react-day-picker';
 import { Input } from '@/components/ui/input';
 import PageHead from '@/components/page-head';
 import { Coins } from 'lucide-react';
+import PersionDatePicker from '@/components/persion-date-picker';
 
 interface Props {
     salaryRecords: Salary[];
@@ -37,20 +27,22 @@ interface Props {
 }
 
 const SalaryRecrod = ({ salaryRecords, employee }: Props) => {
-    const [date, setDate] = useState<string>(new Date().toDateString());
 
     const [salaries, setSalaries] = useState<Salary[]>(salaryRecords);
+
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [persianDate, setPersianDate] = useState<string | null>(null);
 
     // Fetch salary records when the selected date or employee changes
     useEffect(() => {
         axios
-            .post(`/employees/${employee.id}/salary-range`, { date })
+            .post(`/employees/${employee.id}/salary-range`, { persianDate })
             .then((res) => {
                 setSalaries(res.data['salaries']);
             })
 
             .catch((err) => console.error(err));
-    }, [employee.id, date]);
+    }, [employee.id, persianDate]);
     const paidAmount: number = useMemo(() => salaries.reduce((acc, salary) => acc += salary.amount, 0), [salaries])
 
 
@@ -62,7 +54,7 @@ const SalaryRecrod = ({ salaryRecords, employee }: Props) => {
                 { title: `${employee.name} رکورد معاشات`, href: `/employees/${employee.id}/-salary-record` },
             ]}
         >
-            <div className="px-4 max-w-4xl mx-auto w-full mt-5">
+            <div className="px-4 max-w-4xl mx-auto w-full mt-5 py-5 md:py-8">
                 <PageHead
                     HeadIcon={Coins}
                     title='معلومات معاش'
@@ -74,7 +66,21 @@ const SalaryRecrod = ({ salaryRecords, employee }: Props) => {
                 <div className="grid grid-cols-1 gap-3">
 
                     <div id='DATE Selection' className='p-2 mt-5 shadow-lg bg-white  rounded-lg'>
-                        <Input type={'month'} value={date.slice(0, 7)} onChange={(event) => setDate(event.target.value)} className="mt-1 block h-10 rounded-xl border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 outline-none ring-primary focus:ring-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200" />
+                        {/* <Input type={'month'} value={date.slice(0, 7)} onChange={(event) => setDate(event.target.value)} className="mt-1 block h-10 rounded-xl border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 outline-none ring-primary focus:ring-2 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200" /> */}
+                        <PersionDatePicker
+                            id='salary'
+                            initialDate={new Date()}
+                            key={'salary'}
+                            label={'جستجوی معاش'}
+                            type='month'
+                            value={selectedDate}
+                            onChange={(date, formatted) => {
+                                setSelectedDate(date);
+                                setPersianDate(formatted);
+                            }
+                            }
+
+                        />
                     </div>
 
                     <div className="shadow-lg bg-white rounded-lg ">

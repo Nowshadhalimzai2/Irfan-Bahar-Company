@@ -1,6 +1,7 @@
 import {
     AlertCircle,
     BadgeMinus,
+    CalendarDays,
     Factory,
     LayoutGrid,
     ChartNoAxesCombined,
@@ -61,6 +62,11 @@ export const mainNavItems: NavItem[] = [
         icon: ChartNoAxesCombined,
     },
     {
+        title: 'تقویم شمسی',
+        href: '/persian-date-picker',
+        icon: CalendarDays,
+    },
+    {
         title: 'اطلاعات',
         href: '/notifications',
         icon: AlertCircle,
@@ -100,6 +106,11 @@ export const mainNevShopClerkItems: NavItem[] = [
         icon: Store,
     },
     {
+        title: 'تقویم شمسی',
+        href: '/persian-date-picker',
+        icon: CalendarDays,
+    },
+    {
         title: ' انتقال اموال',
         href: '/receipts',
         icon: Truck,
@@ -126,6 +137,11 @@ export const mainNavFactoryClerkItems: NavItem[] = [
         title: 'ستاک',
         href: '/inventory-balances',
         icon: Store,
+    },
+    {
+        title: 'تقویم شمسی',
+        href: '/persian-date-picker',
+        icon: CalendarDays,
     },
     {
         title: ' انتقال اموال',

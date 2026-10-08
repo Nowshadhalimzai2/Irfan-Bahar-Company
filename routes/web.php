@@ -97,6 +97,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return Inertia::render('dashboard', compact('overallLoans', 'todayIncomes', 'sa', 'todaysExpenses', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses', 'totalPayments', 'totalLoans'));
     })->name('dashboard')->middleware('refuseFactoryClerk');
 
+    Route::get('/persian-date-picker', function () {
+        return Inertia::render('persian-date-picker');
+    })->name('dates.persian');
+
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index')->middleware('superadmin');
 
 

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Employee;
+use App\Services\PersianDateConverter;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use Morilog\Jalali\Jalalian;
 
 class SalaryController extends Controller
 {
@@ -21,13 +23,19 @@ class SalaryController extends Controller
             ->get();
         return Inertia::render('employee/salary-record', compact('salaryRecords', 'employee'));
     }
-    public function getSalryBasedOnMonth(Request $request, Employee $employee)
+    public function getSalryBasedOnMonth(Request $request, Employee $employee,PersianDateConverter $dateConverter)
     {
+        $persianDate = $request->string('persianDate')->toString();
+        $persianDate = $persianDate !== '' ? $persianDate : Jalalian::now()->format('Y/m');
 
-        $selectedDate = $request->date('date') ?? Carbon::today(config('app.timezone'));
+        try {
+            ['start' => $start, 'end' => $end] = $dateConverter->toGregorianRange($persianDate, 'month');
+        } catch (\InvalidArgumentException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
 
-        $start = $selectedDate->copy()->startOfMonth();
-        $end = $selectedDate->copy()->endOfMonth();
+        // $start = $selectedDate->copy()->startOfMonth();
+        // $end = $selectedDate->copy()->endOfMonth();
 
         $salaryRecords = $employee->salaries()->whereBetween('payment_date', [$start, $end])
             ->get();
