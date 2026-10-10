@@ -95,7 +95,7 @@ const PersionDatePicker = ({
         calendarPosition="bottom-right"
         placeholder={type === "month" ? "سال/ماه" : "سال/ماه/روز"}
         inputMode="numeric"
-        inputClass="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+        inputClass="h-10 w-full rounded-md border border-input bg-white px-3 text-sm text-foreground shadow-md outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
         containerClassName="w-full"
       />
     </div>

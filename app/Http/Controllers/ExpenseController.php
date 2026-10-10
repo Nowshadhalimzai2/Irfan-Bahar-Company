@@ -7,14 +7,17 @@ use App\Custome\SHA;
 use App\Models\Currency;
 use App\Models\Expense;
 use App\Models\User;
+use App\Services\PersianDateConverter;
 use Carbon\Carbon;
 use Error;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Morilog\Jalali\Jalalian;
 
 class ExpenseController extends Controller
 {
@@ -102,19 +105,23 @@ class ExpenseController extends Controller
         }
     }
 
-    public function expensesRange(Request $request)
+    public function expensesRange(Request $request, PersianDateConverter $dateConverter)
     {
-        $data = $request->validate([
-            'from' => 'required|date',
-            'to' => 'required|date',
-        ]);
 
-        $from = Carbon::parse($data['from'], config('app.timezone'))->startOfDay();
-        $to = Carbon::parse($data['to'], config('app.timezone'))->endOfDay();
+        $datType = $request->period == 'monthly' ? 'month' : 'date';
+        $persianDate = $request->string('persionDate')->toString();
+        $persianDate = $persianDate !== '' ? $persianDate : Jalalian::now()->format('Y/m');
+        try {
+            ['start' => $start, 'end' => $end] = $dateConverter->toGregorianRange($persianDate, $datType);
+            // return response()->json($request->month);
+        } catch (\InvalidArgumentException $exception) {
+            return response()->json(['message' => $exception->getMessage()], 422);
+        }
+        // return response()->json($start);
 
         $expenses = Expense::with('currency:id,name')
             ->select('id', 'amount', 'description', 'date', 'currency_id', 'is_editable')
-            ->whereBetween('date', [$from, $to])
+            ->whereBetween('date', [$start, $end])
             ->orderBy('id', 'desc')
             ->get();
 

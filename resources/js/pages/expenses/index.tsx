@@ -14,22 +14,24 @@ import { addDays } from "date-fns"
 import { DateRange } from 'react-day-picker';
 import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
-import { SectionTitle } from '@/components/section-title';
 import { Popover, PopoverContent, PopoverDescription, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
 import PageHead from '@/components/page-head';
-import { Coins } from 'lucide-react';
+import { Coins, HandCoins } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import PersionDatePicker from '@/components/persion-date-picker';
+import { getDariCurrency } from '@/components/location-translator';
 
 interface Props {
     expenses: Expense[];
 }
 const Index = ({ expenses }: Props) => {
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: new Date(new Date().getFullYear(), 0, 12),
-        to: addDays(new Date(new Date().getFullYear(), 0, 12), 30),
-    });
+    const [selectedDate,setSelectedDate] = useState<Date|null>(null);
+    const [persionDate,setPersianDate] = useState<string|null>(null);
+    const [period,setPeriod] = useState<'daily' |'monthly'>('monthly');
+
+    
     const [expensesList, setExpensesList] = useState<Expense[]>(expenses);
 
     const totalExpenses = useMemo(() => {
@@ -42,20 +44,18 @@ const Index = ({ expenses }: Props) => {
 
     useEffect(() => {
         const getExpenses = async () => {
-            if (!dateRange?.from || !dateRange?.to) {
-                return;
-            }
-
+           
             try {
-                const expensesResponse = await axios.get('/expenses/expenses-range', {
+                const res = await axios.get('/expenses/expenses-range', {
                     params: {
-                        from: dateRange.from.toISOString(),
-                        to: dateRange.to.toISOString(),
+                        persionDate,selectedDate,period
                     },
                 });
 
-                if (expensesResponse.status === 200) {
-                    setExpensesList(expensesResponse.data.expenses ?? []);
+                if (res.status === 200) {
+                    setExpensesList(res.data.expenses ?? []);
+                    console.log(res.data);
+                    
                 }
             } catch (error) {
                 console.error(error);
@@ -63,7 +63,7 @@ const Index = ({ expenses }: Props) => {
         };
 
         void getExpenses();
-    }, [dateRange]);
+    }, [persionDate,selectedDate,period]);
     return (
         <AppLayout breadcrumbs={
             [
@@ -71,46 +71,55 @@ const Index = ({ expenses }: Props) => {
                 { title: 'ریکوردمصارف ', href: "/expesnes" }
             ]
         }>
-            <div className="section">
-               
-                <div className="max-w-3xl mx-auto flex justify-center items-center w-full p-5">
-                    <Popover>
-                        <PopoverTrigger className="w-full"><Button variant={'outline'} className="w-full">{new Date(dateRange?.from ?? '').toDateString()} - to - {new Date(dateRange?.to ?? '').toDateString()}</Button></PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <PopoverDescription className="text-center pt-1 text-sm"> لطف نموده تاریخ را انتخاب کنین</PopoverDescription>
-                            <Calendar
-                                mode="range"
-                                defaultMonth={new Date()}
-                                selected={dateRange}
-                                onSelect={setDateRange}
-                                numberOfMonths={2}
-                                className="rounded-lg border"
-                            />
-                                                        
-                        </PopoverContent>
-                    </Popover>
+            <div className="px-1 md:px-3">
+                <PageHead
+                    HeadIcon={HandCoins}
+                    subtitle={` مصارف ماه ${new Date(selectedDate?? new Date()).toLocaleDateString('fa-AF',{month:'long'})}`}
+                    title='مدیریت مصارف'
+                    description='مصارف ماه انتخاب شده. شاید این محاسبه کمه تفاوت داشته باشد.'
+                    key={persionDate}
+                />
+                <div className="max-w-3xl mx-auto  w-full m-4 grid grid-cols-1 gap-3 ">
+                    <div className="grid gap-3" dir='rtl'>
+                        <select className='bg-white py-2 rounded-xl shadow-md border' onChange={(e)=>setPeriod(e.target.value as 'monthly'|'daily')}>
+                            <option value={'monthly'}>ماهانه</option>
+                            <option value={'daily'}>روزانه</option>
+                        </select>
+                    </div>
+                    <PersionDatePicker 
+                        id='expenses'
+                        key={'expenses'}
+                        type={period=='monthly'? 'month':'date'}
+                        onChange={(date,formatted)=>{
+                            setSelectedDate(date);
+                            setPersianDate(formatted);
+                        }}
+                        value={selectedDate}
+                        
+                    />
                 </div>
-                <div className="max-w-3xl mx-auto  bg-white rounded-md shadow p-5">
+                <div className="max-w-3xl mx-auto  bg-white rounded-md shadow-md border p-5" dir='rtl'>
                     <Table>
-                        <TableCaption className=""> مصارف تاریخ {new Date().toLocaleDateString()} را اینجا دیده میتانی</TableCaption>
+                        <TableCaption className=""> مصارف تاریخ {new Date().toLocaleDateString('fa-AF',{
+                            year:"numeric",
+                            month:'long',
+                        })} را اینجا دیده میتانی</TableCaption>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>تاریخ </TableHead>
-                                <TableHead>واحد پول</TableHead>
-                                <TableHead>مقدار پول</TableHead>
-                                <TableHead>توضیحات</TableHead>
-                                <TableHead className="">شماره</TableHead>
+                                <TableHead className="text-center">شماره</TableHead>
+                                <TableHead className='text-center'>توضیحات</TableHead>
+                                <TableHead className='text-center'>مبلغ</TableHead>
+                                <TableHead className='text-center'>تاریخ </TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {expensesList.map((expense, ind) => {
                                 return (
-                                    <TableRow key={ind} className="hover:bg-secondary hover:border">
-                                        <TableCell>{new Date(expense.date).toDateString()}</TableCell>
-                                        <TableCell>{expense.currency.name}</TableCell>
-                                        <TableCell>{expense.amount}</TableCell>
-                                        <TableCell className="font-medium flex-1">{expense.description}</TableCell>
+                                    <TableRow key={expense.id} className="hover:bg-secondary hover:border">
                                         <TableCell className="text-center">{ind + 1}</TableCell>
+                                        <TableCell className="font-medium text-center flex-1">{expense.description}</TableCell>
+                                        <TableCell className='text-center'>{expense.amount} {getDariCurrency(expense.currency.name)}</TableCell>
+                                        <TableCell className='text-center'>{new Date(expense.date).toLocaleDateString('fa-AF')}</TableCell>
                                     </TableRow>
                                 );
                             })}
