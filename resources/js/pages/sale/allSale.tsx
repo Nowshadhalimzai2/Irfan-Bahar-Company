@@ -1,12 +1,14 @@
 import { getDariCurrency } from '@/components/location-translator';
 import PageHead from '@/components/page-head';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import invoice from '@/routes/sales/invoice';
 import { Link, router } from '@inertiajs/react';
 import { ArrowLeft, CircleDollarSign, FileText, RotateCcw, Search, ShoppingBag, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
-type Order = { invoice_id: number,isCancelable:boolean; saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string, currency: 'AFG' | 'PKR' | 'USD' };
+type Order = { invoice_id: number, isCancelable: boolean; saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string, currency: 'AFG' | 'PKR' | 'USD' };
 interface Props {
     orders: Order[];
 }
@@ -17,21 +19,21 @@ const allSale = ({ orders }: Props) => {
     const filtered = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase();
         return orders.filter((order) => {
-            
+
             const matchesQuery = `${order.id} ${order.customer}`
                 .toLowerCase()
                 .includes(normalizedQuery);
-            return  matchesQuery;
+            return matchesQuery;
         });
     }, [query]);
-    
+
     return (
         <AppLayout
-        breadcrumbs={[
-            { title: 'فروشات', href: '/sales' },
-            { title: 'همه فروشات', href: '/sales/all' }
+            breadcrumbs={[
+                { title: 'فروشات', href: '/sales' },
+                { title: 'همه فروشات', href: '/sales/all' }
 
-        ]}
+            ]}
         >
 
             <div dir='rtl' className="grid grid-cols-1 gap-5 mt-2 px-1 md:px-3 pb-5">
@@ -72,10 +74,10 @@ const allSale = ({ orders }: Props) => {
 
                 </section>
                 <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900">
-                     <div className="relative w-full lg:w-80">
-                                    <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-slate-400" />
-                                    <Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 border-slate-200 bg-slate-50 pr-10" placeholder="جستجوی شماره یا مشتری..." />
-                                </div>
+                    <div className="relative w-full lg:w-80">
+                        <Search className="absolute top-1/2 right-3 size-4 -translate-y-1/2 text-slate-400" />
+                        <Input value={query} onChange={(event) => setQuery(event.target.value)} className="h-10 border-slate-200 bg-slate-50 pr-10" placeholder="جستجوی شماره یا مشتری..." />
+                    </div>
                 </div>
                 <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900">
                     <div className="mb-4 flex items-center justify-between">
@@ -159,7 +161,7 @@ const allSale = ({ orders }: Props) => {
                                                         <FileText className="size-3.5" /> ایجاد
                                                     </button>
                                                 )}
-                                                {order.status!=='cancelled' && (order.hasInvoice ? <button disabled={order.status == 'returned'} type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className={`inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 ${order.status == 'returned' && 'text-gray-400 hover:text-gray-400'}`}>
+                                                {order.status !== 'cancelled' && (order.hasInvoice ? <button disabled={order.status == 'returned'} type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className={`inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 ${order.status == 'returned' && 'text-gray-400 hover:text-gray-400'}`}>
                                                     <RotateCcw className="size-3.5" /> برگشت
 
                                                 </button>
@@ -168,8 +170,22 @@ const allSale = ({ orders }: Props) => {
                                             </div>
                                         </td>
 
-                                       {order.isCancelable && <td className="py-3 text-red-200 hover:text-red-400">
-                                            <button onClick={()=>router.put(`/sales/${order.saleId}/cancel`)}>لغو!</button>
+                                        {order.isCancelable && <td className="py-3 text-red-200 hover:text-red-400" dir='ltr'>
+                                            <Dialog>
+                                                <DialogTrigger asChild>
+                                                    <button>لغو کنین</button>
+                                                </DialogTrigger>
+                                                <DialogContent>
+                                                    <DialogTitle className='text-end mt-4'>ایا مطمین هستین که این فروش را لغو کنید؟</DialogTitle>
+                                                    <DialogDescription className='text-end'>هشدار: لغو نمودن این فروش بازګشت نمی شه. لطفا احتیاط نماید</DialogDescription>
+                                                    <div className="flex justify-between space-x-3 items-center">
+                                                        <DialogClose className='w-full'>
+                                                            <Button className='w-full' variant={'destructive'}>نخیر، </Button>
+                                                        </DialogClose>
+                                                        <Button className='w-full' onClick={() => router.put(`/sales/${order.saleId}/cancel`)}>فروش را لغو کنید</Button>
+                                                    </div>
+                                                </DialogContent>
+                                            </Dialog>
                                         </td>}
                                     </tr>
                                 ))}

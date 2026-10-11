@@ -13,4 +13,7 @@ class Payment extends Model
     {
         return $this->belongsTo(Invoice::class);
     }
+    public function currency():BelongsTo{
+        return $this->belongsTo(Currency::class);
+    }
 }

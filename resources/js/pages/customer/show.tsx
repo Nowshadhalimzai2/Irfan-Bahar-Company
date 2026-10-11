@@ -31,7 +31,6 @@ type Invoice = {
     issued_on: Date;
     payments: Payment[];
     saleId: number;
-
 };
 
 const money = (value: number, currency: string) => `${Number(value || 0).toFixed(2)} ${getDariCurrency(currency)}`;
@@ -55,7 +54,7 @@ export default function Show({ customer, sales, invoices }: Props) {
     const invoiceBySaleId = new Map(invoices.map((invoice) => [invoice.saleId, invoice]));
     const currency = getDariCurrency(sales[0]?.currency?.name ?? invoices[0]?.currency ?? 'AFG');
     const currencySummaries = accounts.map((summaryCurrency) => {
-        const currencySales = sales.filter((sale) => sale.status!=='cancelled' && sale.currency?.name === summaryCurrency);
+        const currencySales = sales.filter((sale) => sale.status !== 'cancelled' && sale.currency?.name === summaryCurrency);
         const salesTotal = currencySales.reduce((sum, sale) => {
             const returned = sale.sale_returns.reduce((returnSum, saleReturn) => returnSum + Number(saleReturn.total || 0), 0);
             return sum + Math.max(0, Number(sale.after_descount_total || 0) - returned);
@@ -145,7 +144,7 @@ export default function Show({ customer, sales, invoices }: Props) {
                         </div>
                         <div className='space-y-1'>
                             <FileText className="text-cyan-600" />
-                            <Link className='hover:underline hover:shadow-xl hover:text-blue-500 '><ArrowLeft className='h-4 w-7 hover:h-5 transition-all' /></Link>
+                            <Link href={`/customers/${customer.id}/invoices`} className='hover:underline hover:shadow-xl hover:text-blue-500 '><ArrowLeft className='h-4 w-7 hover:h-5 transition-all' /></Link>
                         </div>
 
                     </div>
@@ -154,7 +153,6 @@ export default function Show({ customer, sales, invoices }: Props) {
                             <thead className="bg-slate-50 text-xs text-slate-500">
                                 <tr>
                                     <th className="text-center px-5 py-3 font-medium">انوایس</th>
-                                    <th className="text-center py-3 font-medium">تاریخ</th>
                                     <th className="text-center py-3 font-medium">مبلغ خالص</th>
                                     <th className="text-center py-3 font-medium">برگشت</th>
                                     <th className="text-center py-3 font-medium">باقی‌مانده</th>
@@ -172,16 +170,15 @@ export default function Show({ customer, sales, invoices }: Props) {
                                 // const invoiceDate = new Date(sale.invoice?.issuedOn).toDateString();
                                 return <tr title={`پرداخت : ${money(invoicePaid, sale.currency?.name || currency)}`} key={sale.id} className="border-t border-slate-100 transition hover:bg-slate-50">
                                     <td className="px-5 py-4"><b className="text-primary hover:cursor-pointer hover:underline" title='تاریخ پرداخت ها را بل بیبنین' onClick={() => router.get(`/sales/invoice/${invoice_id}/payments`)}>{sale?.invoice?.invoice_number}</b><small className="mt-1 block text-xs text-slate-400">{new Date(sale?.invoice ? sale.invoice.issued_on : '').toLocaleDateString('fa-AF')}</small></td>
-                                    <td className="text-center py-4 text-slate-500">{date(sale.sold_at)}</td>
                                     <td className="text-center py-4 font-semibold">{money(saleTotal, sale.currency?.name || currency)}</td>
                                     <td className="text-center py-4 text-rose-600">{returnTotal}</td>
-                                    <td className="text-center py-4 text-amber-700">{sale.status=='cancelled'? 0 :money(invoiceDue, sale.currency?.name || currency)}</td>
-                                    <td className="text-center py-4"><Status status={sale.status==='cancelled'? sale.status: (sale.invoice?.status || sale.status)} /></td>
+                                    <td className="text-center py-4 text-amber-700">{sale.status == 'cancelled' ? 0 : money(invoiceDue, sale.currency?.name || currency)}</td>
+                                    <td className="text-center py-4"><Status status={sale.status === 'cancelled' ? sale.status : (sale.invoice?.status || sale.status)} /></td>
                                     <td className="text-center py-4">
                                         <div className="flex items-center gap-3">
                                             <button
                                                 type="button"
-                                                disabled={sale.status==='cancelled' || !customerInvoice || customerInvoice.status === 'paid' || customerInvoice.due <= 0}
+                                                disabled={sale.status === 'cancelled' || !customerInvoice || customerInvoice.status === 'paid' || customerInvoice.due <= 0}
                                                 onClick={() => setSelected(customerInvoice ?? null)}
                                                 className="text-xs font-semibold text-primary disabled:text-slate-300"
                                             >
@@ -248,7 +245,8 @@ function StatCard({ title, value, icon, tone }: { title: string; value: string; 
     return <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"><div className={`mb-4 flex size-11 items-center justify-center rounded-xl ${tones[tone]}`}>{icon}</div><p className="text-sm text-slate-500">{title}</p><p className="mt-2 text-lg font-bold text-slate-800">{value}</p></div>;
 }
 function Status({ status }: { status: string }) {
-    const labels: Record<string, string> = { paid: 'تسویه شده', partially_paid: 'پرداخت ناقص', completed: 'تکمیل شده', cancelled: 'لغو شده', issued: 'صادر شده', draft: 'پیش‌نویس' }; const positive = ['paid', 'completed'].includes(status);
+    const labels: Record<string, string> = { paid: 'تسویه شده', partially_paid: 'پرداخت ناقص', completed: 'تکمیل شده', cancelled: 'لغو شده', issued: 'صادر شده', draft: 'پیش‌نویس' };
+    const positive = ['paid', 'completed'].includes(status);
 
     return <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${positive ? 'bg-emerald-50 text-emerald-700' : status === 'cancelled' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'}`}>{labels[status] || status}</span>;
 }

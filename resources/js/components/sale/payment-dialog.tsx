@@ -25,14 +25,12 @@ type Invoice = {
     id: number;
     invoice_number: string;
     customer: string;
-    phone?: string;
     currency: string;
     total: number;
     paid: number;
     due: number;
     status: string;
     issued_on: Date;
-    payments: Payment[];
     saleId: number;
 };
 
@@ -60,7 +58,7 @@ function PaymentDialog({
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4" dir="rtl">
             <div className="w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl dark:bg-slate-900">
                 <div className="mb-5 flex items-start justify-between">
                     <div>

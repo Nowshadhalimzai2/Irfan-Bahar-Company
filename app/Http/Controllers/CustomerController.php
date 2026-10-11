@@ -6,6 +6,8 @@ use App\Custome\Log;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\Payment;
+use App\Models\Sale;
+use App\Models\SaleReturn;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -69,7 +71,7 @@ class CustomerController extends Controller
 
         return Inertia::render('customer/show', [
             'customer' => $customer,
-            'sales' => $customer->sales,   
+            'sales' => $customer->sales,
             'invoices' => $customer->sales()
                 ->where(function ($q) {
                     $q->where('status', '!=', 'cancelled');
@@ -116,6 +118,7 @@ class CustomerController extends Controller
 
         return Inertia::render('customer/edit', compact('customer'));
     }
+
     public function update(Request $request, Customer $customer)
     {
         $data = $request->validate([
@@ -140,7 +143,54 @@ class CustomerController extends Controller
         }, 3);
     }
 
+    public function invoices(Customer $customer)
+    {
 
+        $customer->load('sales:id,status,after_descount_total,amount_paid,sold_at,currency_id', 'sales.currency:id,name');
+        $customer->load('sales.invoice:id,sale_id,invoice_number,issued_on', 'sales.saleReturns:id,sale_id,total,refund_amount');
+        $customer->load('sales.invoice.payments:id,invoice_id,amount,method,reference,notes,paid_at,payment_number,currency_id', 'sales.invoice.payments.currency:id,name');
+        $orders = $customer->sales()->orderBy('id', 'desc')->get();
+        return Inertia::render('customer/invoice', [
+            'customer' => [
+                'id' => $customer->id,
+                'name' => $customer->name,
+                'joined' => $customer->created_at,
+            ],
+            'orders' => $orders->map(function (Sale $order) {
+                return [
+                    'id' => $order->id,
+                    'status' => $order->status,
+                    'invoice' => [
+                        'id' => $order->invoice->id,
+                        'invoice_number' => $order->invoice->invoice_number,
+                        'status' => $order->invoice->status,
+                        'customer' => $order->invoice->bill_to_name ?? 'walk-in',
+                        'total' => $order->invoice->total,
+                        'issued_on' => $order->invoice->issued_on,
+                        'currency' => $order->invoice->currency,
+                        'due' => $order->after_descount_total - $order->saleReturns->sum(fn(SaleReturn $return) => $return->total) - $order->invoice->payments->sum('amount'),
+                        'paid' => $order->invoice->payments->sum('amount') ?? 0,
+                    ],
+                    'sold_at' => $order->sold_at,
+                    'subTotal' => $order->total,
+                    'grandTotal' => $order->after_descount_total,
+                    'returnTotal' => $order->saleReturns->sum(fn(SaleReturn $return) => $return->total),
+                    'refundTotal' => $order->saleReturns->sum(fn(SaleReturn $return) => $return->refund_amount),
+                    'currency' => ['id' => $order->currency->id, 'name' => $order->currency->name],
+                    'payments' => $order->invoice->payments->map(fn(Payment $payment) => [
+                        'id' => $payment->id,
+                        'amount' => $payment->amount,
+                        'reference' => $payment->reference ?? '',
+                        'notes' => $payment->notes ?? '',
+                        'paid_at' => $payment->paid_at,
+                        'method' => $payment->method ?? 'cash',
+                        'number' => $payment->payment_number ?? 'PMT' . $payment->id,
+                        'currency' => ['id' => $payment->currency->id, 'name' => $payment->currency->name]
+                    ]),
+                ];
+            }),
+        ]);
+    }
     public function status(Customer $customer)
     {
         return DB::transaction(function () use ($customer) {

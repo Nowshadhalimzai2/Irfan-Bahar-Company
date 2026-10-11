@@ -182,6 +182,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
         Route::resource('expenses', ExpenseController::class)->names('expenses');
         Route::resource('customers', CustomerController::class)->except('index')->names('customers');
+        Route::get('/customers/{customer}/invoices',[CustomerController::class,'invoices'])->name('customers.invoices');
         Route::put('/customers/status/{customer}', [CustomerController::class, 'status'])->name('custoemrs.status');
         Route::put('/sales/{sale}/cancel',[SaleController::class,'cancelSale'])->name('sales.cancel');
         Route::get('/sales/{sale}/invoice/print', [SaleController::class, 'printInvoice'])->name('sales.invoice.print');
