@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Custome\SHA;
 use App\Models\Invoice;
 use App\Models\Payment;
-use App\Models\SaleReturn;
 use App\Models\User;
 use App\Notifications\PaymentCreated;
 use Carbon\Carbon;
@@ -22,18 +21,18 @@ class PaymentController extends Controller
     {
 
         $invoices = Invoice::query()
-            ->with(['sale:id,amount_paid', 'payments:id,invoice_id,amount,method,reference,paid_at', 'sale.customer:id,name'])
-            ->whereNotIn('status', ['paid', 'refunded'])
+            ->with(['sale:id,amount_paid,status,currency_id', 'sale.saleReturns:id,sale_id,total,refund_amount', 'payments:id,invoice_id,amount,method,reference,paid_at', 'sale.customer:id,name'])
+            ->whereHas('sale', fn($query) => $query->whereNotIn('status', ['draft', 'cancelled']))
             ->latest('issued_on')
             ->get();
 
         return Inertia::render('payments/index', [
             'invoices' => $invoices->map(function (Invoice $invoice) {
-                $paid = (float) $invoice->payments->sum('amount');
-                if ($paid === 0.0 && $invoice->sale) {
-                    $paid = (float) $invoice->sale->amount_paid;
+                $summary = $invoice->financialSummary();
+
+                if ($summary['due'] <= 0 || in_array($invoice->sale?->status, ['draft', 'cancelled'], true)) {
+                    return null;
                 }
-                $total = (float) $invoice->total;
 
                 return [
                     'id' => $invoice->id,
@@ -42,10 +41,10 @@ class PaymentController extends Controller
                     'customer' => $invoice->bill_to_name,
                     'phone' => $invoice->bill_to_phone,
                     'currency' => $invoice->currency,
-                    'total' => $total,
-                    'paid' => $paid,
-                    'due' => max(0, $total - $paid),
-                    'status' => $invoice->status,
+                    'total' => $summary['total'],
+                    'paid' => $summary['paid'],
+                    'due' => $summary['due'],
+                    'status' => $summary['due'] <= 0 ? 'paid' : ($summary['paid'] > 0 ? 'partially_paid' : 'issued'),
                     'issued_on' => $invoice->issued_on ? Carbon::parse($invoice->issued_on)->format('Y/m/d') : '',
                     'payments' => $invoice->payments->map(fn(Payment $payment) => [
                         'id' => $payment->id,
@@ -55,7 +54,7 @@ class PaymentController extends Controller
                         'paidAt' => Carbon::parse($payment->paid_at)->format('Y/m/d H:i'),
                     ])->values(),
                 ];
-            })->values(),
+            })->filter()->values(),
         ]);
     }
 
@@ -134,18 +133,10 @@ class PaymentController extends Controller
 
 public function receipt(Payment $payment)
 {
-    $payment->load(['invoice.sale:id,amount_paid', 'invoice.payments','invoice.sale.saleReturns:id,sale_id','invoice.sale.saleReturns.lines:id,sale_return_id,line_total']);
+    $payment->load(['invoice.sale:id,amount_paid,status,currency_id', 'invoice.payments', 'invoice.sale.saleReturns:id,sale_id,total,refund_amount']);
 
     $invoice = $payment->invoice;
-    $paidToDate = (float) $invoice->payments->sum('amount');
-    
-    $returnTotal = $invoice->sale->saleReturns->sum(function(SaleReturn $return){
-        return $return->lines->sum('line_total');
-    });
-    // Support invoices whose original payment exists only on the sale record.
-    if ($paidToDate === 0.0 && $invoice->sale) {
-        $paidToDate = (float) $invoice->sale->amount_paid;
-    }
+    $summary = $invoice->financialSummary();
 
     return Inertia::render('payments/receipt', [
         'payment' => [
@@ -169,9 +160,9 @@ public function receipt(Payment $payment)
             'customer' => $invoice->bill_to_name,
             'phone' => $invoice->bill_to_phone,
             'currency' => $invoice->currency,
-            'total' => (float) $invoice->total- $returnTotal,
-            'paid' => $paidToDate,
-            'remaining' => max(0, (float) $invoice->total - $paidToDate-$returnTotal),
+            'total' => $summary['total'],
+            'paid' => $summary['paid'],
+            'remaining' => $summary['due'],
         ],
         'storeName' => config('app.name', 'Irfan Bahar Detergent Company'),
     ]);
@@ -180,11 +171,13 @@ public function receipt(Payment $payment)
     public function invoicePayments(Invoice $invoice)
     {
         $invoice->load([
-            'sale:id,total,discount_total,after_descount_total,sold_at',
+            'sale:id,total,discount_total,after_descount_total,sold_at,amount_paid,status,currency_id',
+            'sale.saleReturns:id,sale_id,total,refund_amount',
             'payments:id,invoice_id,paid_at,amount,method,reference,notes,currency_id'
         ]);
 
-        // dd($invoice);
+        $summary = $invoice->financialSummary();
+
         return Inertia::render('invoice/index', [
             'invoice' => [
                 'id' => $invoice->id,
@@ -197,7 +190,10 @@ public function receipt(Payment $payment)
                 'total' => $invoice->sale->total,
                 'discount_total' => $invoice->sale->discount_total,
                 'after_descount_total' => $invoice->sale->after_descount_total,
-                'total_paid_amount' => $invoice->payments()->sum('amount'),
+                'total_paid_amount' => $summary['paid'],
+                'total_due' => $summary['due'],
+                'return_total' => $summary['return_total'],
+                'refunded_amount' => $summary['refunded_amount'],
                 'sale_id' => $invoice->sale->id,
                 'payments' => $invoice->payments->map(fn(Payment $payment) => [
                     'id' => $payment->id,
@@ -217,19 +213,16 @@ public function receipt(Payment $payment)
         // $threeMonthsAgo = $now->copy()->subMonth()->subMonth();
     
         $invoices = Invoice::query()
-            ->with(['sale:id,amount_paid', 'payments:id,invoice_id,amount,method,reference,paid_at', 'sale.customer:id,name'])
+            ->with(['sale:id,amount_paid,status,currency_id', 'sale.saleReturns:id,sale_id,total,refund_amount', 'payments:id,invoice_id,amount,method,reference,paid_at', 'sale.customer:id,name'])
             ->whereIn('status', ['issued', 'partially_paid', 'paid', 'over_due', 'refunded', 'partially_refunded'])    
+            ->whereHas('sale', fn($query) => $query->whereNotIn('status', ['draft', 'cancelled']))
             ->latest('issued_on')
             ->paginate(30);
 
 
         return Inertia::render('payments/allPayment', [
-            'invoices' => $invoices->map(function (Invoice $invoice) {
-                $paid = (float) $invoice->payments->sum('amount');
-                if ($paid === 0.0 && $invoice->sale) {
-                    $paid = (float) $invoice->sale->amount_paid;
-                }
-                $total = (float) $invoice->total;
+            'invoices' => $invoices->through(function (Invoice $invoice) {
+                $summary = $invoice->financialSummary();
 
                 return [
                     'id' => $invoice->id,
@@ -238,10 +231,10 @@ public function receipt(Payment $payment)
                     'customer' => $invoice->bill_to_name,
                     'phone' => $invoice->bill_to_phone,
                     'currency' => $invoice->currency,
-                    'total' => $total,
-                    'paid' => $paid,
-                    'due' => max(0, $total - $paid),
-                    'status' => $invoice->status,
+                    'total' => $summary['total'],
+                    'paid' => $summary['paid'],
+                    'due' => $summary['due'],
+                    'status' => $summary['due'] <= 0 ? 'paid' : ($summary['paid'] > 0 ? 'partially_paid' : 'issued'),
                     'issued_on' => $invoice->issued_on ? Carbon::parse($invoice->issued_on)->format('Y/m/d') : '',
                     'payments' => $invoice->payments->map(fn(Payment $payment) => [
                         'id' => $payment->id,
@@ -251,7 +244,7 @@ public function receipt(Payment $payment)
                         'paidAt' => Carbon::parse($payment->paid_at)->format('Y/m/d H:i'),
                     ])->values(),
                 ];
-            })->values(),
+            }),
         ]);
     }
 }

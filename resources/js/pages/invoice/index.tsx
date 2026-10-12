@@ -1,12 +1,12 @@
+import { router } from '@inertiajs/react';
+import { Clock12, PercentDiamondIcon, Printer, SearchXIcon, User } from 'lucide-react';
+import React from 'react'
 import PageHead from '@/components/page-head';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { router } from '@inertiajs/react';
-import { Clock12, PercentCircle, PercentDiamondIcon, Printer, SearchXIcon, User } from 'lucide-react';
-import React from 'react'
 
 type Payment = { id: number, amount: number, method: string, paid_at: Date, reference: string; notes: string, currency_id: number, payment_number: string, }
-type Invoice = { id: number, status: string, issued_on: Date, sold_at: Date, bill_to_name: string; invoice_number: string, total: number, discount_total: number, after_descount_total: number, payments: Payment[], total_paid_amount: number, sale_id: number }
+type Invoice = { id: number, status: string, issued_on: Date, sold_at: Date, bill_to_name: string; invoice_number: string, total: number, discount_total: number, after_descount_total: number, payments: Payment[], total_paid_amount: number, total_due: number, return_total: number, refunded_amount: number, sale_id: number }
 interface Props {
     invoice: Invoice;
 }
@@ -52,7 +52,7 @@ const Index = ({ invoice }: Props) => {
                         <div className='bg-white p-4 rounded-lg flex justify-between shadow-lg font-medium '>
                             <div className='flex flex-col'>
                                 <p className='text-xs text-gray-400'>بقایه</p>
-                                <h3 className='text-lg text-slate-800'>{(invoice.after_descount_total - invoice.total_paid_amount).toFixed(2)}</h3>
+                                <h3 className='text-lg text-slate-800'>{invoice.total_due.toFixed(2)}</h3>
                             </div>
                             <User className='text-emerald-200' />
                         </div>

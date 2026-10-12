@@ -1,6 +1,5 @@
 import { Head, Link, router } from '@inertiajs/react';
 import {
-  
     CircleDollarSign,
     Filter,
     Printer,
@@ -9,11 +8,10 @@ import {
     SlidersHorizontal,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Input } from '@/components/ui/input';
 import { getDariCurrency } from '@/components/location-translator';
-import AppLayout from '@/layouts/app-layout';
 import PaymentDialog from '@/components/sale/payment-dialog';
-import sales from '@/routes/sales';
+import { Input } from '@/components/ui/input';
+import AppLayout from '@/layouts/app-layout';
 
 type Payment = { id: number; amount: number; method: string; reference?: string; paidAt: string };
 type Invoice = {
@@ -31,7 +29,9 @@ type Invoice = {
     saleId: number;
     latest_payment: Payment;
 };
-type Props = { invoices: Invoice[] };
+type Props = {
+    invoices: { data: Invoice[]; current_page: number; last_page: number; total: number };
+};
 type QuickFilter = 'all' | 'due' | 'paid';
 
 const money = (value: number, currency: string) =>
@@ -43,48 +43,48 @@ export default function AllPayment({ invoices }: Props) {
     const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
     const [currencyFilter, setCurrencyFilter] = useState('all');
     const [selected, setSelected] = useState<Invoice | null>(null);
+    const invoiceRows = invoices.data;
 
     const currencies = useMemo(
-        () => Array.from(new Set(invoices.map((invoice) => invoice.currency))),
-        [invoices],
+        () => Array.from(new Set(invoiceRows.map((invoice) => invoice.currency))),
+        [invoiceRows],
     );
 
     const summaryInvoices =
         currencyFilter === 'all'
-            ? invoices
-            : invoices.filter((invoice) => invoice.currency === currencyFilter);
-    const summaryCurrency =
-        currencyFilter === 'all'
-            ? invoices[0]?.currency ?? 'AFG'
-            : currencyFilter;
+            ? invoiceRows
+            : invoiceRows.filter((invoice) => invoice.currency === currencyFilter);
 
     const counts = useMemo(
         () => ({
-            all: invoices.length,
-            due: invoices.filter((invoice) => invoice.due > 0).length,
-            paid: invoices.filter((invoice) => invoice.status === 'paid' || invoice.due <= 0).length,
+            all: invoiceRows.length,
+            due: invoiceRows.filter((invoice) => invoice.due > 0).length,
+            paid: invoiceRows.filter((invoice) => invoice.status === 'paid' || invoice.due <= 0).length,
         }),
-        [invoices],
+        [invoiceRows],
     );
 
     const filtered = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase();
-        return invoices.filter((invoice) => {
+
+        return invoiceRows.filter((invoice) => {
             const matchesFilter =
                 quickFilter === 'all' ||
                 (quickFilter === 'due' && invoice.due > 0) ||
                 (quickFilter === 'paid' && (invoice.status === 'paid' || invoice.due <= 0));
             const matchesCurrency =
                 currencyFilter === 'all' || invoice.currency === currencyFilter;
+
             const matchesQuery = `${invoice.invoice_number} ${invoice.customer} ${invoice.phone ?? ''}`
                 .toLowerCase()
                 .includes(normalizedQuery);
+
             return matchesFilter && matchesCurrency && matchesQuery;
         });
-    }, [currencyFilter, invoices, query, quickFilter]);
+    }, [currencyFilter, invoiceRows, query, quickFilter]);
 
-    const outstanding = summaryInvoices.reduce((sum, invoice) => sum + invoice.due, 0);
-    const collected = summaryInvoices.reduce((sum, invoice) => sum + invoice.paid, 0);
+    const outstanding = totalsByCurrency(summaryInvoices, (invoice) => invoice.due, currencyFilter);
+    const collected = totalsByCurrency(summaryInvoices, (invoice) => invoice.paid, currencyFilter);
 
     return (
         <AppLayout breadcrumbs={[
@@ -108,9 +108,9 @@ export default function AllPayment({ invoices }: Props) {
                     </section>
 
                     <section className="grid gap-4 sm:grid-cols-3">
-                        <Summary title="جمع دریافت‌شده" value={money(collected, summaryCurrency)} icon={CircleDollarSign} tone="blue" />
-                        <Summary title="بل‌های باقی‌مانده" value={summaryInvoices.filter((invoice) => invoice.due > 0).length.toString()} icon={Receipt} tone="green" />
-                        <Summary title="باقی‌مانده قابل دریافت" value={money(outstanding, summaryCurrency)} icon={CircleDollarSign} tone="amber" />
+                        <Summary title="دریافت‌شده در این صفحه" value={collected} icon={CircleDollarSign} tone="blue" />
+                        <Summary title="بل‌های باقی‌مانده در این صفحه" value={summaryInvoices.filter((invoice) => invoice.due > 0).length.toString()} icon={Receipt} tone="green" />
+                        <Summary title="باقی‌مانده در این صفحه" value={outstanding} icon={CircleDollarSign} tone="amber" />
 
                     </section>
 
@@ -160,7 +160,20 @@ export default function AllPayment({ invoices }: Props) {
 
                         <div className="flex items-center justify-between px-5 py-3 text-xs text-slate-400">
                             <span>{filtered.length} فاکتور نمایش داده می‌شود</span>
-                            {(query || quickFilter !== 'all' || currencyFilter !== 'all') && <button type="button" onClick={() => { setQuery(''); setQuickFilter('all'); setCurrencyFilter('all'); }} className="font-semibold text-primary hover:underline">پاک‌کردن فیلترها</button>}
+                            <span>صفحهٔ {invoices.current_page} از {invoices.last_page} · مجموع {invoices.total} فاکتور</span>
+                            {(query || quickFilter !== 'all' || currencyFilter !== 'all') && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setQuery('');
+                                        setQuickFilter('all');
+                                        setCurrencyFilter('all');
+                                    }}
+                                    className="font-semibold text-primary hover:underline"
+                                >
+                                    پاک‌کردن فیلترها
+                                </button>
+                            )}
                         </div>
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-200 text-right text-sm">
@@ -177,6 +190,10 @@ export default function AllPayment({ invoices }: Props) {
                             </table>
                             {filtered.length === 0 && <div className="p-12 text-center text-sm text-slate-500">فاکتوری با این فیلتر پیدا نشد.</div>}
                         </div>
+                        <div className="flex justify-between border-t border-slate-100 px-5 py-3 dark:border-slate-800">
+                            <button type="button" disabled={invoices.current_page <= 1} onClick={() => router.get('/payments/all', { page: invoices.current_page - 1 }, { preserveScroll: true })} className="text-sm font-semibold text-primary disabled:text-slate-300">قبلی</button>
+                            <button type="button" disabled={invoices.current_page >= invoices.last_page} onClick={() => router.get('/payments/all', { page: invoices.current_page + 1 }, { preserveScroll: true })} className="text-sm font-semibold text-primary disabled:text-slate-300">بعدی</button>
+                        </div>
                     </section>
                 </div>
             </div>
@@ -187,10 +204,24 @@ export default function AllPayment({ invoices }: Props) {
 
 function QuickFilterButton({ label, count, active, onClick, tone = 'blue' }: { label: string; count: number; active: boolean; onClick: () => void; tone?: 'blue' | 'amber' | 'green' }) {
     const accent = { blue: 'text-primary', amber: 'text-amber-700', green: 'text-emerald-700' }[tone];
+
     return <button type="button" onClick={onClick} className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-xs font-semibold transition ${active ? 'bg-white text-slate-900 shadow-sm ring-1 ring-slate-200' : 'text-slate-500 hover:bg-white/70'}`}><span>{label}</span><span className={`rounded-full px-2 py-0.5 text-[11px] ${active ? `bg-slate-100 ${accent}` : 'bg-slate-200/70 text-slate-500'}`}>{count}</span></button>;
 }
 
 function Summary({ title, value, icon: Icon, tone }: { title: string; value: string; icon: typeof CircleDollarSign; tone: 'blue' | 'green' | 'amber' }) {
     const colors = { blue: 'bg-blue-50 text-blue-600', green: 'bg-emerald-50 text-emerald-600', amber: 'bg-amber-50 text-amber-600' };
+
     return <div className="rounded-2xl border bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900"><div className="flex items-center gap-3"><div className={`rounded-xl p-2.5 ${colors[tone]}`}><Icon className="size-5" /></div><div><p className="text-xs text-slate-500">{title}</p><b className="mt-1 block text-xl">{value}</b></div></div></div>;
+}
+
+function totalsByCurrency(invoices: Invoice[], amountForInvoice: (invoice: Invoice) => number, emptyCurrency: string): string {
+    const totals = invoices.reduce<Map<string, number>>((result, invoice) => {
+        result.set(invoice.currency, (result.get(invoice.currency) ?? 0) + amountForInvoice(invoice));
+
+        return result;
+    }, new Map());
+
+    return totals.size > 0
+        ? Array.from(totals, ([currency, amount]) => money(amount, currency)).join(' · ')
+        : money(0, emptyCurrency === 'all' ? 'AFG' : emptyCurrency);
 }

@@ -149,7 +149,11 @@ class CustomerController extends Controller
         $customer->load('sales:id,status,after_descount_total,amount_paid,sold_at,currency_id', 'sales.currency:id,name');
         $customer->load('sales.invoice:id,sale_id,invoice_number,issued_on', 'sales.saleReturns:id,sale_id,total,refund_amount');
         $customer->load('sales.invoice.payments:id,invoice_id,amount,method,reference,notes,paid_at,payment_number,currency_id', 'sales.invoice.payments.currency:id,name');
-        $orders = $customer->sales()->orderBy('id', 'desc')->get();
+        $orders = $customer->sales()
+            ->with(['currency', 'saleReturns', 'invoice.payments'])
+            ->whereHas('invoice')
+            ->orderByDesc('id')
+            ->get();
         return Inertia::render('customer/invoice', [
             'customer' => [
                 'id' => $customer->id,
@@ -157,19 +161,25 @@ class CustomerController extends Controller
                 'joined' => $customer->created_at,
             ],
             'orders' => $orders->map(function (Sale $order) {
+                $order->invoice->setRelation('sale', $order);
+                $summary = $order->invoice->financialSummary();
+
                 return [
                     'id' => $order->id,
                     'status' => $order->status,
                     'invoice' => [
                         'id' => $order->invoice->id,
                         'invoice_number' => $order->invoice->invoice_number,
-                        'status' => $order->invoice->status,
+                        'status' => $summary['due'] <= 0 ? 'paid' : ($summary['paid'] > 0 ? 'partially_paid' : 'issued'),
                         'customer' => $order->invoice->bill_to_name ?? 'walk-in',
-                        'total' => $order->invoice->total,
+                        'total' => $summary['total'],
+                        'original_total' => $summary['original_total'],
+                        'return_total' => $summary['return_total'],
+                        'refunded_amount' => $summary['refunded_amount'],
                         'issued_on' => $order->invoice->issued_on,
                         'currency' => $order->invoice->currency,
-                        'due' => $order->after_descount_total - $order->saleReturns->sum(fn(SaleReturn $return) => $return->total) - $order->invoice->payments->sum('amount'),
-                        'paid' => $order->invoice->payments->sum('amount') ?? 0,
+                        'due' => $summary['due'],
+                        'paid' => $summary['paid'],
                     ],
                     'sold_at' => $order->sold_at,
                     'subTotal' => $order->total,

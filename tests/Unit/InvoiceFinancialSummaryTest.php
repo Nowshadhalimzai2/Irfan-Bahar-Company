@@ -41,4 +41,15 @@ class InvoiceFinancialSummaryTest extends TestCase
 
         self::assertSame(90.0, $sale->returnValueForUnitPrice(100));
     }
+
+    public function test_cancelled_sales_have_no_outstanding_invoice_balance(): void
+    {
+        $invoice = new Invoice(['total' => 100]);
+        $sale = new Sale(['status' => 'cancelled', 'amount_paid' => 0]);
+        $sale->setRelation('saleReturns', collect());
+        $invoice->setRelation('sale', $sale);
+        $invoice->setRelation('payments', collect());
+
+        self::assertSame(0.0, $invoice->financialSummary()['due']);
+    }
 }

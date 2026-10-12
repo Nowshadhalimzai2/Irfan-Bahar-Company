@@ -2,11 +2,11 @@ import { Link, router } from '@inertiajs/react';
 import { File, HandCoins, Printer, ReceiptText, Search, ShoppingCart, Wallet } from 'lucide-react';
 import { useState  } from 'react';
 import type {ReactNode} from 'react';
+import { getDariCurrency } from '@/components/location-translator';
 import PageHead from '@/components/page-head';
 import PaymentDialog from '@/components/sale/payment-dialog';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import { getDariCurrency } from '@/components/location-translator';
 
 type Payment = { id: number; amount: number; method: string; reference?: string; paidAt: string, notes?: string; number: string; currency: { id: number; name: string; } };
 
@@ -33,7 +33,7 @@ const Invoice = ({ customer, orders }: Props) => {
     const [selected, setSelected] = useState<Invoice | null>(null);
     const filteredOrders = orders.filter(order => order.invoice.invoice_number.toLowerCase().includes(searchTerm.trim().toLowerCase()));
     const activeOrders = orders.filter(order => order.status !== 'cancelled');
-    const billedByCurrency = sumByCurrency(activeOrders, order => Math.max(0, Number(order.grandTotal) - Number(order.returnTotal)));
+    const billedByCurrency = sumByCurrency(activeOrders, order => order.invoice.total);
     const paidByCurrency = sumByCurrency(activeOrders, order => Number(order.invoice.paid));
     const dueByCurrency = sumByCurrency(activeOrders, order => Math.max(0, Number(order.invoice.due)));
 
@@ -93,7 +93,7 @@ const Invoice = ({ customer, orders }: Props) => {
                                             filteredOrders.map(order =>
                                                 <tr key={order.id} className='border-t border-slate-100 text-sm transition-colors hover:bg-slate-50/70'>
                                                     <td className="px-5 py-4"><b className="cursor-pointer text-primary hover:underline" title='تاریخ پرداخت ها را ببینید' onClick={() => router.get(`/sales/invoice/${order.invoice.id}/payments`)}>{order.invoice.invoice_number}</b><small className="mt-1 block text-xs text-slate-400">{new Date(order.invoice.issued_on).toLocaleDateString('fa-AF')}</small></td>
-                                                    <td className='text-center font-medium'>{order.grandTotal} {getDariCurrency(order.currency.name)}</td>
+                                                    <td className='text-center font-medium'>{order.invoice.total} {getDariCurrency(order.currency.name)}</td>
                                                     <td className='text-center text-rose-600'>{order.returnTotal}</td>
                                                     <td className='text-center '>{order.invoice.paid}</td>
                                                     <td className='text-center font-medium text-amber-700'>{(order.invoice.due).toFixed(2)}</td>
@@ -155,7 +155,6 @@ function QuickStat({ title, icon, tone, value }: { title: string; icon: ReactNod
         emerald: 'bg-emerald-50 text-emerald-700',
         amber: 'bg-amber-50 text-amber-700',
     };
-    const numberFormat = new Intl.NumberFormat('fa-AF', { maximumFractionDigits: 2 });
 
     return (
         <div className="min-h-32 border-y border-slate-200 bg-white px-4 py-4 sm:border-x">

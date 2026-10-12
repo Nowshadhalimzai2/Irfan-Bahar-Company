@@ -1,8 +1,5 @@
 import { Head, router } from '@inertiajs/react';
-import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
-import { Account, Currency, Employee } from '@/types';
-import AppLayout from '@/layouts/app-layout';
-import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
 import {
     ArrowDownLeft,
     ArrowUpRight,
@@ -16,24 +13,27 @@ import {
     Users,
     Wallet,
     Warehouse,
-    LucideIcon,
     AlertTriangle,
     DollarSignIcon,
     Activity,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
 import { getDariCurrency } from '@/components/location-translator';
-import axios from 'axios';
-import { Item, Transfer } from '@/types/item';
+import AppLayout from '@/layouts/app-layout';
+import type { Account, Currency } from '@/types';
+import type { Item, Transfer } from '@/types/item';
 
 interface Props {
+    businessDate: string;
     sa: Account[];
-    totalExpensesBasedOnCurrency: Record<string, number>;
     currencies: Currency[];
     transfersToShop: Transfer[];
-    employees: Employee[];
+    attendanceSummary: { total: number; present: number; absent: number; unrecorded: number };
     items: Item[];
     reorderItemsCount: number;
-    totalAmountShopOwes: number;
+    totalTransferredValueToShop: number;
     totalAmountOfAvailableItems: number;
     totalExpenses: Record<number, number>;
     todaysExpenses: Record<number, number>;
@@ -44,36 +44,38 @@ interface Props {
 
 }
 
-export default function Dashboard({ todayIncomes, todaysExpenses, sa, totalPayments, currencies, overallLoans, transfersToShop, employees, items, reorderItemsCount, totalAmountShopOwes, totalAmountOfAvailableItems, totalExpenses, totalLoans }: Props) {
+export default function Dashboard({ businessDate, todayIncomes, todaysExpenses, sa, totalPayments, currencies, overallLoans, transfersToShop, attendanceSummary, items, reorderItemsCount, totalTransferredValueToShop, totalAmountOfAvailableItems, totalExpenses, totalLoans }: Props) {
 
 
     const [currency, setCurrency] = useState<Currency>(currencies[0]);
-    const [averageExpenses, setAverageExpenses] = useState<number>(0);
+    const [averageExpense, setAverageExpense] = useState<{ currencyId: number; amount: number } | null>(null);
+    const averageExpenses = averageExpense?.currencyId === currency.id ? averageExpense.amount : 0;
 
     useEffect(() => {
-        const getRevenueAndExpenses = async () => {
-            const response = await axios.get(`/total-revenue-and-expenses/${currency.name}`);
-            if (response.status === 200) {
-                setAverageExpenses(response.data);
-            }
-        };
+        const controller = new AbortController();
 
-        getRevenueAndExpenses();
-    }, [currency.id]);
+        axios.get(`/total-revenue-and-expenses/${currency.name}`, { signal: controller.signal })
+            .then(({ data }) => {
+                if (!controller.signal.aborted && Number.isFinite(Number(data))) {
+                    setAverageExpense({ currencyId: currency.id, amount: Number(data) });
+                }
+            })
+            .catch(() => {
+                if (!controller.signal.aborted) {
+                    setAverageExpense({ currencyId: currency.id, amount: 0 });
+                }
+            });
 
-
-    const presentEmps: number = useMemo(
-        () => employees.filter(emp => emp.attendances[emp.attendances.length - 1].is_present === true).length
-        , []
-    );
+        return () => controller.abort();
+    }, [currency.id, currency.name]);
 
 
     const quickStats = [
 
         {
-            title: 'میانگین هزینه‌ها',
+            title: 'میانگین ماهانه هزینه‌ها',
             value: `${averageExpenses.toFixed(2)} ${getDariCurrency(currency.name)}`,
-            subtitle: 'در این ماه',
+            subtitle: 'بر پایهٔ دو ماه کامل و ماه جاری',
             icon: TrendingUp,
             tone: 'amber',
         },
@@ -117,6 +119,7 @@ export default function Dashboard({ todayIncomes, todaysExpenses, sa, totalPayme
                     <div>
                         <p className="text-xs font-medium uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Overview</p>
                         <h1 className="mt-1 text-2xl font-bold text-slate-800 dark:text-slate-50">داشبورد مدیریت</h1>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">تاریخ کاری امروز : {businessDate}</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <div className="rounded-xl border border-slate-200 bg-white/80 px-3 py-2 shadow-sm dark:border-slate-700 dark:bg-slate-900/80">
@@ -127,7 +130,10 @@ export default function Dashboard({ todayIncomes, todaysExpenses, sa, totalPayme
                                 onChange={(e) => {
                                     const id = Number(e.target.value);
                                     const currency = currencies.find(c => c.id === id);
-                                    if (currency) setCurrency(currency);
+
+                                    if (currency) {
+                                        setCurrency(currency);
+                                    }
                                 }} className='bg-transparent text-sm font-medium text-slate-700 outline-none dark:text-slate-200'
                             >
                                 {currencies.map((cur) => (
@@ -205,9 +211,10 @@ export default function Dashboard({ todayIncomes, todaysExpenses, sa, totalPayme
                         </div>
 
                         <div className="space-y-3">
-                            <EmployeeDashboardCard title='کل کارکنان' value={employees.length} Icon={BriefcaseBusiness} color='violet' />
-                            <EmployeeDashboardCard title='حاضر' value={presentEmps} Icon={BadgeCheck} color='emerald' />
-                            <EmployeeDashboardCard title='غیر حاضر' value={employees.length - presentEmps} Icon={BadgeAlert} color='rose' />
+                            <EmployeeDashboardCard title='کل کارکنان فعال' value={attendanceSummary.total} Icon={BriefcaseBusiness} color='violet' />
+                            <EmployeeDashboardCard title='حاضر' value={attendanceSummary.present} Icon={BadgeCheck} color='emerald' />
+                            <EmployeeDashboardCard title='غیر حاضر' value={attendanceSummary.absent} Icon={BadgeAlert} color='rose' />
+                            <EmployeeDashboardCard title='حاضری ثبت‌نشده' value={attendanceSummary.unrecorded} Icon={AlertTriangle} color='violet' />
                         </div>
                     </div>
                 </div>
@@ -272,12 +279,12 @@ export default function Dashboard({ todayIncomes, todaysExpenses, sa, totalPayme
                                             <div>
                                                 <p className="text-sm font-medium text-slate-700 dark:text-slate-100">{transfer.reference_no}</p>
                                                 <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                                                    {transfer.transfer_lines[0]?.item.category.name ?? '—'}
+                                                    {transfer.transfer_lines[0]?.item?.category?.name ?? '—'}
                                                 </p>
                                             </div>
                                         </div>
                                         <div className="text-left text-[11px] text-slate-500 dark:text-slate-400">
-                                            {new Date(transfer.transferred_at).toLocaleDateString('fa-IR')}
+                                            {new Date(`${transfer.transferred_at}T12:00:00`).toLocaleDateString('fa-IR')}
                                         </div>
                                     </div>
                                 ))
@@ -294,21 +301,21 @@ export default function Dashboard({ todayIncomes, todaysExpenses, sa, totalPayme
                         <div className=" gap-3 flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
                             <div className="flex justify-between">
                                 <p className="font-medium text-sm">
-                                    بقایه اجناس
+                                    ارزش انتقالات به فروشگاه
                                 </p>
                                 <div className="flex gap-2 text-indigo-500">
-                                    <h4 className="text-xl font-semibold">{totalAmountShopOwes}</h4>
+                                    <h4 className="text-xl font-semibold">{totalTransferredValueToShop.toLocaleString()}</h4>
                                     <Coins />
                                 </div>
                             </div>
                             <p className="text-xs text-muted-foreground">
-                                جمله پول اجناس انتقال شده به دوکان
+                                ارزش تمام انتقالات تکمیل‌شده از کارخانه به فروشگاه
                             </p>
                         </div>
                         <div className=" gap-3 flex flex-col rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_40px_rgba(15,23,42,0.05)] dark:border-slate-700 dark:bg-slate-900">
                             <div className="flex justify-between">
                                 <p className="font-medium text-sm">
-                                    پول اجناس
+                                    ارزش موجودی فروشگاه
                                 </p>
                                 <div className="flex gap-2 text-amber-600">
                                     <h4 className="text-xl font-semibold">{totalAmountOfAvailableItems}</h4>
@@ -323,16 +330,16 @@ export default function Dashboard({ todayIncomes, todaysExpenses, sa, totalPayme
                             <div className="flex justify-between">
 
                                 <p className="font-medium text-sm">
-                                    پول پرداخت شده
+                                    مجموع هزینه‌های شرکت
                                 </p>
                                 <div className="flex gap-2 text-fuchsia-500">
-                                    <h4 className="text-xl font-semibold">{totalExpenses[currencies.filter(cur => cur.name == currency.name)[0].id] ?? 0}</h4>
+                                    <h4 className="text-xl font-semibold">{(totalExpenses[currency.id] ?? 0).toLocaleString()}</h4>
                                     <Coins />
                                 </div>
                                
                             </div>
                                 <p className="text-xs text-muted-foreground">
-                                    جمله پول پرداخت شده از دوکان به دفتر
+                                    مجموع هزینه‌های ثبت‌شده به این ارز
                                 </p>
 
                         </div>
@@ -370,7 +377,7 @@ const BalanceCard = ({ todaysExpenses, account, LucideIcon, todaysIncomes }: Bal
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-2">
                     <span>درآمد امروز</span>
-                    <span>{todaysIncomes[account.currency.id - 1]?.toLocaleString() || 0}</span>
+                    <span>{todaysIncomes[account.currency.id]?.toLocaleString() || 0}</span>
                 </div>
             </div>
         </div>

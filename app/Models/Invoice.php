@@ -50,7 +50,8 @@ class Invoice extends Model
         $returnTotal = (float) $returns->sum('total');
         $refundedAmount = (float) $returns->sum('refund_amount');
         $netTotal = max(0, $originalTotal - $returnTotal);
-        $netPaid = max(0, $grossPaid - $refundedAmount);
+        $netPaid = min($netTotal, max(0, $grossPaid - $refundedAmount));
+        $due = $sale?->status === 'cancelled' ? 0.0 : max(0, $netTotal - $netPaid);
 
         return [
             'original_total' => $originalTotal,
@@ -59,7 +60,7 @@ class Invoice extends Model
             'gross_paid' => $grossPaid,
             'total' => $netTotal,
             'paid' => $netPaid,
-            'due' => max(0, $netTotal - $netPaid),
+            'due' => $due,
         ];
     }
 }

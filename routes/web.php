@@ -26,8 +26,6 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\WasteController;
 use App\Models\Currency;
-use App\Models\Employee;
-use App\Models\Expense;
 use App\Models\Item;
 use App\Models\ProductionOrder;
 use App\Models\Role;
@@ -35,7 +33,6 @@ use App\Models\ShopAccount;
 use App\Models\User;
 use App\Services\DashboardService;
 use App\Services\HighProductionService;
-use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -46,17 +43,6 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use App\Http\Controllers\StackholderController;
 
-if (! function_exists('getEmployees')) {
-    function getEmployees()
-    {
-        return Employee::with('attendances:id,employee_id,date,is_present')->whereHas('attendances', function ($query) {
-            $query->whereDate('date', Carbon::today(config('app.timezone')));
-        })
-            ->select('id', 'name')
-            ->get();
-    }
-}
-
 Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/', function (): RedirectResponse {
@@ -64,37 +50,46 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return redirect()->to(route('dashboard'));
     })->name('home');
 
-    Route::get('/dashboard', function () {
-        $dashbaordService = new DashboardService();
+    Route::get('/dashboard', function (DashboardService $dashboardService) {
         $sa = ShopAccount::with('currency:id,name')->select('id', 'amount', 'currency_id')->get();
 
-        //  get all emplyess length 
-        $employees = getEmployees();
-
-        $transfersToShop = $dashbaordService->shopTransfers();
+        $businessDate = $dashboardService->currentPersianDate();
+        $attendanceSummary = $dashboardService->todayAttendanceSummary();
+        $transfersToShop = $dashboardService->shopTransfers();
 
         $currencies = Currency::all(['id', 'name']);
 
-        $reorderItemsCount = $dashbaordService->reOrderItemsCount();
-        //  PRICE OF OVERALL PRODUCTS TRANSFERRED TO SHOP SINCE
-        $totalAmountShopOwes = $dashbaordService->totalAmountShopOwes();
+        $reorderItemsCount = $dashboardService->reOrderItemsCount();
+        $totalTransferredValueToShop = $dashboardService->totalTransferredValueToShop();
 
-        $items = $dashbaordService->shopItems();
-        // Total Cost of Available Items In Shop
-        $totalAmountOfAvailableItems = $dashbaordService->totalCostOfAvailableItemsInShop();
-        // TOTAL EXPENSES SO FAR
-        $totalExpenses = $dashbaordService->totalExpenses();
+        $items = $dashboardService->shopItems();
+        $totalAmountOfAvailableItems = $dashboardService->totalCostOfAvailableItemsInShop();
+        $totalExpenses = $dashboardService->totalExpenses();
 
-        $todaysExpenses = $dashbaordService->todaysExpenses();
-        $todayIncomes = $dashbaordService->todayIncomes();
+        $todaysExpenses = $dashboardService->todaysExpenses();
+        $todayIncomes = $dashboardService->todayIncomes();
 
-        //  payments for today for custoemr loans
-        $totalPayments = $dashbaordService->todaysRealPayments();
-        // total of todays loan
-        $totalLoans = $dashbaordService->todaysLoans();
-        // $totalIncomes
-        $overallLoans = $dashbaordService->totalOverallLoans();
-        return Inertia::render('dashboard', compact('overallLoans', 'todayIncomes', 'sa', 'todaysExpenses', 'currencies', 'transfersToShop', 'employees', 'items', 'reorderItemsCount', 'totalAmountShopOwes', 'totalAmountOfAvailableItems', 'totalExpenses', 'totalPayments', 'totalLoans'));
+        $totalPayments = $dashboardService->todaysRealPayments();
+        $totalLoans = $dashboardService->todaysLoans();
+        $overallLoans = $dashboardService->totalOverallLoans();
+
+        return Inertia::render('dashboard', compact(
+            'overallLoans',
+            'todayIncomes',
+            'sa',
+            'todaysExpenses',
+            'currencies',
+            'transfersToShop',
+            'businessDate',
+            'attendanceSummary',
+            'items',
+            'reorderItemsCount',
+            'totalTransferredValueToShop',
+            'totalAmountOfAvailableItems',
+            'totalExpenses',
+            'totalPayments',
+            'totalLoans',
+        ));
     })->name('dashboard')->middleware('refuseFactoryClerk');
 
     Route::get('/persian-date-picker', function () {
@@ -104,22 +99,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index')->middleware('superadmin');
 
 
-    Route::get('/total-revenue-and-expenses/{currency}', function (string $currency) {
-        $today = Carbon::today(config('app.timezone'));
-        $startOftheDate = $today->startOfMonth()->subMonth()->subMonth();
-        $expenses = Expense::with('currency:id,name')
-            ->whereDate('date', '>', $startOftheDate)
-            ->whereHas('currency', function ($q) use ($currency) {
-                $q->where('name', $currency);
-            })
-            ->sum('amount');
-        // 100 30
-        //  X  Days
-        $currentMonthDay = Carbon::today(config('app.timezone'))->dayOfMonth();
-        $currentMonthDatePercent = (100 * $currentMonthDay) / Carbon::today(config('app.timezone'))->daysInMonth();
-
-        $aveOfThreeMonths = $expenses / (2 + ($currentMonthDatePercent / 100));
-        return response()->json($aveOfThreeMonths);
+    Route::get('/total-revenue-and-expenses/{currency}', function (string $currency, DashboardService $dashboardService) {
+        return response()->json($dashboardService->averageExpensesForCurrency($currency));
     })->middleware('refuseFactoryClerk');
 
     // ---------------------------------------------------------------------------------

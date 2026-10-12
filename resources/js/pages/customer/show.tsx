@@ -57,7 +57,8 @@ export default function Show({ customer, sales, invoices }: Props) {
         const currencySales = sales.filter((sale) => sale.status !== 'cancelled' && sale.currency?.name === summaryCurrency);
         const salesTotal = currencySales.reduce((sum, sale) => {
             const returned = sale.sale_returns.reduce((returnSum, saleReturn) => returnSum + Number(saleReturn.total || 0), 0);
-            return sum + Math.max(0, Number(sale.after_descount_total || 0) - returned);
+            const invoice = invoiceBySaleId.get(sale.id);
+            return sum + (invoice?.total ?? Math.max(0, Number(sale.after_descount_total || 0) - returned));
         }, 0);
         const refunded = currencySales.reduce((sum, sale) =>
             sum + sale.sale_returns.reduce((returnSum, saleReturn) => returnSum + Number(saleReturn.refund_amount || 0), 0), 0);
@@ -162,8 +163,8 @@ export default function Show({ customer, sales, invoices }: Props) {
                             </thead><tbody>{sales.filter(sale => sale.currency.name === selectedCurrency).map((sale) => {
                                 const returnTotal = sale.sale_returns.reduce((sum, saleReturn) => sum + Number(saleReturn.total || 0), 0);
                                 const refundTotal = sale.sale_returns.reduce((sum, saleReturn) => sum + Number(saleReturn.refund_amount || 0), 0);
-                                const saleTotal = Math.max(0, Number(sale.after_descount_total || 0) - returnTotal);
                                 const customerInvoice = invoiceBySaleId.get(sale.id);
+                                const saleTotal = customerInvoice?.total ?? Math.max(0, Number(sale.after_descount_total || 0) - returnTotal);
                                 const invoicePaid = customerInvoice?.paid ?? Math.max(0, Number(sale.amount_paid || 0) - refundTotal);
                                 const invoiceDue = customerInvoice?.due ?? Math.max(0, saleTotal - invoicePaid);
                                 const invoice_id = sale.invoice ? sale.invoice.id : 0;
