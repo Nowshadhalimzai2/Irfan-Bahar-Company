@@ -12,9 +12,12 @@ use App\Models\SaleReturn;
 use App\Models\SaleReturnLine;
 use App\Models\Transfer;
 use App\Models\TransferLine;
+use App\Services\PersianDateConverter;
 use App\Services\ReportService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use InvalidArgumentException;
+use Morilog\Jalali\Jalalian;
 use Tests\TestCase;
 
 class ReportServiceTest extends TestCase
@@ -232,13 +235,16 @@ class ReportServiceTest extends TestCase
     public function test_it_uses_today_as_the_base_for_today_preset_even_when_a_different_date_is_selected(): void
     {
         $today = Carbon::today(config('app.timezone'));
+        $persianToday = Jalalian::fromCarbon($today)->format('Y/m/d');
 
         $report = app(ReportService::class)->buildForPeriod('daily', '2026-01-15', [
             'preset' => 'today',
         ]);
 
-        $this->assertSame($today->toDateString(), $report['range']['start']);
-        $this->assertSame($today->toDateString(), $report['range']['end']);
+        $this->assertSame($persianToday, $report['range']['start']);
+        $this->assertSame($persianToday, $report['range']['end']);
+        $this->assertSame($persianToday, $report['filters']['date']);
+        $this->assertSame($today->toDateString(), $report['filters']['dateGregorian']);
     }
 
     public function test_it_uses_the_current_month_as_the_base_for_this_month_preset_even_when_a_different_month_is_selected(): void
@@ -249,7 +255,98 @@ class ReportServiceTest extends TestCase
             'preset' => 'this_month',
         ]);
 
-        $this->assertSame($today->copy()->startOfMonth()->toDateString(), $report['range']['start']);
-        $this->assertSame($today->copy()->endOfMonth()->toDateString(), $report['range']['end']);
+        $this->assertSame(Jalalian::fromCarbon($today)->format('Y/m'), $report['filters']['date']);
+        $this->assertSame('01', substr($report['range']['start'], -2));
+        $this->assertSame((string) Jalalian::fromCarbon($today)->getDaysOf(Jalalian::fromCarbon($today)->getMonth()), substr($report['range']['end'], -2));
+    }
+
+    public function test_it_includes_only_sales_within_the_selected_persian_day(): void
+    {
+        $converter = app(PersianDateConverter::class);
+        $range = $converter->toGregorianRange('1405/07/10', 'date');
+        $this->createSaleAt($range['start']->copy()->subSecond(), 10);
+        $this->createSaleAt($range['start']->copy(), 20);
+        $this->createSaleAt($range['end']->copy(), 30);
+        $this->createSaleAt($range['end']->copy()->addSecond(), 40);
+
+        $report = app(ReportService::class)->buildForPeriod('daily', '1405/07/10');
+
+        $this->assertSame('1405/07/10', $report['range']['start']);
+        $this->assertSame('1405/07/10', $report['range']['end']);
+        $this->assertSame(2, $report['summary']['sales']['count']);
+        $this->assertSame(50.0, (float) $report['summary']['sales']['total']);
+    }
+
+    public function test_daily_report_includes_legacy_sales_without_sold_at_using_created_at(): void
+    {
+        $converter = app(PersianDateConverter::class);
+        $range = $converter->toGregorianRange('1405/07/10', 'date');
+        $sale = $this->createSaleAt($range['start']->copy()->addHours(10), 75);
+        $sale->forceFill([
+            'sold_at' => null,
+            'created_at' => $range['start']->copy()->addHours(10),
+        ])->saveQuietly();
+
+        $report = app(ReportService::class)->buildForPeriod('daily', '1405/07/10');
+
+        $this->assertSame(1, $report['summary']['sales']['count']);
+        $this->assertSame(75.0, (float) $report['summary']['sales']['total']);
+        $this->assertSame($range['start']->toDateString(), $report['dailySales'][0]['date']);
+    }
+
+    public function test_monthly_report_uses_full_persian_month_boundaries(): void
+    {
+        $converter = app(PersianDateConverter::class);
+        $range = $converter->toGregorianRange('1405/07', 'month');
+        $this->createSaleAt($range['start']->copy()->subSecond(), 10);
+        $this->createSaleAt($range['start']->copy(), 20);
+        $this->createSaleAt($range['end']->copy(), 30);
+        $this->createSaleAt($range['end']->copy()->addSecond(), 40);
+
+        $report = app(ReportService::class)->buildForPeriod('monthly', '1405/07');
+
+        $this->assertSame('1405/07/01', $report['range']['start']);
+        $this->assertSame('1405/07/30', $report['range']['end']);
+        $this->assertSame(2, $report['summary']['sales']['count']);
+        $this->assertSame(50.0, (float) $report['summary']['sales']['total']);
+    }
+
+    public function test_report_accepts_persian_digits_and_applies_customer_filter_to_sales(): void
+    {
+        $converter = app(PersianDateConverter::class);
+        $range = $converter->toGregorianRange('1405/07/10', 'date');
+        $this->createSaleAt($range['start']->copy()->addHour(), 100, 'Selected Customer');
+        $this->createSaleAt($range['start']->copy()->addHour(), 250, 'Other Customer');
+
+        $report = app(ReportService::class)->buildForPeriod('daily', '۱۴۰۵/۰۷/۱۰', [
+            'customer' => 'Selected Customer',
+        ]);
+
+        $this->assertSame(1, $report['summary']['sales']['count']);
+        $this->assertSame(100.0, (float) $report['summary']['sales']['total']);
+        $this->assertSame('1405/07/10', $report['range']['start']);
+    }
+
+    public function test_date_converter_rejects_impossible_persian_day(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+
+        app(PersianDateConverter::class)->toGregorianRange('1405/07/31', 'date');
+    }
+
+    private function createSaleAt(Carbon $soldAt, float $amount, string $customerName = 'Date boundary customer'): Sale
+    {
+        $currency = Currency::query()->firstOrCreate(['name' => 'AFG']);
+
+        return Sale::query()->create([
+            'customer_name' => $customerName,
+            'currency_id' => $currency->id,
+            'status' => 'completed',
+            'total' => $amount,
+            'discount_total' => 0,
+            'after_descount_total' => $amount,
+            'amount_paid' => $amount,
+            'sold_at' => $soldAt,
+        ]);
     }
 }

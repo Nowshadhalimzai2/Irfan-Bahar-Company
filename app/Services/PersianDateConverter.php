@@ -30,6 +30,11 @@ class PersianDateConverter
         $timezone ??= new DateTimeZone(config('app.timezone'));
         [$year, $month] = array_map('intval', array_slice(explode('/', $persianDate), 0, 2));
         $day = $type === 'date' ? (int) explode('/', $persianDate)[2] : 1;
+
+        if ($month < 1 || $month > 12 || $day < 1 || $year < 1000 || $year > 3000) {
+            throw new InvalidArgumentException("Invalid Persian {$type}: {$persianDate}");
+        }
+
         $persianMonthStart = Jalalian::fromFormat(
             'Y/m/d',
             sprintf('%04d/%02d/01', $year, $month),

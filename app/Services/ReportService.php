@@ -2,12 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Attendance;
 use App\Models\Expense;
-use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptLine;
 use App\Models\InventoryBalance;
 use App\Models\InventoryMovement;
-use App\Models\Item;
 use App\Models\Log;
 use App\Models\Payment;
 use App\Models\ProductionOrder;
@@ -16,13 +15,17 @@ use App\Models\Sale;
 use App\Models\SaleLine;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnLine;
-use App\Models\Transfer;
 use App\Models\TransferLine;
 use Carbon\Carbon;
+use DateTimeZone;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use Morilog\Jalali\Jalalian;
 
 class ReportService
 {
+    public function __construct(private PersianDateConverter $persianDateConverter) {}
+
     /**
      * Consolidated reporting for the factory + shop business.
      *
@@ -32,70 +35,67 @@ class ReportService
      */
     public function buildForPeriod(string $period, Carbon|string $date, array $filters = []): array
     {
-        // dd($date);
-        $selectedDate = $date instanceof Carbon ? $date->copy() : Carbon::parse($date, config('app.timezone'));
-        $today = Carbon::today(config('app.timezone'));
+        $timezone = new DateTimeZone(config('app.timezone'));
+        $requestedDate = $date instanceof Carbon ? $date->copy()->toDateString() : trim($date);
+        $today = Jalalian::now($timezone);
         $preset = $filters['preset'] ?? 'custom';
         if ($preset === 'today') {
-            $start = $today->copy()->startOfDay();
-            $end = $today->copy()->endOfDay();
+            $dateRange = $this->persianDateConverter->toGregorianRange($today->format('Y/m/d'), 'date', $timezone);
         } elseif ($preset === 'yesterday') {
-            $start = $today->copy()->subDay()->startOfDay();
-            $end = $today->copy()->subDay()->endOfDay();
+            $dateRange = $this->persianDateConverter->toGregorianRange($today->subDay()->format('Y/m/d'), 'date', $timezone);
         } elseif ($preset === 'this_month') {
-            $start = $today->copy()->startOfMonth();
-            $end = $today->copy()->endOfMonth();
+            $dateRange = $this->persianDateConverter->toGregorianRange($today->format('Y/m'), 'month', $timezone);
         } elseif ($preset === 'last_month') {
-            $start = $today->copy()->subMonth()->startOfMonth();
-            $end = $today->copy()->subMonth()->endOfMonth();
-        } elseif ($period === 'monthly') {
-            $start = $selectedDate->copy()->startOfMonth();
-            $end = $selectedDate->copy()->endOfMonth();
+            $dateRange = $this->persianDateConverter->toGregorianRange($today->subMonths(1)->format('Y/m'), 'month', $timezone);
+        } elseif ($date instanceof Carbon) {
+            $selectedDate = $date->copy()->setTimezone($timezone);
+            $dateRange = $period === 'monthly'
+                ? [$selectedDate->copy()->startOfMonth(), $selectedDate->copy()->endOfMonth()]
+                : [$selectedDate->copy()->startOfDay(), $selectedDate->copy()->endOfDay()];
+        } elseif (str_contains($requestedDate, '/')) {
+            $dateRange = $this->persianDateConverter->toGregorianRange($requestedDate, $period === 'monthly' ? 'month' : 'date', $timezone);
         } else {
-            $start = $selectedDate->copy()->startOfDay();
-            $end = $selectedDate->copy()->endOfDay();
+            // Keep compatibility for internal callers that still pass ISO dates.
+            $selectedDate = Carbon::parse($requestedDate, $timezone);
+            $dateRange = $period === 'monthly'
+                ? [$selectedDate->copy()->startOfMonth(), $selectedDate->copy()->endOfMonth()]
+                : [$selectedDate->copy()->startOfDay(), $selectedDate->copy()->endOfDay()];
         }
 
+        [$start, $end] = array_values($dateRange);
+        $selectedDate = $start->copy();
         $startDate = $start->toDateString();
         $endDate = $end->toDateString();
-        $isDailyRange = $period !== 'monthly' && ! in_array($preset, ['this_month', 'last_month'], true);
+        $monthRange = ($period === 'monthly' && $preset === 'custom') || in_array($preset, ['this_month', 'last_month'], true);
+        $startPersianDate = Jalalian::fromCarbon($start)->format('Y/m/d');
+        $endPersianDate = Jalalian::fromCarbon($end)->format('Y/m/d');
+        $selectedPersianDate = $period === 'monthly'
+            ? Jalalian::fromCarbon($start)->format('Y/m')
+            : $startPersianDate;
 
-        $salesQuery = Sale::query()
-            ->whereNotIn('status', ['draft', 'cancelled']);
+        $salesQuery = $this->applySaleFilters(
+            Sale::query()->whereNotIn('status', ['draft', 'cancelled']),
+            $filters,
+        );
 
-        if ($isDailyRange) {
-            $salesQuery->whereDate('sold_at', $start->toDateString());
-        } else {
-            $salesQuery->whereBetween('sold_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
-        }
-        if (! empty($filters['customer'])) {
-            $salesQuery->where(function ($query) use ($filters) {
-                $query->where('customer_name', 'like', '%' . $filters['customer'] . '%')
-                    ->orWhere('customer_id', $filters['customer']);
-            });
-        }
-
-        if (! empty($filters['product'])) {
-            $salesQuery->whereHas('saleLines.item', fn($query) => $query->where('id', $filters['product']));
-        }
-
+        $salesQuery->whereRaw('COALESCE(sold_at, created_at) BETWEEN ? AND ?', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
         $grossSalesTotal = (float) $salesQuery->sum('after_descount_total');
         $salesCount = (int) $salesQuery->count();
 
         $returnsQuery = SaleReturn::query();
 
-        if ($isDailyRange) {
-            $returnsQuery->where(function ($query) use ($start) {
-                $query->whereDate('refunded_at', $start->toDateString())
-                    ->orWhereDate('received_at', $start->toDateString())
-                    ->orWhereDate('requested_at', $start->toDateString());
-            });
-        } else {
-            $returnsQuery->where(function ($query) use ($start, $end) {
-                $query->whereBetween('refunded_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
-                    ->orWhereBetween('received_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
-                    ->orWhereBetween('requested_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
-            });
+        $returnsQuery->where(function ($query) use ($start, $end) {
+            $query->whereBetween('refunded_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+                ->orWhereBetween('received_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+                ->orWhereBetween('requested_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
+        });
+        if (! empty($filters['customer'])) {
+            $returnsQuery->whereHas('sale', fn (Builder $query) => $this->applySaleFilters($query, ['customer' => $filters['customer']]));
+        }
+        if (! empty($filters['product']) || ! empty($filters['category'])) {
+            $returnsQuery->whereHas('lines.item', fn (Builder $query) => $query
+                ->when(! empty($filters['product']), fn (Builder $itemQuery) => $itemQuery->where('id', $filters['product']))
+                ->when(! empty($filters['category']), fn (Builder $itemQuery) => $itemQuery->where('category_id', $filters['category'])));
         }
 
         $returnsTotal = (float) $returnsQuery->sum('refund_amount');
@@ -104,33 +104,28 @@ class ReportService
         $costOfGoodsSoldQuery = SaleLine::query()
             ->join('sales', 'sales.id', '=', 'sale_lines.sale_id')
             ->whereNotIn('sales.status', ['draft', 'cancelled'])
-            ->when(! empty($filters['product']), fn($query) => $query->where('sale_lines.item_id', $filters['product']));
-
-        if ($isDailyRange) {
-            $costOfGoodsSoldQuery->whereDate('sales.sold_at', $start->toDateString());
-        } else {
-            $costOfGoodsSoldQuery->whereBetween('sales.sold_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
+            ->when(! empty($filters['product']), fn ($query) => $query->where('sale_lines.item_id', $filters['product']))
+            ->when(! empty($filters['category']), fn ($query) => $query->whereHas('item', fn (Builder $itemQuery) => $itemQuery->where('category_id', $filters['category'])));
+        if (! empty($filters['customer'])) {
+            $costOfGoodsSoldQuery->whereHas('sale', fn (Builder $query) => $this->applySaleFilters($query, ['customer' => $filters['customer']]));
         }
+
+        $costOfGoodsSoldQuery->whereRaw('COALESCE(sales.sold_at, sales.created_at) BETWEEN ? AND ?', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
 
         $costOfGoodsSold = (float) $costOfGoodsSoldQuery->sum(DB::raw('sale_lines.quantity * sale_lines.unit_cost'));
 
         $returnedGoodsCostQuery = SaleReturnLine::query()
             ->join('sale_returns', 'sale_returns.id', '=', 'sale_return_lines.sale_return_id')
-            ->join('sale_lines', 'sale_lines.id', '=', 'sale_return_lines.sale_line_id');
+            ->join('sale_lines', 'sale_lines.id', '=', 'sale_return_lines.sale_line_id')
+            ->when(! empty($filters['product']), fn ($query) => $query->where('sale_return_lines.item_id', $filters['product']))
+            ->when(! empty($filters['category']), fn ($query) => $query->join('items as returned_items', 'returned_items.id', '=', 'sale_return_lines.item_id')->where('returned_items.category_id', $filters['category']))
+            ->when(! empty($filters['customer']), fn ($query) => $query->whereHas('saleReturn.sale', fn (Builder $saleQuery) => $this->applySaleFilters($saleQuery, ['customer' => $filters['customer']])));
 
-        if ($isDailyRange) {
-            $returnedGoodsCostQuery->where(function ($query) use ($start) {
-                $query->whereDate('sale_returns.refunded_at', $start->toDateString())
-                    ->orWhereDate('sale_returns.received_at', $start->toDateString())
-                    ->orWhereDate('sale_returns.requested_at', $start->toDateString());
-            });
-        } else {
-            $returnedGoodsCostQuery->where(function ($query) use ($start, $end) {
-                $query->whereBetween('sale_returns.refunded_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
-                    ->orWhereBetween('sale_returns.received_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
-                    ->orWhereBetween('sale_returns.requested_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
-            });
-        }
+        $returnedGoodsCostQuery->where(function ($query) use ($start, $end) {
+            $query->whereBetween('sale_returns.refunded_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+                ->orWhereBetween('sale_returns.received_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+                ->orWhereBetween('sale_returns.requested_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
+        });
 
         $returnedGoodsCost = (float) $returnedGoodsCostQuery->sum(DB::raw('sale_return_lines.quantity * sale_lines.unit_cost'));
 
@@ -140,7 +135,7 @@ class ReportService
         $rawMaterialPurchaseCost = (float) GoodsReceiptLine::query()
             ->join('goods_receipts', 'goods_receipts.id', '=', 'goods_receipt_lines.receipt_id')
             ->whereBetween('goods_receipts.received_at', [$startDate, $endDate])
-            ->when(! empty($filters['vendor']), fn($query) => $query->where('goods_receipts.supplier_id', $filters['vendor']))
+            ->when(! empty($filters['vendor']), fn ($query) => $query->where('goods_receipts.supplier_id', $filters['vendor']))
             ->sum(DB::raw('goods_receipt_lines.quantity * goods_receipt_lines.unit_cost'));
 
         $productionOutputQuantity = (float) ProductionOutput::query()
@@ -192,10 +187,10 @@ class ReportService
             );
 
         $dailyRows = $salesQuery
-            ->get(['sold_at', 'after_descount_total'])
-            ->groupBy(fn($sale) => Carbon::parse($sale->sold_at)->toDateString())
-            ->map(fn($rows, $date) => [
-                'label' => Carbon::parse($date)->format('M j'),
+            ->get(['sold_at', 'created_at', 'after_descount_total'])
+            ->groupBy(fn ($sale) => Carbon::parse($sale->sold_at ?? $sale->created_at)->toDateString())
+            ->map(fn ($rows, $date) => [
+                'label' => Jalalian::fromCarbon(Carbon::parse($date))->format('m/d'),
                 'date' => $date,
                 'sales' => (float) $rows->sum('after_descount_total'),
                 'count' => $rows->count(),
@@ -206,27 +201,24 @@ class ReportService
             ->with('currency:id,name')
             ->whereBetween('date', [$startDate, $endDate])
             ->get()
-            ->groupBy(fn($expense) => $expense->currency?->name ?? 'Unknown')
-            ->map(fn($rows, $currency) => [
+            ->groupBy(fn ($expense) => $expense->currency?->name ?? 'Unknown')
+            ->map(fn ($rows, $currency) => [
                 'currency' => $currency,
                 'amount' => (float) $rows->sum('amount'),
                 'count' => $rows->count(),
             ])
             ->values();
 
-        $salesByCurrencyQuery = Sale::query()
-            ->with('currency:id,name')
-            ->whereNotIn('status', ['draft', 'cancelled']);
+        $salesByCurrencyQuery = $this->applySaleFilters(
+            Sale::query()->with('currency:id,name')->whereNotIn('status', ['draft', 'cancelled']),
+            $filters,
+        );
 
-        if ($isDailyRange) {
-            $salesByCurrencyQuery->whereDate('sold_at', $start->toDateString());
-        } else {
-            $salesByCurrencyQuery->whereBetween('sold_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
-        }
+        $salesByCurrencyQuery->whereRaw('COALESCE(sold_at, created_at) BETWEEN ? AND ?', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
 
         $salesByCurrency = $salesByCurrencyQuery->get()
-            ->groupBy(fn($sale) => $sale->currency?->name ?? 'Unknown')
-            ->map(fn($sales, $currency) => [
+            ->groupBy(fn ($sale) => $sale->currency?->name ?? 'Unknown')
+            ->map(fn ($sales, $currency) => [
                 'currency' => $currency,
                 'total' => (float) $sales->sum('after_descount_total'),
                 'count' => $sales->count(),
@@ -235,23 +227,23 @@ class ReportService
 
         $returnsByCurrencyQuery = SaleReturn::query();
 
-        if ($isDailyRange) {
-            $returnsByCurrencyQuery->where(function ($query) use ($start) {
-                $query->whereDate('refunded_at', $start->toDateString())
-                    ->orWhereDate('received_at', $start->toDateString())
-                    ->orWhereDate('requested_at', $start->toDateString());
-            });
-        } else {
-            $returnsByCurrencyQuery->where(function ($query) use ($start, $end) {
-                $query->whereBetween('refunded_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
-                    ->orWhereBetween('received_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
-                    ->orWhereBetween('requested_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
-            });
+        $returnsByCurrencyQuery->where(function ($query) use ($start, $end) {
+            $query->whereBetween('refunded_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+                ->orWhereBetween('received_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+                ->orWhereBetween('requested_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
+        });
+        if (! empty($filters['customer'])) {
+            $returnsByCurrencyQuery->whereHas('sale', fn (Builder $query) => $this->applySaleFilters($query, ['customer' => $filters['customer']]));
+        }
+        if (! empty($filters['product']) || ! empty($filters['category'])) {
+            $returnsByCurrencyQuery->whereHas('lines.item', fn (Builder $query) => $query
+                ->when(! empty($filters['product']), fn (Builder $itemQuery) => $itemQuery->where('id', $filters['product']))
+                ->when(! empty($filters['category']), fn (Builder $itemQuery) => $itemQuery->where('category_id', $filters['category'])));
         }
 
         $returnsByCurrency = $returnsByCurrencyQuery->get()
-            ->groupBy(fn($return) => $return->currency ?? 'Unknown')
-            ->map(fn($returns, $currency) => [
+            ->groupBy(fn ($return) => $return->currency ?? 'Unknown')
+            ->map(fn ($returns, $currency) => [
                 'currency' => $currency,
                 'total' => (float) $returns->sum('refund_amount'),
                 'count' => $returns->count(),
@@ -281,7 +273,7 @@ class ReportService
             ];
         })->values();
 
-        $attendance = \App\Models\Attendance::query()
+        $attendance = Attendance::query()
             ->whereBetween('date', [$startDate, $endDate])
             ->selectRaw('is_present, COUNT(*) as total')
             ->groupBy('is_present')
@@ -293,7 +285,7 @@ class ReportService
             ->groupBy('movement_type')
             ->orderByDesc('movements')
             ->get()
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'type' => $row->movement_type,
                 'movements' => (int) $row->movements,
                 'quantity' => (float) $row->quantity,
@@ -306,20 +298,22 @@ class ReportService
             ->groupBy('status')
             ->orderByDesc('total')
             ->get()
-            ->map(fn($row) => ['status' => $row->status, 'total' => (int) $row->total])
+            ->map(fn ($row) => ['status' => $row->status, 'total' => (int) $row->total])
             ->values();
 
         $topProducts = SaleLine::query()
             ->join('sales', 'sales.id', '=', 'sale_lines.sale_id')
             ->join('items', 'items.id', '=', 'sale_lines.item_id')
             ->whereNotIn('sales.status', ['draft', 'cancelled'])
-            ->whereBetween('sales.sold_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+            ->when(! empty($filters['product']), fn ($query) => $query->where('sale_lines.item_id', $filters['product']))
+            ->when(! empty($filters['category']), fn ($query) => $query->where('items.category_id', $filters['category']))
+            ->whereRaw('COALESCE(sales.sold_at, sales.created_at) BETWEEN ? AND ?', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
             ->selectRaw('items.name as name, SUM(sale_lines.line_total) as total, SUM(sale_lines.quantity) as quantity')
             ->groupBy('items.id', 'items.name')
             ->orderByDesc('total')
             ->limit(6)
             ->get()
-            ->map(fn($row) => ['name' => $row->name, 'total' => (float) $row->total, 'quantity' => (float) $row->quantity])
+            ->map(fn ($row) => ['name' => $row->name, 'total' => (float) $row->total, 'quantity' => (float) $row->quantity])
             ->values();
 
         $customerSales = Sale::query()
@@ -333,8 +327,21 @@ class ReportService
         SUM(sales.after_descount_total) AS total,
         COUNT(*) AS orders
     ")
-            ->whereNotIn('sales.status', ['draft', 'cancelled', 'returned'])
-            ->whereBetween('sales.sold_at', [
+            ->whereNotIn('sales.status', ['draft', 'cancelled'])
+            ->when(! empty($filters['customer']), fn ($query) => $query->where(function ($customerQuery) use ($filters) {
+                if (ctype_digit((string) $filters['customer'])) {
+                    $customerQuery->where('sales.customer_id', $filters['customer']);
+                } else {
+                    $customerQuery->where('sales.customer_name', 'like', '%'.$filters['customer'].'%');
+                }
+            }))
+            ->when(! empty($filters['product']), fn ($query) => $query->whereExists(function ($subquery) use ($filters) {
+                $subquery->selectRaw('1')->from('sale_lines')->whereColumn('sale_lines.sale_id', 'sales.id')->where('sale_lines.item_id', $filters['product']);
+            }))
+            ->when(! empty($filters['category']), fn ($query) => $query->whereExists(function ($subquery) use ($filters) {
+                $subquery->selectRaw('1')->from('sale_lines')->join('items', 'items.id', '=', 'sale_lines.item_id')->whereColumn('sale_lines.sale_id', 'sales.id')->where('items.category_id', $filters['category']);
+            }))
+            ->whereRaw('COALESCE(sales.sold_at, sales.created_at) BETWEEN ? AND ?', [
                 $start->copy()->startOfDay(),
                 $end->copy()->endOfDay(),
             ])
@@ -348,7 +355,7 @@ class ReportService
             ->orderByDesc('total')
             ->limit(5)
             ->get()
-            ->map(fn($row) => [
+            ->map(fn ($row) => [
                 'customer' => $row->customer,
                 'total' => (float) $row->total,
                 'orders' => (int) $row->orders,
@@ -359,12 +366,13 @@ class ReportService
             ->join('goods_receipts', 'goods_receipts.id', '=', 'goods_receipt_lines.receipt_id')
             ->join('suppliers', 'suppliers.id', '=', 'goods_receipts.supplier_id')
             ->whereBetween('goods_receipts.received_at', [$startDate, $endDate])
+            ->when(! empty($filters['vendor']), fn ($query) => $query->where('goods_receipts.supplier_id', $filters['vendor']))
             ->selectRaw('suppliers.name as vendor, SUM(goods_receipt_lines.quantity * goods_receipt_lines.unit_cost) as total, COUNT(*) as count')
             ->groupBy('suppliers.id', 'suppliers.name')
             ->orderByDesc('total')
             ->limit(6)
             ->get()
-            ->map(fn($row) => ['vendor' => $row->vendor, 'total' => (float) $row->total, 'count' => (int) $row->count])
+            ->map(fn ($row) => ['vendor' => $row->vendor, 'total' => (float) $row->total, 'count' => (int) $row->count])
             ->values();
 
         $internalTransfers = TransferLine::query()
@@ -381,7 +389,7 @@ class ReportService
             ->orderByDesc('transfers.transferred_at')
             ->limit(8)
             ->get()
-            ->map(fn($row) => ['date' => $row->date, 'product' => $row->product, 'quantity' => (float) $row->quantity, 'value' => (float) $row->value])
+            ->map(fn ($row) => ['date' => $row->date, 'product' => $row->product, 'quantity' => (float) $row->quantity, 'value' => (float) $row->value])
             ->values();
 
         $shopInventory = InventoryBalance::query()
@@ -392,14 +400,23 @@ class ReportService
             ->orderBy('quantity_on_hand')
             ->limit(8)
             ->get()
-            ->map(fn($row) => ['product' => $row->product, 'quantity' => (float) $row->quantity, 'value' => (float) $row->value, 'is_low_stock' => $row->quantity < 10 ? true : false])
+            ->map(fn ($row) => ['product' => $row->product, 'quantity' => (float) $row->quantity, 'value' => (float) $row->value, 'is_low_stock' => $row->quantity < 10 ? true : false])
             ->values();
+
+        $paymentsQuery = Payment::query()
+            ->whereBetween('paid_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
+
+        if (! empty($filters['customer']) || ! empty($filters['product']) || ! empty($filters['category'])) {
+            $paymentsQuery->whereHas('invoice.sale', fn (Builder $query) => $this->applySaleFilters($query, $filters));
+        }
+
         // dd($lowStockItems);
         return [
             'filters' => [
                 'period' => $period,
                 'preset' => $preset,
-                'date' => $selectedDate->toDateString(),
+                'date' => $selectedPersianDate,
+                'dateGregorian' => $selectedDate->toDateString(),
                 'business_unit' => $filters['business_unit'] ?? 'consolidated',
                 'product' => $filters['product'] ?? null,
                 'category' => $filters['category'] ?? null,
@@ -407,14 +424,14 @@ class ReportService
                 'customer' => $filters['customer'] ?? null,
             ],
             'range' => [
-                'start' => $startDate,
-                'end' => $endDate,
-                'label' => $period === 'monthly' ? $start->format('F Y') : $start->format('F j, Y'),
+                'start' => $startPersianDate,
+                'end' => $endPersianDate,
+                'label' => $monthRange ? Jalalian::fromCarbon($start)->format('Y/m') : $startPersianDate,
             ],
             'summary' => [
                 'sales' => ['total' => $salesTotal, 'gross_total' => $grossSalesTotal, 'count' => $salesCount],
                 'expenses' => ['total' => (float) Expense::query()->whereBetween('date', [$startDate, $endDate])->sum('amount'), 'count' => (int) Expense::query()->whereBetween('date', [$startDate, $endDate])->count()],
-                'payments' => ['total' => (float) Payment::query()->whereBetween('paid_at', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])->sum('amount')],
+                'payments' => ['total' => (float) $paymentsQuery->sum('amount')],
                 'refunds' => ['total' => $returnsTotal],
                 'returns_total' => $returnsTotal,
                 'attendance' => [
@@ -432,7 +449,7 @@ class ReportService
                 'shop_stock_value' => $shopStockValue,
                 'factory_stock_value' => $factoryStockValue,
                 'low_stock_items_count' => $lowStockItems->count(),
-                'low_stock_items' => $lowStockItems->get()->map(fn(InventoryBalance $balance) => [
+                'low_stock_items' => $lowStockItems->get()->map(fn (InventoryBalance $balance) => [
                     'item' => ['id' => $balance->item_id, 'name' => $balance->item->name, 'code' => $balance->item->code, 'price' => $balance->item->default_sale_price],
                     'quantity' => $balance->available_qty,
                     'total_cost' => $balance->available_qty * $balance->item->default_sale_price,
@@ -450,5 +467,20 @@ class ReportService
             'internalTransfers' => $internalTransfers,
             'shopInventory' => $shopInventory,
         ];
+    }
+
+    private function applySaleFilters(Builder $query, array $filters): Builder
+    {
+        return $query
+            ->when(! empty($filters['customer']), fn (Builder $saleQuery) => $saleQuery->where(function (Builder $customerQuery) use ($filters) {
+                if (ctype_digit((string) $filters['customer'])) {
+                    $customerQuery->where('customer_id', $filters['customer']);
+                } else {
+                    $customerQuery->where('customer_name', 'like', '%'.$filters['customer'].'%');
+                }
+            }))
+            ->when(! empty($filters['product']) || ! empty($filters['category']), fn (Builder $saleQuery) => $saleQuery->whereHas('saleLines.item', fn (Builder $itemQuery) => $itemQuery
+                ->when(! empty($filters['product']), fn (Builder $itemQuery) => $itemQuery->where('id', $filters['product']))
+                ->when(! empty($filters['category']), fn (Builder $itemQuery) => $itemQuery->where('category_id', $filters['category']))));
     }
 }
