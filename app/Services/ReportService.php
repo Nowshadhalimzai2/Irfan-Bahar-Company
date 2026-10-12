@@ -78,7 +78,11 @@ class ReportService
             $filters,
         );
 
-        $salesQuery->whereRaw('COALESCE(sold_at, created_at) BETWEEN ? AND ?', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
+        // Compare the Gregorian date portion explicitly. Some existing records
+        // use ISO timestamps (2026-10-07T08:04), while others use SQL datetime
+        // strings (2026-10-07 08:04:00). A raw BETWEEN on an exact day can
+        // exclude the ISO values because `T` sorts after the space separator.
+        $salesQuery->whereRaw('DATE(COALESCE(sold_at, created_at)) BETWEEN ? AND ?', [$startDate, $endDate]);
         $grossSalesTotal = (float) $salesQuery->sum('after_descount_total');
         $salesCount = (int) $salesQuery->count();
 
@@ -110,7 +114,7 @@ class ReportService
             $costOfGoodsSoldQuery->whereHas('sale', fn (Builder $query) => $this->applySaleFilters($query, ['customer' => $filters['customer']]));
         }
 
-        $costOfGoodsSoldQuery->whereRaw('COALESCE(sales.sold_at, sales.created_at) BETWEEN ? AND ?', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
+        $costOfGoodsSoldQuery->whereRaw('DATE(COALESCE(sales.sold_at, sales.created_at)) BETWEEN ? AND ?', [$startDate, $endDate]);
 
         $costOfGoodsSold = (float) $costOfGoodsSoldQuery->sum(DB::raw('sale_lines.quantity * sale_lines.unit_cost'));
 
@@ -134,32 +138,37 @@ class ReportService
 
         $rawMaterialPurchaseCost = (float) GoodsReceiptLine::query()
             ->join('goods_receipts', 'goods_receipts.id', '=', 'goods_receipt_lines.receipt_id')
-            ->whereBetween('goods_receipts.received_at', [$startDate, $endDate])
+            ->whereDate('goods_receipts.received_at', '>=', $startDate)
+            ->whereDate('goods_receipts.received_at', '<=', $endDate)
             ->when(! empty($filters['vendor']), fn ($query) => $query->where('goods_receipts.supplier_id', $filters['vendor']))
             ->sum(DB::raw('goods_receipt_lines.quantity * goods_receipt_lines.unit_cost'));
 
         $productionOutputQuantity = (float) ProductionOutput::query()
             ->join('production_orders', 'production_orders.id', '=', 'production_outputs.production_order_id')
             ->where('production_orders.status', 'completed')
-            ->whereBetween('production_orders.order_date', [$startDate, $endDate])
+            ->whereDate('production_orders.order_date', '>=', $startDate)
+            ->whereDate('production_orders.order_date', '<=', $endDate)
             ->sum('quantity_produced');
         $productionOutputCost = (float) ProductionOutput::query()
             ->join('production_orders', 'production_orders.id', '=', 'production_outputs.production_order_id')
             ->join('items', 'items.id', '=', 'production_outputs.product_id')
             ->where('production_orders.status', 'completed')
-            ->whereBetween('production_orders.order_date', [$startDate, $endDate])
+            ->whereDate('production_orders.order_date', '>=', $startDate)
+            ->whereDate('production_orders.order_date', '<=', $endDate)
             ->selectRaw('SUM(quantity_produced * items.default_sale_price) as total')
             ->value('total');
 
         $productionOrdersCount = (int) ProductionOrder::query()
-            ->whereBetween('order_date', [$startDate, $endDate])
+            ->whereDate('order_date', '>=', $startDate)
+            ->whereDate('order_date', '<=', $endDate)
             ->count();
 
         $internalTransferValue = (float) TransferLine::query()
             ->join('transfers', 'transfers.id', '=', 'transfer_lines.transfer_id')
             ->join('locations as source_locations', 'source_locations.id', '=', 'transfers.source_id')
             ->join('locations as destination_locations', 'destination_locations.id', '=', 'transfers.destination_id')
-            ->whereBetween('transfers.transferred_at', [$startDate, $endDate])
+            ->whereDate('transfers.transferred_at', '>=', $startDate)
+            ->whereDate('transfers.transferred_at', '<=', $endDate)
             ->where('source_locations.name', 'factory')
             ->where('destination_locations.name', 'shop')
             ->where('transfers.status', 'completed')
@@ -199,7 +208,8 @@ class ReportService
 
         $expenseByCurrency = Expense::query()
             ->with('currency:id,name')
-            ->whereBetween('date', [$startDate, $endDate])
+            ->whereDate('date', '>=', $startDate)
+            ->whereDate('date', '<=', $endDate)
             ->get()
             ->groupBy(fn ($expense) => $expense->currency?->name ?? 'Unknown')
             ->map(fn ($rows, $currency) => [
@@ -214,7 +224,7 @@ class ReportService
             $filters,
         );
 
-        $salesByCurrencyQuery->whereRaw('COALESCE(sold_at, created_at) BETWEEN ? AND ?', [$start->copy()->startOfDay(), $end->copy()->endOfDay()]);
+        $salesByCurrencyQuery->whereRaw('DATE(COALESCE(sold_at, created_at)) BETWEEN ? AND ?', [$startDate, $endDate]);
 
         $salesByCurrency = $salesByCurrencyQuery->get()
             ->groupBy(fn ($sale) => $sale->currency?->name ?? 'Unknown')
@@ -274,13 +284,15 @@ class ReportService
         })->values();
 
         $attendance = Attendance::query()
-            ->whereBetween('date', [$startDate, $endDate])
+            ->whereDate('date', '>=', $startDate)
+            ->whereDate('date', '<=', $endDate)
             ->selectRaw('is_present, COUNT(*) as total')
             ->groupBy('is_present')
             ->pluck('total', 'is_present');
 
         $movementSummary = InventoryMovement::query()
-            ->whereBetween('occured_at', [$startDate, $endDate])
+            ->whereDate('occured_at', '>=', $startDate)
+            ->whereDate('occured_at', '<=', $endDate)
             ->selectRaw('movement_type, COUNT(*) as movements, SUM(quantity) as quantity')
             ->groupBy('movement_type')
             ->orderByDesc('movements')
@@ -293,7 +305,8 @@ class ReportService
             ->values();
 
         $productionSummary = ProductionOrder::query()
-            ->whereBetween('order_date', [$startDate, $endDate])
+            ->whereDate('order_date', '>=', $startDate)
+            ->whereDate('order_date', '<=', $endDate)
             ->selectRaw('status, COUNT(*) as total')
             ->groupBy('status')
             ->orderByDesc('total')
@@ -307,7 +320,7 @@ class ReportService
             ->whereNotIn('sales.status', ['draft', 'cancelled'])
             ->when(! empty($filters['product']), fn ($query) => $query->where('sale_lines.item_id', $filters['product']))
             ->when(! empty($filters['category']), fn ($query) => $query->where('items.category_id', $filters['category']))
-            ->whereRaw('COALESCE(sales.sold_at, sales.created_at) BETWEEN ? AND ?', [$start->copy()->startOfDay(), $end->copy()->endOfDay()])
+            ->whereRaw('DATE(COALESCE(sales.sold_at, sales.created_at)) BETWEEN ? AND ?', [$startDate, $endDate])
             ->selectRaw('items.name as name, SUM(sale_lines.line_total) as total, SUM(sale_lines.quantity) as quantity')
             ->groupBy('items.id', 'items.name')
             ->orderByDesc('total')
@@ -341,10 +354,7 @@ class ReportService
             ->when(! empty($filters['category']), fn ($query) => $query->whereExists(function ($subquery) use ($filters) {
                 $subquery->selectRaw('1')->from('sale_lines')->join('items', 'items.id', '=', 'sale_lines.item_id')->whereColumn('sale_lines.sale_id', 'sales.id')->where('items.category_id', $filters['category']);
             }))
-            ->whereRaw('COALESCE(sales.sold_at, sales.created_at) BETWEEN ? AND ?', [
-                $start->copy()->startOfDay(),
-                $end->copy()->endOfDay(),
-            ])
+            ->whereRaw('DATE(COALESCE(sales.sold_at, sales.created_at)) BETWEEN ? AND ?', [$startDate, $endDate])
             ->groupByRaw("
         COALESCE(
             NULLIF(customers.name, ''),
@@ -365,7 +375,8 @@ class ReportService
         $vendorPurchases = GoodsReceiptLine::query()
             ->join('goods_receipts', 'goods_receipts.id', '=', 'goods_receipt_lines.receipt_id')
             ->join('suppliers', 'suppliers.id', '=', 'goods_receipts.supplier_id')
-            ->whereBetween('goods_receipts.received_at', [$startDate, $endDate])
+            ->whereDate('goods_receipts.received_at', '>=', $startDate)
+            ->whereDate('goods_receipts.received_at', '<=', $endDate)
             ->when(! empty($filters['vendor']), fn ($query) => $query->where('goods_receipts.supplier_id', $filters['vendor']))
             ->selectRaw('suppliers.name as vendor, SUM(goods_receipt_lines.quantity * goods_receipt_lines.unit_cost) as total, COUNT(*) as count')
             ->groupBy('suppliers.id', 'suppliers.name')
@@ -380,7 +391,8 @@ class ReportService
             ->join('items', 'items.id', '=', 'transfer_lines.item_id')
             ->join('locations as source_locations', 'source_locations.id', '=', 'transfers.source_id')
             ->join('locations as destination_locations', 'destination_locations.id', '=', 'transfers.destination_id')
-            ->whereBetween('transfers.transferred_at', [$startDate, $endDate])
+            ->whereDate('transfers.transferred_at', '>=', $startDate)
+            ->whereDate('transfers.transferred_at', '<=', $endDate)
             ->where('source_locations.name', 'factory')
             ->where('destination_locations.name', 'shop')
             ->where('transfers.status', 'completed')
@@ -430,7 +442,7 @@ class ReportService
             ],
             'summary' => [
                 'sales' => ['total' => $salesTotal, 'gross_total' => $grossSalesTotal, 'count' => $salesCount],
-                'expenses' => ['total' => (float) Expense::query()->whereBetween('date', [$startDate, $endDate])->sum('amount'), 'count' => (int) Expense::query()->whereBetween('date', [$startDate, $endDate])->count()],
+                'expenses' => ['total' => (float) Expense::query()->whereDate('date', '>=', $startDate)->whereDate('date', '<=', $endDate)->sum('amount'), 'count' => (int) Expense::query()->whereDate('date', '>=', $startDate)->whereDate('date', '<=', $endDate)->count()],
                 'payments' => ['total' => (float) $paymentsQuery->sum('amount')],
                 'refunds' => ['total' => $returnsTotal],
                 'returns_total' => $returnsTotal,
@@ -438,9 +450,9 @@ class ReportService
                     'present' => (int) $attendance->get(1, 0),
                     'absent' => (int) $attendance->get(0, 0),
                 ],
-                'movements' => (int) InventoryMovement::query()->whereBetween('occured_at', [$startDate, $endDate])->count(),
+                'movements' => (int) InventoryMovement::query()->whereDate('occured_at', '>=', $startDate)->whereDate('occured_at', '<=', $endDate)->count(),
                 'production' => $productionOrdersCount,
-                'activity' => (int) Log::query()->whereBetween('activity_date', [$startDate, $endDate])->count(),
+                'activity' => (int) Log::query()->whereDate('activity_date', '>=', $startDate)->whereDate('activity_date', '<=', $endDate)->count(),
                 'cost_of_goods_sold' => $adjustedCostOfGoodsSold,
                 'gross_profit' => $grossProfit,
                 'raw_material_purchase_cost' => $rawMaterialPurchaseCost,

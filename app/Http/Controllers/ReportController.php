@@ -37,7 +37,7 @@ class ReportController extends Controller
                     try {
                         $dateConverter->toGregorianRange($value, $period === 'monthly' ? 'month' : 'date');
                     } catch (InvalidArgumentException $exception) {
-                        $fail('تاریخ فارسی معتبر نیست.');
+                        $fail(' تاریخ فارسی معتبر نیست. '.$exception->getMessage());
                     }
                 },
             ],
