@@ -67,6 +67,7 @@ class ReportService
         $startDate = $start->toDateString();
         $endDate = $end->toDateString();
         $monthRange = ($period === 'monthly' && $preset === 'custom') || in_array($preset, ['this_month', 'last_month'], true);
+        $export = (bool) ($filters['export'] ?? false);
         $startPersianDate = Jalalian::fromCarbon($start)->format('Y/m/d');
         $endPersianDate = Jalalian::fromCarbon($end)->format('Y/m/d');
         $selectedPersianDate = $period === 'monthly'
@@ -219,6 +220,20 @@ class ReportService
             ])
             ->values();
 
+        $expenses = Expense::query()
+            ->with('currency:id,name')
+            ->whereDate('date', '>=', $startDate)
+            ->whereDate('date', '<=', $endDate)
+            ->orderBy('date')
+            ->get()
+            ->map(fn (Expense $expense) => [
+                'date' => $expense->date,
+                'currency' => $expense->currency?->name ?? 'Unknown',
+                'description' => $expense->description,
+                'amount' => (float) $expense->amount,
+            ])
+            ->values();
+
         $salesByCurrencyQuery = $this->applySaleFilters(
             Sale::query()->with('currency:id,name')->whereNotIn('status', ['draft', 'cancelled']),
             $filters,
@@ -324,7 +339,7 @@ class ReportService
             ->selectRaw('items.name as name, SUM(sale_lines.line_total) as total, SUM(sale_lines.quantity) as quantity')
             ->groupBy('items.id', 'items.name')
             ->orderByDesc('total')
-            ->limit(6)
+            ->when(! $export, fn ($query) => $query->limit(6))
             ->get()
             ->map(fn ($row) => ['name' => $row->name, 'total' => (float) $row->total, 'quantity' => (float) $row->quantity])
             ->values();
@@ -363,7 +378,7 @@ class ReportService
         )
     ")
             ->orderByDesc('total')
-            ->limit(5)
+            ->when(! $export, fn ($query) => $query->limit(5))
             ->get()
             ->map(fn ($row) => [
                 'customer' => $row->customer,
@@ -381,7 +396,7 @@ class ReportService
             ->selectRaw('suppliers.name as vendor, SUM(goods_receipt_lines.quantity * goods_receipt_lines.unit_cost) as total, COUNT(*) as count')
             ->groupBy('suppliers.id', 'suppliers.name')
             ->orderByDesc('total')
-            ->limit(6)
+            ->when(! $export, fn ($query) => $query->limit(6))
             ->get()
             ->map(fn ($row) => ['vendor' => $row->vendor, 'total' => (float) $row->total, 'count' => (int) $row->count])
             ->values();
@@ -399,7 +414,7 @@ class ReportService
             ->selectRaw('transfers.transferred_at as date, items.name as product, SUM(transfer_lines.quantity) as quantity, SUM(transfer_lines.quantity * transfer_lines.unit_price) as value')
             ->groupBy('transfers.transferred_at', 'items.id', 'items.name')
             ->orderByDesc('transfers.transferred_at')
-            ->limit(8)
+            ->when(! $export, fn ($query) => $query->limit(8))
             ->get()
             ->map(fn ($row) => ['date' => $row->date, 'product' => $row->product, 'quantity' => (float) $row->quantity, 'value' => (float) $row->value])
             ->values();
@@ -410,7 +425,7 @@ class ReportService
             ->where('locations.name', 'shop')
             ->selectRaw('items.name as product, quantity_on_hand as quantity, (quantity_on_hand * items.default_sale_price) as value')
             ->orderBy('quantity_on_hand')
-            ->limit(8)
+            ->when(! $export, fn ($query) => $query->limit(8))
             ->get()
             ->map(fn ($row) => ['product' => $row->product, 'quantity' => (float) $row->quantity, 'value' => (float) $row->value, 'is_low_stock' => $row->quantity < 10 ? true : false])
             ->values();
@@ -469,6 +484,7 @@ class ReportService
                 'internal_transfers' => $internalTransferValue,
             ],
             'dailySales' => $dailyRows,
+            'expenses' => $expenses,
             'expenseByCurrency' => $expenseByCurrency,
             'currencySummary' => $currencySummary,
             'movementSummary' => $movementSummary,

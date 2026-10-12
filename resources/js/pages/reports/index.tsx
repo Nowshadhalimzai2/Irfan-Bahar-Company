@@ -11,6 +11,7 @@ import {
     CreditCard,
     Factory,
     FileBarChart,
+    FileSpreadsheet,
     Printer,
     TriangleAlert,
     Users,
@@ -115,6 +116,20 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
         event.preventDefault();
         router.get('/reports', { period, preset, business_unit: businessUnit, product: product || undefined, category: category || undefined, vendor: vendor || undefined, customer: customer || undefined, date }, { preserveState: true, preserveScroll: true });
     };
+    const exportExcel = () => {
+        const params = new URLSearchParams({
+            period,
+            preset,
+            business_unit: businessUnit,
+            date,
+            ...(product ? { product } : {}),
+            ...(category ? { category } : {}),
+            ...(vendor ? { vendor } : {}),
+            ...(customer ? { customer } : {}),
+        });
+
+        window.location.href = `/reports/export?${params.toString()}`;
+    };
     const printReport = () => window.print();
     const cards = [
         ['عاید فروش بیرونی', summary.sales.total, `${summary.sales.count} فروش / سفارش`, ArrowUpRight, 'emerald'],
@@ -189,6 +204,7 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
                             <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 pt-3 dark:border-slate-700">
                                 <button type="submit" className="h-10 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition hover:bg-slate-700 dark:bg-white dark:text-slate-900">نمایش راپور</button>
                                 <button type="button" onClick={printReport} className="inline-flex h-10 w-fit items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"><Printer className="h-4 w-4" /> چاپ / ذخیره به‌صورت PDF</button>
+                                <button type="button" onClick={exportExcel} className="inline-flex h-10 w-fit items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"><FileSpreadsheet className="h-4 w-4" /> Excel</button>
                             </div>
                         </form>
                     </div>
