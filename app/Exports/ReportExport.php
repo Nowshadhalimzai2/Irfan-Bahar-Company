@@ -2,29 +2,33 @@
 
 namespace App\Exports;
 
+use DateTimeInterface;
 use Maatwebsite\Excel\Concerns\Export;
 use Maatwebsite\Excel\Concerns\WithMultipleSheets;
 
 class ReportExport implements Export, WithMultipleSheets
 {
-    public function __construct(private array $report) {}
+    public function __construct(
+        private array $report,
+        private bool $dari = false,
+    ) {}
 
     public function sheets(): array
     {
         $sheets = [
-            new ReportSheet('Summary', $this->summaryRows()),
-            new ReportSheet('Daily Sales', self::records($this->report['dailySales'] ?? [])),
-            new ReportSheet('Expenses', self::records($this->report['expenses'] ?? [])),
-            new ReportSheet('Expenses by Currency', self::records($this->report['expenseByCurrency'] ?? [])),
-            new ReportSheet('Currency Summary', self::records($this->report['currencySummary'] ?? [])),
-            new ReportSheet('Inventory Movements', self::records($this->report['movementSummary'] ?? [])),
-            new ReportSheet('Production', self::records($this->report['productionSummary'] ?? [])),
-            new ReportSheet('Top Products', self::records($this->report['topProducts'] ?? [])),
-            new ReportSheet('Customer Sales', self::records($this->report['customerSales'] ?? [])),
-            new ReportSheet('Vendor Purchases', self::records($this->report['vendorPurchases'] ?? [])),
-            new ReportSheet('Internal Transfers', self::records($this->report['internalTransfers'] ?? [])),
-            new ReportSheet('Shop Inventory', self::records($this->report['shopInventory'] ?? [])),
-            new ReportSheet('Low Stock', self::lowStockRows($this->report['summary']['low_stock_items'] ?? [])),
+            new ReportSheet($this->label('Summary'), $this->summaryRows(), $this->dari),
+            new ReportSheet($this->label('Daily Sales'), self::records($this->report['dailySales'] ?? [], $this->dari), $this->dari),
+            new ReportSheet($this->label('Expenses'), self::records($this->report['expenses'] ?? [], $this->dari), $this->dari),
+            // new ReportSheet($this->label('Expenses by Currency'), self::records($this->report['expenseByCurrency'] ?? [], $this->dari), $this->dari),
+            new ReportSheet($this->label('Currency Summary'), self::records($this->report['currencySummary'] ?? [], $this->dari), $this->dari),
+            new ReportSheet($this->label('Inventory Movements'), self::records($this->report['movementSummary'] ?? [], $this->dari), $this->dari),
+            new ReportSheet($this->label('Production'), self::records($this->report['productionSummary'] ?? [], $this->dari), $this->dari),
+            new ReportSheet($this->label('Top Products'), self::records($this->report['topProducts'] ?? [], $this->dari), $this->dari),
+            new ReportSheet($this->label('Customer Sales'), self::records($this->report['customerSales'] ?? [], $this->dari), $this->dari),
+            new ReportSheet($this->label('Vendor Purchases'), self::records($this->report['vendorPurchases'] ?? [], $this->dari), $this->dari),
+            new ReportSheet($this->label('Internal Transfers'), self::records($this->report['internalTransfers'] ?? [], $this->dari), $this->dari),
+            new ReportSheet($this->label('Shop Inventory'), self::records($this->report['shopInventory'] ?? [], $this->dari), $this->dari),
+            new ReportSheet($this->label('Low Stock'), self::lowStockRows($this->report['summary']['low_stock_items'] ?? [], $this->dari), $this->dari),
         ];
 
         return $sheets;
@@ -34,7 +38,7 @@ class ReportExport implements Export, WithMultipleSheets
     {
         $summary = $this->report['summary'] ?? [];
 
-        return [
+        $rows = [
             ['Report range', $this->report['range']['label'] ?? ''],
             ['Range start', $this->report['range']['start'] ?? ''],
             ['Range end', $this->report['range']['end'] ?? ''],
@@ -63,9 +67,13 @@ class ReportExport implements Export, WithMultipleSheets
             ['Production orders', $summary['production'] ?? 0],
             ['System activity', $summary['activity'] ?? 0],
         ];
+
+        return $this->dari
+            ? array_map(fn ($row) => $row === [] ? [] : [self::labelFor($row[0]), ...array_slice($row, 1)], $rows)
+            : $rows;
     }
 
-    private static function records(mixed $records): array
+    private static function records(mixed $records, bool $dari = false): array
     {
         $records = self::normalize($records);
 
@@ -75,28 +83,28 @@ class ReportExport implements Export, WithMultipleSheets
 
         $records = array_map(fn ($record) => (array) $record, $records);
         $headers = array_values(array_unique(array_merge(...array_map('array_keys', $records))));
-        $rows = [$headers];
+        $rows = [$dari ? array_map(fn ($header) => self::labelFor($header), $headers) : $headers];
 
         foreach ($records as $record) {
-            $rows[] = array_map(fn ($header) => $record[$header] ?? '', $headers);
+            $rows[] = array_map(fn ($header) => self::cellValue($record[$header] ?? ''), $headers);
         }
 
         return $rows;
     }
 
-    private static function lowStockRows(mixed $records): array
+    private static function lowStockRows(mixed $records, bool $dari = false): array
     {
         $records = self::normalize($records);
-        $rows = [['Item ID', 'Item', 'Code', 'Quantity', 'Total Cost']];
+        $rows = [$dari ? ['شناسه جنس', 'جنس', 'کود جنس', 'مقدار', 'مجموع قیمت'] : ['Item ID', 'Item', 'Code', 'Quantity', 'Total Cost']];
 
         foreach ($records as $record) {
             $item = $record['item'] ?? [];
             $rows[] = [
                 $item['id'] ?? '',
-                $item['name'] ?? '',
-                $item['code'] ?? '',
-                $record['quantity'] ?? 0,
-                $record['total_cost'] ?? 0,
+                self::cellValue($item['name'] ?? ''),
+                self::cellValue($item['code'] ?? ''),
+                self::cellValue($record['quantity'] ?? 0),
+                self::cellValue($record['total_cost'] ?? 0),
             ];
         }
 
@@ -110,5 +118,52 @@ class ReportExport implements Export, WithMultipleSheets
         }
 
         return is_array($records) ? $records : [];
+    }
+
+    private static function cellValue(mixed $value): mixed
+    {
+        if ($value instanceof DateTimeInterface) {
+            return $value->format('Y-m-d H:i:s');
+        }
+
+        if ($value === null || is_scalar($value)) {
+            return $value;
+        }
+
+        return is_object($value) && method_exists($value, 'toArray')
+            ? json_encode($value->toArray(), JSON_UNESCAPED_UNICODE)
+            : (string) $value;
+    }
+
+    private function label(string $label): string
+    {
+        return $this->dari ? self::labelFor($label) : $label;
+    }
+
+    private static function labelFor(string $label): string
+    {
+        return [
+            'Summary' => 'خلاصه', 'Daily Sales' => 'فروش روزانه', 'Expenses' => 'مصارف',
+            'Expenses by Currency' => 'مصارف بر اساس ارز', 'Currency Summary' => 'خلاصه ارزها',
+            'Inventory Movements' => 'حرکت موجودی', 'Production' => 'تولید', 'Top Products' => 'محصولات پرفروش',
+            'Customer Sales' => 'فروش مشتریان', 'Vendor Purchases' => 'خرید از تأمین‌کنندگان',
+            'Internal Transfers' => 'انتقالات داخلی', 'Shop Inventory' => 'موجودی فروشگاه', 'Low Stock' => 'موجودی کم',
+            'Report range' => 'بازه راپور', 'Range start' => 'شروع بازه', 'Range end' => 'پایان بازه', 'Period' => 'دوره',
+            'Metric' => 'شاخص', 'Value' => 'مقدار', 'Sales total' => 'مجموع فروش', 'Sales count' => 'تعداد فروش',
+            'Gross sales total' => 'مجموع فروش ناخالص', 'Expenses total' => 'مجموع مصارف', 'Expenses count' => 'تعداد مصارف',
+            'Payments total' => 'مجموع پرداخت‌ها', 'Refunds total' => 'مجموع برگشت‌ها', 'Cost of goods sold' => 'بهای تمام‌شده کالا',
+            'Gross profit' => 'سود ناخالص', 'Raw material purchase cost' => 'هزینه خرید مواد خام',
+            'Production quantity completed' => 'مقدار تولید تکمیل‌شده', 'Production cost' => 'هزینه تولید',
+            'Shop stock value' => 'ارزش موجودی فروشگاه', 'Factory stock value' => 'ارزش موجودی کارخانه',
+            'Low stock items count' => 'تعداد اقلام کم‌موجودی', 'Internal transfers value' => 'ارزش انتقالات داخلی',
+            'Attendance present' => 'حاضر', 'Attendance absent' => 'غایب', 'Inventory movements' => 'حرکت‌های موجودی',
+            'Production orders' => 'سفارش‌های تولید', 'System activity' => 'فعالیت سیستم',
+            'date' => 'تاریخ', 'currency' => 'ارز', 'description' => 'توضیحات', 'amount' => 'مبلغ',
+            'label' => 'برچسب', 'sales' => 'فروش', 'count' => 'تعداد', 'total' => 'مجموع', 'refund_total' => 'مجموع برگشت',
+            'net_total' => 'مجموع خالص', 'expenses_total' => 'مجموع مصارف', 'sales_count' => 'تعداد فروش',
+            'refund_count' => 'تعداد برگشت', 'expense_count' => 'تعداد مصرف', 'type' => 'نوع', 'movements' => 'حرکت‌ها',
+            'quantity' => 'مقدار', 'status' => 'وضعیت', 'name' => 'نام', 'customer' => 'مشتری', 'orders' => 'سفارش‌ها',
+            'vendor' => 'تأمین‌کننده', 'product' => 'محصول', 'value' => 'ارزش', 'is_low_stock' => 'موجودی کم',
+        ][$label] ?? $label;
     }
 }

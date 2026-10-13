@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\DariReportExport;
 use App\Exports\ReportExport;
 use App\Models\Category;
 use App\Models\Customer;
@@ -30,7 +31,7 @@ class ReportController extends Controller
                 'nullable',
                 'string',
                 'max:20',
-                'regex:' . $datePattern,
+                'regex:'.$datePattern,
                 function (string $attribute, mixed $value, \Closure $fail) use ($period, $dateConverter): void {
                     if (! is_string($value) || $value === '') {
                         return;
@@ -58,10 +59,10 @@ class ReportController extends Controller
         ]);
 
         $report['catalog'] = [
-            'products' => Item::query()->select('id', 'name')->orderBy('name')->limit(100)->get()->map(fn($item) => ['id' => $item->id, 'name' => $item->name])->all(),
-            'categories' => Category::query()->select('id', 'name')->orderBy('name')->get()->map(fn($category) => ['id' => $category->id, 'name' => $category->name])->all(),
-            'customers' => Customer::query()->select('id', 'name')->orderBy('name')->limit(100)->get()->map(fn($customer) => ['id' => $customer->id, 'name' => $customer->name])->all(),
-            'suppliers' => Supplier::query()->select('id', 'name')->orderBy('name')->limit(100)->get()->map(fn($supplier) => ['id' => $supplier->id, 'name' => $supplier->name])->all(),
+            'products' => Item::query()->select('id', 'name')->orderBy('name')->limit(100)->get()->map(fn ($item) => ['id' => $item->id, 'name' => $item->name])->all(),
+            'categories' => Category::query()->select('id', 'name')->orderBy('name')->get()->map(fn ($category) => ['id' => $category->id, 'name' => $category->name])->all(),
+            'customers' => Customer::query()->select('id', 'name')->orderBy('name')->limit(100)->get()->map(fn ($customer) => ['id' => $customer->id, 'name' => $customer->name])->all(),
+            'suppliers' => Supplier::query()->select('id', 'name')->orderBy('name')->limit(100)->get()->map(fn ($supplier) => ['id' => $supplier->id, 'name' => $supplier->name])->all(),
         ];
 
         return Inertia::render('reports/index', $report);
@@ -75,7 +76,7 @@ class ReportController extends Controller
             : '/^[0-9۰-۹٠-٩]{4}\/[0-9۰-۹٠-٩]{1,2}\/[0-9۰-۹٠-٩]{1,2}$/u';
 
         $request->validate([
-            'date' => ['nullable', 'string', 'max:20', 'regex:' . $datePattern],
+            'date' => ['nullable', 'string', 'max:20', 'regex:'.$datePattern],
         ]);
 
         $selectedDate = $request->input('date')
@@ -91,9 +92,10 @@ class ReportController extends Controller
             'customer' => $request->input('customer'),
         ]);
 
-        return Excel::download(
-            new ReportExport($report),
-            'factory-report-' . str_replace(['/', '\\'], '-', $selectedDate) . '.xlsx'
-        );
+        // $isDari = $request->input('language') === 'dari';
+        $export = new DariReportExport($report);
+        $filename = 'factory-report-'.str_replace(['/', '\\'], '-', $selectedDate).'.xlsx';
+
+        return Excel::download($export, $filename);
     }
 }
