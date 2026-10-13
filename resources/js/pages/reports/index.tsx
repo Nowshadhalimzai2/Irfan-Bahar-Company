@@ -150,7 +150,7 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
         <AppLayout breadcrumbs={[{ title: 'مرکز راپورها', href: '/reports' }]}>
             <Head title="مرکز راپورها" />
             <div id="printArea" dir="rtl" lang="fa" className="report-print-area space-y-5 bg-slate-50/60 px-4 py-5 text-right dark:bg-slate-950/50 lg:px-6">
-                <div className="flex flex-col justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-end">
+                <div className="flex flex-col justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-start">
                     <div><div className="flex items-center gap-2 text-sm font-medium text-primary"><FileBarChart className="h-4 w-4" /> مرکز راپورها</div><h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">راپورهای کارخانه و فروشگاه</h1><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">راپور عملیاتی؛ فروش بیرونی از انتقالات داخلی جدا محاسبه می‌شود.</p></div>
                     <div className="flex min-w-0 flex-col gap-3">
                         <form onSubmit={applyFilters} className="min-w-0 space-y-3">
@@ -170,7 +170,7 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
                                     <div className="w-full">
                                         <PersionDatePicker
                                             id="report-date"
-                                            label={period === 'monthly' ? 'ماه فارسی' : 'تاریخ فارسی'}
+                                            label={period === 'monthly' ? 'ماه' : 'تاریخ'}
                                             type={period === 'monthly' ? 'month' : 'date'}
                                             value={pickerDate}
                                             onChange={(gregorianDate, persianDate) => {
@@ -188,10 +188,7 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
                                     </div>
                                 </div>
                             </div>
-                            <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
-                                <h2 className="text-xs font-bold text-slate-700 dark:text-slate-200">دامنهٔ کاری</h2>
-                                <Select label="بخش کاری" value={businessUnit} onChange={setBusinessUnit} options={[[ 'consolidated', 'مجموعی'], ['factory', 'کارخانه'], ['shop', 'فروشگاه']]} />
-                            </div>
+                            
                             <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
                                 <h2 className="text-xs font-bold text-slate-700 dark:text-slate-200">محدودسازی نتایج</h2>
                                 <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">

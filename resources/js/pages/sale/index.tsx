@@ -48,7 +48,7 @@ type Stats = {
     customers: number;
     currency: string;
 };
-type TrendPoint = { day: number; sales: number };
+type TrendPoint = { day: number; label?: string; sales: number };
 type Channel = { name: string; value: number; percent: number; color: string };
 type Product = { name: string; category: string; sales: number; units: number, unit: string };
 type Order = { saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string, currency: 'AFG' | 'PKR' | 'USD' };
@@ -60,14 +60,19 @@ const statusClasses: Record<string, string> = { completed: 'bg-emerald-50 text-e
 
 export default function Index({ stats, trend, channels, topProducts, orders, comments, meta }: { stats: Stats; trend: TrendPoint[]; channels: Channel[]; topProducts: Product[]; orders: Order[]; comments: Comment[]; meta: { month: string; currentRevenue: number; previousRevenue: number; revenueGrowth: number } }) {
     const [metaMonth, setMetaMonth] = useState<string>(meta.month);
-    const [trending, setTrending] = useState<TrendPoint[]>([]);
+    const [trending, setTrending] = useState<TrendPoint[]>(trend ?? []);
     const [period, setPeriod] = useState('this_month');
+    useEffect(() => {
+        setTrending(trend ?? []);
+        setMetaMonth(meta.month);
+    }, [trend, meta.month]);
+
     useEffect(() => {
         const getTrends = async () => {
             const res = await axios.get(`/sales/getTrend/${period}`);
             if (res.status == 200) {
-                setTrending(res.data['trend']);
-                setMetaMonth(res.data['month']);
+                setTrending(res.data['trend'] ?? []);
+                setMetaMonth(res.data['month'] ?? meta.month);
             }
             else
                 console.log('errror::: ', res.statusText);
@@ -220,13 +225,12 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                         stroke="#e8eef5"
                                     />
                                     <XAxis
-                                        dataKey="day"
+                                        dataKey="label"
                                         axisLine={false}
                                         tickLine={false}
                                         tick={{ fill: '#94a3b8', fontSize: 11 }}
-                                        tickFormatter={(value) =>
-                                            `${value} ${metaMonth}`
-                                        }
+                                        interval={Math.ceil((trending.length || 1) / 7) - 1}
+                                        minTickGap={16}
                                     />
                                     <YAxis
                                         axisLine={false}

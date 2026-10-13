@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
+use Morilog\Jalali\Jalalian;
 
 class SaleController extends Controller
 {
@@ -34,25 +35,19 @@ class SaleController extends Controller
     {
 
         $now = now();
-        $monthStart = $now->copy()->startOfMonth();
-        $requestedMonth = $request->period;
-        if ($requestedMonth) {
-            if ($requestedMonth == 'previous_month') {
-                $monthStart = $now->copy()->startOfMonth()->subMonth();
-            } else if ($requestedMonth == 'three_months_ago') {
-                $monthStart = $now->copy()->startOfMonth()->subMonth();
-                $monthStart = $monthStart->copy()->subMonth();
-            }
-        }
+        $selectedPeriod = $this->resolveMonthRange($now, $request->period ?? 'this_month');
+        $monthStart = $selectedPeriod['start'];
+        $periodEnd = $selectedPeriod['end'];
 
-        $previousMonthStart = $monthStart->copy()->subMonth();
-        $previousMonthEnd = $monthStart->copy()->subSecond();
+        $previousPeriod = $this->resolveMonthRange($now, 'previous_month');
+        $previousMonthStart = $previousPeriod['start'];
+        $previousMonthEnd = $previousPeriod['end'];
 
         $sales = Sale::query()
             ->with(['customer:id,name', 'currency:id,name', 'saleLines.item:id,name,category_id,unit', 'saleLines.item.category:id,name', 'invoice:id,sale_id,invoice_number,status'])
-            ->where(function ($query) use ($monthStart, $now) {
-                $query->whereBetween('sold_at', [$monthStart, $now])
-                    ->orWhereBetween('created_at', [$monthStart, $now]);
+            ->where(function ($query) use ($monthStart, $periodEnd) {
+                $query->whereBetween('sold_at', [$monthStart, $periodEnd])
+                    ->orWhereBetween('created_at', [$monthStart, $periodEnd]);
             })
             ->latest('sold_at')
             ->latest('created_at')
@@ -66,7 +61,7 @@ class SaleController extends Controller
 
             return response()->json([
                 'trend' => $trend,
-                'month' => $monthStart->translatedFormat('F Y'),
+                'month' => Jalalian::fromCarbon($monthStart)->format('Y/m'),
             ]);
         }
         $trend = $this->getTrend($monthStart, $completedSales);
@@ -116,7 +111,7 @@ class SaleController extends Controller
             'saleID' => $sale->id,
             'name' => $sale->customer?->name ?? $sale->customer_name ?? 'یادداشت فروش',
             'text' => $sale->notes,
-            'time' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),
+            'time' => Carbon::parse($sale->sold_at ?? $sale->created_at)->locale('fa')->diffForHumans(),
         ])->take(6)->values();
 
         return Inertia::render('sale/index', [
@@ -137,19 +132,44 @@ class SaleController extends Controller
                 'id' => $sale->invoice?->invoice_number ?? '#SO-' . str_pad((string) $sale->id, 4, '0', STR_PAD_LEFT),
                 'hasInvoice' => (bool) $sale->invoice,
                 'customer' => $sale->customer?->name ?? $sale->customer_name ?? 'مشتری گذری',
-                'date' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),
+                'date' => Carbon::parse($sale->sold_at ?? $sale->created_at)->locale('fa')->diffForHumans(),
                 'amount' => (float) ($sale->after_descount_total ?: $sale->total),
                 'status' => $sale->status,
                 'currency' => $sale->currency->name,
             ])->values(),
             'comments' => $comments,
             'meta' => [
-                'month' => $monthStart->translatedFormat('F Y'),
+                'month' => Jalalian::fromCarbon($monthStart)->format('Y/m'),
                 'currentRevenue' => $revenue,
                 'previousRevenue' => $previousRevenue,
                 'revenueGrowth' => $growth($revenue, $previousRevenue),
             ],
         ]);
+    }
+
+    private function resolveMonthRange(CarbonInterface $now, ?string $requestedPeriod): array
+    {
+        $baseJalali = Jalalian::fromCarbon(Carbon::instance($now));
+
+        $selectedJalali = match ($requestedPeriod) {
+            'previous_month' => Jalalian::fromCarbon(Carbon::instance($now))->subMonths(1),
+            'three_months_ago' => Jalalian::fromCarbon(Carbon::instance($now))->subMonths(3),
+            default => Jalalian::fromCarbon(Carbon::instance($now)),
+        };
+
+        $monthStart = Jalalian::fromFormat(
+            'Y/m/d',
+            sprintf('%04d/%02d/01', $selectedJalali->getYear(), $selectedJalali->getMonth()),
+            new \DateTimeZone(config('app.timezone')),
+        )->toCarbon()->startOfDay();
+
+        $currentJalaliMonth = $baseJalali->format('Y/m');
+        $selectedMonthKey = $selectedJalali->format('Y/m');
+        $end = $selectedMonthKey === $currentJalaliMonth
+            ? Carbon::instance($now)->endOfDay()
+            : $selectedJalali->addMonths(1)->subDay()->toCarbon()->endOfDay();
+
+        return ['start' => $monthStart, 'end' => $end];
     }
 
     public function create()
@@ -450,15 +470,30 @@ class SaleController extends Controller
     public function getTrend(CarbonInterface $monthStart, mixed $completedSales)
     {
         $now = now();
-        $endOfMonth = $monthStart->copy()->month == $now->month ? $now->copy() : $monthStart->copy()->endOfMonth();
-        return collect(range(0, $endOfMonth->daysInMonth - 1))->map(function (int $day) use ($monthStart, $completedSales) {
-            $date = $monthStart->copy()->addDays($day);
+        $monthJalali = Jalalian::fromCarbon(Carbon::instance($monthStart));
+        $currentMonthJalali = Jalalian::fromCarbon(Carbon::instance($now));
+        $endOfMonth = ($monthJalali->format('Y/m') === $currentMonthJalali->format('Y/m'))
+            ? Carbon::instance($now)
+            : $monthJalali->addMonths(1)->subDay()->toCarbon()->endOfDay();
+
+        return collect(range(0, $monthStart->diffInDays($endOfMonth) + 1))->map(function (int $offset) use ($monthStart, $completedSales, $endOfMonth) {
+            $date = $monthStart->copy()->addDays($offset);
+            if ($date->greaterThan($endOfMonth)) {
+                return null;
+            }
+
             $daySales = $completedSales->filter(function (Sale $sale) use ($date) {
                 return Carbon::parse($sale->sold_at ?? $sale->created_at)->isSameDay($date);
             });
 
-            return ['day' => $date->day, 'sales' => round((float) $daySales->sum('after_descount_total'), 2)];
-        })->filter(fn(array $item) => $item['day'] <= $endOfMonth->day)->values();
+            $jalaliDate = Jalalian::fromCarbon(Carbon::instance($date));
+
+            return [
+                'day' => $jalaliDate->getDay(),
+                'label' => $jalaliDate->format('m/d'),
+                'sales' => round((float) $daySales->sum('after_descount_total'), 2),
+            ];
+        })->filter(fn (?array $item) => $item !== null)->values();
     }
 
     public function mostSold(Request $request)
@@ -526,7 +561,7 @@ class SaleController extends Controller
             'saleID' => $sale->id,
             'name' => $sale->customer?->name ?? $sale->customer_name ?? 'یادداشت فروش',
             'text' => $sale->notes,
-            'time' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),
+            'time' => Carbon::parse($sale->sold_at ?? $sale->created_at)->locale('fa')->diffForHumans(),
         ])->values();
 
         return Inertia::render('sale/comments', [
@@ -606,13 +641,13 @@ class SaleController extends Controller
         return Inertia::render('sale/allSale', [
             'orders' => $sales->map(fn(Sale $sale) => [
                 'saleId' => $sale->id,
-                
+
                 'isCancelable' =>  $sale->status != 'cancelled' ? ((!$sale->invoice ? true : (($sale?->invoice?->payments->count() ?? 0) < 2))) : false,
                 'id' => $sale->invoice?->invoice_number ?? '#SO-' . str_pad((string) $sale->id, 4, '0', STR_PAD_LEFT),
                 'invoice_id' => $sale->invoice?->id,
                 'hasInvoice' => (bool) $sale->invoice,
                 'customer' => $sale->customer?->name ?? $sale->customer_name ?? 'مشتری گذری',
-                'date' => Carbon::parse($sale->sold_at ?? $sale->created_at)->diffForHumans(),
+                'date' => Carbon::parse($sale->sold_at ?? $sale->created_at)->locale('fa')->diffForHumans(),
                 'amount' => (float) ($sale->after_descount_total ?: $sale->total),
                 'status' => $sale->status,
                 'currency' => $sale->currency->name,

@@ -61,11 +61,7 @@ export const mainNavItems: NavItem[] = [
         href: '/reports',
         icon: ChartNoAxesCombined,
     },
-    {
-        title: 'تقویم شمسی',
-        href: '/persian-date-picker',
-        icon: CalendarDays,
-    },
+   
     {
         title: 'اطلاعات',
         href: '/notifications',

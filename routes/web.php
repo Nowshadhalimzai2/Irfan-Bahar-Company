@@ -92,9 +92,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ));
     })->name('dashboard')->middleware('refuseFactoryClerk');
 
-    Route::get('/persian-date-picker', function () {
-        return Inertia::render('persian-date-picker');
-    })->name('dates.persian');
+   
 
     Route::get('/reports/export', [ReportController::class, 'export'])
     ->name('reports.export')

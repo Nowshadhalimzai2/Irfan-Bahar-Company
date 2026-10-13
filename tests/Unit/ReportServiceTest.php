@@ -334,6 +334,52 @@ class ReportServiceTest extends TestCase
         app(PersianDateConverter::class)->toGregorianRange('1405/07/31', 'date');
     }
 
+    public function test_dashboard_trend_uses_persian_days_for_display(): void
+    {
+        $controller = app(\App\Http\Controllers\SaleController::class);
+        $saleDate = Carbon::parse('2026-10-13 12:00:00');
+
+        $trend = $controller->getTrend(
+            Carbon::parse('2026-10-01 00:00:00'),
+            collect([
+                Sale::make([
+                    'sold_at' => $saleDate,
+                    'created_at' => $saleDate,
+                    'status' => 'completed',
+                    'after_descount_total' => 1500,
+                ]),
+            ]),
+        );
+
+        $this->assertSame(
+            Jalalian::fromCarbon($saleDate)->getDay(),
+            collect($trend)->firstWhere('sales', 1500.0)['day'],
+        );
+    }
+
+    public function test_dashboard_period_uses_three_months_ago_correctly(): void
+    {
+        $controller = app(\App\Http\Controllers\SaleController::class);
+        $method = new \ReflectionMethod($controller, 'resolveMonthRange');
+        $method->setAccessible(true);
+
+        $now = Carbon::parse('2026-10-13 12:00:00');
+        $currentJalali = Jalalian::fromCarbon(Carbon::instance($now));
+
+        $this->assertSame(
+            Jalalian::fromFormat('Y/m/d', sprintf('%04d/%02d/01', $currentJalali->getYear(), $currentJalali->getMonth()))->toCarbon()->startOfDay()->format('Y-m-d'),
+            $method->invoke($controller, $now, 'this_month')['start']->format('Y-m-d'),
+        );
+        $this->assertSame(
+            Jalalian::fromFormat('Y/m/d', sprintf('%04d/%02d/01', Jalalian::fromCarbon(Carbon::instance($now))->subMonths(1)->getYear(), Jalalian::fromCarbon(Carbon::instance($now))->subMonths(1)->getMonth()))->toCarbon()->startOfDay()->format('Y-m-d'),
+            $method->invoke($controller, $now, 'previous_month')['start']->format('Y-m-d'),
+        );
+        $this->assertSame(
+            Jalalian::fromFormat('Y/m/d', sprintf('%04d/%02d/01', Jalalian::fromCarbon(Carbon::instance($now))->subMonths(3)->getYear(), Jalalian::fromCarbon(Carbon::instance($now))->subMonths(3)->getMonth()))->toCarbon()->startOfDay()->format('Y-m-d'),
+            $method->invoke($controller, $now, 'three_months_ago')['start']->format('Y-m-d'),
+        );
+    }
+
     private function createSaleAt(Carbon $soldAt, float $amount, string $customerName = 'Date boundary customer'): Sale
     {
         $currency = Currency::query()->firstOrCreate(['name' => 'AFG']);
