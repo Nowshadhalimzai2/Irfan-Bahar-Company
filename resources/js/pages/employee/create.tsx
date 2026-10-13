@@ -5,8 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
 import { SectionTitle } from '@/components/section-title';
-import { FormEvent } from 'react';
+import { FormEvent, useState } from 'react';
 import AppLayout from '@/layouts/app-layout';
+import PersionDatePicker from '@/components/persion-date-picker';
 
 type EmpType = {
     name: string;
@@ -16,8 +17,11 @@ type EmpType = {
     address: string;
     phone: string;
     shift: "day" | "night";
+    date: Date | null;
 }
 const Create = () => {
+    const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+    const [persianDate, setPersianDate] = useState<string | null>(null);
     const { data, setData, errors, reset, post, processing } = useForm<EmpType>({
         'name': '',
         'f_name': '',
@@ -25,7 +29,8 @@ const Create = () => {
         'salary': 6000,
         'phone': '',
         'address': '',
-        'shift': 'day'
+        'shift': 'day',
+        'date': selectedDate,
     });
     const positions = [
         { value: 'clerk', label: 'منشی' },
@@ -49,7 +54,7 @@ const Create = () => {
             { title: 'اضافه نمودن کارمند جدید', href: '/employees/create' },
 
         ]}>
-            <div className="max-w-xl mx-auto w-full section px-4">
+            <div className="max-w-xl mx-auto w-full section px-4" dir='rtl'>
                 <SectionTitle title=" فورم ثبت نمودن کار کن" description=' لطف نماید تا فورم ذیل  را با دقت پر شود.' />
                 <form onSubmit={handleEmployee}>
                     <div className="grid gap-6">
@@ -186,6 +191,19 @@ const Create = () => {
                             <InputError
                                 message={errors.salary}
                                 className="mt-2"
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <PersionDatePicker
+                                initialDate={new Date()}
+                                label='تاریخ استخدام'
+                                type='date'
+                                onChange={(date, formatted) => {
+                                    setSelectedDate(date);
+                                    setPersianDate(formatted);
+                                    setData('date',selectedDate);
+                                }}
+                                value={selectedDate}
                             />
                         </div>
                         <Button

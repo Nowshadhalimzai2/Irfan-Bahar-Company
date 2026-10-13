@@ -71,18 +71,15 @@ class EmployeeController extends Controller
             'position' => 'required|string',
             'salary' => 'required|numeric',
             'shift' => 'required|string',
-
+            'date' => 'nullable|date',
         ]);
         DB::beginTransaction();
         try {
             $emp = Employee::create([
                 ...$validated,
-                'recruitment_date' => now(),
+                'recruitment_date' => $validated['date'] ?? now(),
             ]);
-            // create notification for the admin user about the new employee
-            // $request->user()?->notifyNow(new EmployeeCreated($emp));
-            
-            // dd($users);
+           
             Notification::send(Auth::user(), new EmployeeCreated($emp));
             $log = new Log();
             $log->create('insert', " کارکن جدید ", $emp->name);
@@ -305,7 +302,7 @@ class EmployeeController extends Controller
             $shopAccount->save();
 
             // Add the transaction to the expesnes list.
-            $des= sprintf('برای %s در معاش وصل شد',$employee->name);
+            $des= sprintf('برای %s معاش وصول شد',$employee->name);
             Expense::create([
                 'amount' => $amount,
                 'description' => $des,

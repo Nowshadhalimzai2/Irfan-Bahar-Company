@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Employee, Salary } from '@/types';
 import { Button } from '@/components/ui/button';
-import { SectionTitle } from '@/components/section-title';
+import '@/components/thermal-receipt.css';
 
 interface Props {
     employee: Employee;
@@ -14,97 +14,84 @@ interface Props {
     perDay: number;
 }
 
+const formatNumber = (value: number | string | null | undefined) =>
+    Number(value ?? 0);
+
+const formatDate = (value: string | Date | null | undefined) => {
+    if (!value) return '—';
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('fa-AF',{
+        year:'numeric',
+        month:'numeric',
+        day:'2-digit',
+    });
+};
+
 const SalaryReceipt = ({ employee, salary, grossMonthSalary, adjustedSalary, absentDays, paidThisMonth, remainingSalary, perDay }: Props) => {
     useEffect(() => {
         window.print();
     }, []);
 
     return (
-        <div className="printable-receipt mx-auto w-full max-w-[80mm] bg-white p-4 text-slate-900" id="printArea">
-            <SectionTitle title="رسید پرداخت معاش" />
-            <div className="mt-6 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-                <div className="grid gap-3 text-sm text-slate-900">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <div className="text-xs text-slate-500">نام کارمند</div>
-                            <div className="font-semibold">{employee.name}</div>
-                        </div>
-                        <div>
-                            <div className="text-xs text-slate-500">نام پدر</div>
-                            <div className="font-semibold">{employee.f_name}</div>
-                        </div>
-                    </div>
+        <div dir="rtl" lang="fa">
+            <main className="thermal-receipt" aria-label="رسید پرداخت معاش">
+                <header className="thermal-receipt__center">
+                    <h1 className="thermal-receipt__store-name">رسید پرداخت معاش</h1>
+                    <div className="thermal-receipt__muted thermal-receipt__small">سیستم مدیریت کارخانه</div>
+                </header>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <div className="text-xs text-slate-500">شماره تماس</div>
-                            <div className="font-semibold">{employee.phone}</div>
-                        </div>
-                        <div>
-                            <div className="text-xs text-slate-500">آدرس</div>
-                            <div className="font-semibold">{employee.address}</div>
-                        </div>
-                    </div>
+                <div className="thermal-receipt__rule" />
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <div className="text-xs text-slate-500">تاریخ استخدام</div>
-                            <div className="font-semibold">{new Date(employee.recruitment_date).toLocaleDateString()}</div>
-                        </div>
-                        <div>
-                            <div className="text-xs text-slate-500">شفت کاری</div>
-                            <div className="font-semibold">{employee.shift === 'day' ? 'روز' : 'شب'}</div>
-                        </div>
-                    </div>
+                <section aria-label="مشخصات کارمند">
+                    <table className="thermal-receipt__meta">
+                        <tbody>
+                            <tr><td>نام کارمند</td><td>{employee.name || '—'}</td></tr>
+                            <tr><td>نام پدر</td><td>{employee.f_name || '—'}</td></tr>
+                            <tr><td>شماره تماس</td><td dir="ltr">{employee.phone || '—'}</td></tr>
+                            <tr><td>آدرس</td><td>{employee.address || '—'}</td></tr>
+                            <tr><td>تاریخ استخدام</td><td dir="ltr">{formatDate(employee.recruitment_date)}</td></tr>
+                            <tr><td>شفت کاری</td><td>{employee.shift === 'day' ? 'روز' : 'شب'}</td></tr>
+                        </tbody>
+                    </table>
+                </section>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <div className="text-xs text-slate-500">معاش ماهانه</div>
-                            <div className="font-semibold">{employee.salary}</div>
-                        </div>
-                        <div>
-                            <div className="text-xs text-slate-500">تاریخ پرداخت</div>
-                            <div className="font-semibold">{new Date(salary.payment_date).toLocaleDateString()}</div>
-                        </div>
-                    </div>
+                <div className="thermal-receipt__rule" />
 
-                    <div className="rounded-lg bg-slate-50 p-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <div className="text-xs text-slate-500">معاش ناخالص این ماه</div>
-                                <div className="font-semibold">{grossMonthSalary}</div>
-                            </div>
-                            <div>
-                                <div className="text-xs text-slate-500">معاش تعدیل‌شده</div>
-                                <div className="font-semibold">{adjustedSalary}</div>
-                            </div>
-                        </div>
-                    </div>
+                <section aria-label="جزئیات پرداخت">
+                    <table className="thermal-receipt__totals">
+                        <tbody>
+                            <tr><td>تاریخ پرداخت</td><td dir="ltr">{formatDate(salary.payment_date)}</td></tr>
+                            <tr><td>معاش ماهانه</td><td>{formatNumber(employee.salary)}</td></tr>
+                            <tr><td>معاش ناخالص این ماه</td><td>{formatNumber(grossMonthSalary)}</td></tr>
+                            <tr><td>معاش تعدیل‌شده</td><td>{formatNumber(adjustedSalary)}</td></tr>
+                            <tr><td>غیبت‌ها</td><td>{formatNumber(absentDays)} روز</td></tr>
+                            <tr><td>ارزش هر روز</td><td>{formatNumber(perDay)}</td></tr>
+                            <tr><td>پرداختی این ماه</td><td>{formatNumber(paidThisMonth)}</td></tr>
+                        </tbody>
+                    </table>
+                </section>
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <div className="text-xs text-slate-500">مبلغ پرداخت‌شده</div>
-                            <div className="font-semibold">{salary.amount}</div>
-                        </div>
-                        <div>
-                            <div className="text-xs text-slate-500">باقی‌مانده قابل پرداخت</div>
-                            <div className="font-semibold">{remainingSalary}</div>
-                        </div>
-                    </div>
+                <div className="thermal-receipt__rule" />
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <div className="text-xs text-slate-500">غیبت‌ها</div>
-                            <div className="font-semibold">{absentDays} روز</div>
-                        </div>
-                        <div>
-                            <div className="text-xs text-slate-500">ارزش هر روز</div>
-                            <div className="font-semibold">{perDay}</div>
-                        </div>
+                <table className="thermal-receipt__totals thermal-receipt__grand-total">
+                    <tbody>
+                        <tr><td>مبلغ پرداخت‌شده</td><td>{formatNumber(salary.amount)}</td></tr>
+                        <tr><td>باقی‌مانده قابل پرداخت</td><td>{formatNumber(remainingSalary)}</td></tr>
+                    </tbody>
+                </table>
+
+                <footer className="thermal-receipt__footer">
+                    <div>این رسید به‌صورت سیستمی صادر شده است.</div>
+                    <div className="thermal-receipt__small">
+                        <span>امضای کارمند: ........................</span>
+                        <br />
+                        <span>امضای مسئول: ........................</span>
                     </div>
-                </div>
-            </div>
-            <div className="mt-6 flex justify-end gap-3 print:hidden">
+                </footer>
+            </main>
+
+            <div className="thermal-receipt-toolbar">
                 <Button onClick={() => window.print()}>چاپ مجدد</Button>
             </div>
         </div>

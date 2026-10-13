@@ -57,8 +57,8 @@ export const SalaryPaymentDialog = ({
                 >
                     پرداخت معاش                </Button>
             </DialogTrigger>
-            <DialogContent className="space-y-4 py-3">
-                <DialogTitle>
+            <DialogContent dir='rtl' className="space-y-4 py-3">
+                <DialogTitle className='mt-3'>
                     پرداخت معاش
                 </DialogTitle>
                 <DialogDescription className="space-y-2 text-sm text-slate-600">
@@ -143,7 +143,7 @@ const DialogItem = ({ label, value }: { label: string; value: number; }) => {
     return (
         <div className="rounded-md bg-white p-3 shadow-sm">
             <div className="text-xs text-slate-500">{label}</div>
-            <div className="text-base font-semibold">{value}</div>
+            <div className="text-base font-semibold">{value.toFixed(2)}</div>
         </div>
     )
 }
