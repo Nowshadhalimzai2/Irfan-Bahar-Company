@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import PageHead from '@/components/page-head';
 import { Coins } from 'lucide-react';
 import PersionDatePicker from '@/components/persion-date-picker';
+import { eachWeekOfInterval } from 'date-fns';
 
 interface Props {
     salaryRecords: Salary[];
@@ -39,9 +40,9 @@ const SalaryRecrod = ({ salaryRecords, employee }: Props) => {
             .post(`/employees/${employee.id}/salary-range`, { persianDate })
             .then((res) => {
                 setSalaries(res.data['salaries']);
-            })
-
-            .catch((err) => console.error(err));
+                // console.log(res.data);
+                
+            }).catch((err) => console.error(err));
     }, [employee.id, persianDate]);
     const paidAmount: number = useMemo(() => salaries.reduce((acc, salary) => acc += salary.amount, 0), [salaries])
 
@@ -73,6 +74,7 @@ const SalaryRecrod = ({ salaryRecords, employee }: Props) => {
                             key={'salary'}
                             label={'جستجوی معاش'}
                             type='month'
+                            // minDate={employee.d}
                             value={selectedDate}
                             onChange={(date, formatted) => {
                                 setSelectedDate(date);

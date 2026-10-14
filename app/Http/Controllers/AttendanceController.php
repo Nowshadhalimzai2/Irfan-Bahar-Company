@@ -39,8 +39,8 @@ class AttendanceController extends Controller
         }
 
         $attendances = $employee->attendances()
-            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->orderBy('date')
+            ->whereDate('date', '>=', $start)
+            ->whereDate('date', '<=', $end)->orderBy('date')
             ->get();
 
         return response()->json([

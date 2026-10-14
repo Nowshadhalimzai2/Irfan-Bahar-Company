@@ -23,21 +23,20 @@ class SalaryController extends Controller
             ->get();
         return Inertia::render('employee/salary-record', compact('salaryRecords', 'employee'));
     }
-    public function getSalryBasedOnMonth(Request $request, Employee $employee,PersianDateConverter $dateConverter)
+    public function getSalryBasedOnMonth(Request $request, Employee $employee, PersianDateConverter $dateConverter)
     {
         $persianDate = $request->string('persianDate')->toString();
         $persianDate = $persianDate !== '' ? $persianDate : Jalalian::now()->format('Y/m');
-
         try {
             ['start' => $start, 'end' => $end] = $dateConverter->toGregorianRange($persianDate, 'month');
         } catch (\InvalidArgumentException $exception) {
             return response()->json(['message' => $exception->getMessage()], 422);
         }
+       
 
-        // $start = $selectedDate->copy()->startOfMonth();
-        // $end = $selectedDate->copy()->endOfMonth();
-
-        $salaryRecords = $employee->salaries()->whereBetween('payment_date', [$start, $end])
+        $salaryRecords = $employee->salaries()
+            ->whereDate('payment_date', '>=', $start)
+            ->whereDate('payment_date', '<=', $end)
             ->get();
 
         return response()->json(['salaries' => $salaryRecords, 'startOfDate' => $start, 'endOfDate' => $start, 'employee' => $employee]);

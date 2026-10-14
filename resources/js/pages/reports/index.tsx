@@ -103,7 +103,7 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
 
     const [period, setPeriod] = useState(filters.period);
     const [preset, setPreset] = useState(filters.preset ?? 'custom');
-    const [businessUnit, setBusinessUnit] = useState(filters.business_unit ?? 'consolidated');
+    // const [businessUnit, setBusinessUnit] = useState(filters.business_unit ?? 'consolidated');
     const [product, setProduct] = useState(String(filters.product ?? ''));
     const [category, setCategory] = useState(String(filters.category ?? ''));
     const [vendor, setVendor] = useState(String(filters.vendor ?? ''));
@@ -114,13 +114,13 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
 
     const applyFilters = (event: FormEvent) => {
         event.preventDefault();
-        router.get('/reports', { period, preset, business_unit: businessUnit, product: product || undefined, category: category || undefined, vendor: vendor || undefined, customer: customer || undefined, date }, { preserveState: true, preserveScroll: true });
+        router.get('/reports', { period, preset,  product: product || undefined, category: category || undefined, vendor: vendor || undefined, customer: customer || undefined, date }, { preserveState: true, preserveScroll: true });
     };
     const exportExcel = (language = 'english') => {
         const params = new URLSearchParams({
             period,
             preset,
-            business_unit: businessUnit,
+            // business_unit: businessUnit,
             date,
             language,
             ...(product ? { product } : {}),
@@ -151,7 +151,7 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
         <AppLayout breadcrumbs={[{ title: 'مرکز راپورها', href: '/reports' }]}>
             <Head title="مرکز راپورها" />
             <div id="printArea" dir="rtl" lang="fa" className="report-print-area space-y-5 bg-slate-50/60 px-4 py-5 text-right dark:bg-slate-950/50 lg:px-6">
-                <div className="flex flex-col justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-end">
+                <div className="flex flex-col justify-between gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900 md:flex-row md:items-start">
                     <div><div className="flex items-center gap-2 text-sm font-medium text-primary"><FileBarChart className="h-4 w-4" /> مرکز راپورها</div><h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">راپورهای کارخانه و فروشگاه</h1><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">راپور عملیاتی؛ فروش بیرونی از انتقالات داخلی جدا محاسبه می‌شود.</p></div>
                     <div className="flex min-w-0 flex-col gap-3">
                         <form onSubmit={applyFilters} className="min-w-0 space-y-3">
@@ -189,10 +189,7 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
                                     </div>
                                 </div>
                             </div>
-                            <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
-                                <h2 className="text-xs font-bold text-slate-700 dark:text-slate-200">دامنهٔ کاری</h2>
-                                <Select label="بخش کاری" value={businessUnit} onChange={setBusinessUnit} options={[[ 'consolidated', 'مجموعی'], ['factory', 'کارخانه'], ['shop', 'فروشگاه']]} />
-                            </div>
+                            
                             <div className="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700">
                                 <h2 className="text-xs font-bold text-slate-700 dark:text-slate-200">محدودسازی نتایج</h2>
                                 <div className="grid grid-cols-2 gap-2 xl:grid-cols-4">
@@ -212,7 +209,7 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
                     </div>
                 </div>
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100"><div className="flex items-center gap-2"><TriangleAlert className="h-4 w-4" /><span>انتقالات داخلی کارخانه به فروشگاه در راپور عملیاتی دیده می‌شود، اما در عاید بیرونی و سود ناخالص مجموعی محاسبه نمی‌گردد.</span></div></div>
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-center gap-2 text-sm text-slate-500"><CalendarDays className="h-4 w-4" /> نمایش <span className="font-semibold text-slate-700 dark:text-slate-200">{range.label}</span><span className="text-slate-300">|</span>{range.start} تا {range.end}</div><div className="flex flex-wrap gap-2 text-xs text-slate-500"><span className="rounded-full border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-900">بخش: {businessUnitLabels[businessUnit] ?? businessUnit}</span><span className="rounded-full border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-900">بازه: {presetLabels[preset] ?? preset}</span></div></div>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-center gap-2 text-sm text-slate-500"><CalendarDays className="h-4 w-4" /> نمایش <span className="font-semibold text-slate-700 dark:text-slate-200">{range.label}</span><span className="text-slate-300">|</span>{range.start} تا {range.end}</div><div className="flex flex-wrap gap-2 text-xs text-slate-500"><span className="rounded-full border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-900">بازه: {presetLabels[preset] ?? preset}</span></div></div>
                 <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value, detail, Icon, tone]) => <MetricCard key={label} label={label} value={money(value)} detail={detail} icon={Icon} tone={tone} />)}</div>
                 <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]"><section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="flex items-center justify-between"><div><h2 className="font-bold text-slate-900 dark:text-white">فعالیت فروش</h2><p className="mt-1 text-xs text-slate-500">عاید بیرونی در دورهٔ انتخاب‌شده</p></div><BarChart3 className="h-5 w-5 text-primary" /></div><div className="mt-6 flex h-48 items-end gap-2 border-b border-slate-100 pb-0 dark:border-slate-800">{dailySales.length === 0 ? <p className="w-full pb-8 text-center text-sm text-slate-400">در این دوره فروشی ثبت نشده است.</p> : dailySales.map((item) => <div key={item.date} className="group flex h-full flex-1 flex-col items-center justify-end gap-2"><div className="relative w-full max-w-10 rounded-t-lg bg-emerald-400/80 transition hover:bg-emerald-500" style={{ height: `${Math.max((item.sales / maxSales) * 100, 4)}%` }} title={`${money(item.sales)} · ${item.count} فروش`} /><span className="text-[10px] text-slate-400">{item.label}</span></div>)}</div></section><SummaryPanel title="خلاصهٔ هزینه‌ها" icon={Coins} rows={expenseByCurrency.map((item) => [item.currency, `${money(item.amount)} — ${item.count} ثبت`])} empty="در این دوره هزینه‌ای ثبت نشده است." /></div>
                 <div className="grid gap-5 lg:grid-cols-3"><SummaryPanel title="کارکنان و فعالیت" icon={Users} rows={[['حاضر', summary.attendance.present], ['غایب', summary.attendance.absent], ['عملیات سیستم', summary.activity]]} /><SummaryPanel title="حرکت‌های موجودی" icon={Boxes} rows={movementSummary.map((item) => [movementLabels[item.type] ?? item.type, `${item.movements} حرکت ${money(item.quantity)} مقدار`])} empty="هیچ حرکت موجودی ثبت نشده است." /><SummaryPanel title="سفارش‌های تولید" icon={Factory} rows={productionSummary.map((item) => [statusLabels[item.status] ?? item.status, item.total])} empty="هیچ سفارش تولید ثبت نشده است." /></div>

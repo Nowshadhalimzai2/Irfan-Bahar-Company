@@ -51,7 +51,7 @@ class ReportController extends Controller
             ?? Jalalian::now(new DateTimeZone(config('app.timezone')))->format($period === 'monthly' ? 'Y/m' : 'Y/m/d');
         $report = $reportService->buildForPeriod($period, $selectedDate, [
             'preset' => $preset,
-            'business_unit' => $request->input('business_unit', 'consolidated'),
+            // 'business_unit' => $request->input('business_unit', 'consolidated'),
             'product' => $request->input('product'),
             'category' => $request->input('category'),
             'vendor' => $request->input('vendor'),

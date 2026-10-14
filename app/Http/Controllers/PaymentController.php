@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Custome\Log;
 use App\Custome\SHA;
 use App\Models\Invoice;
 use App\Models\Payment;
@@ -118,6 +119,7 @@ class PaymentController extends Controller
                     ->with('role:id,name')
                     ->whereHas('role', fn($query) => $query->whereIn('name', ['admin', 'super_admin']))
                     ->get();
+                (new Log())->create('insert','پرداخت ثبت شد','',"/payments/$payment->id/receipt");
                 Notification::send($admins, new PaymentCreated($payment));
                 return $payment;
             });

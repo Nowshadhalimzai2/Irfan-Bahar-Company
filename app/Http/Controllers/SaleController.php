@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Custome\InvMovement;
+use App\Custome\Log;
 use App\Custome\SHA;
 use App\Models\Currency;
 use App\Models\Customer;
@@ -174,6 +175,9 @@ class SaleController extends Controller
 
     public function create()
     {
+        $auth = Auth::user();
+        Gate::allowIf(($auth instanceof User && $auth->hasRole('shop_clerk')), 'صلاحیت این صفحه ندارین!', 403);
+
         $locations = Location::query()->where('type', 'shop')->where('is_active', true)->orderBy('name')->get(['id', 'name', 'address']);
         $items = Item::query()
             ->with(['product:item_id,barcode,weight,per_pack', 'category:id,name', 'inventoryBalances:id,item_id,location_id,quantity_on_hand,reserved'])
@@ -194,6 +198,8 @@ class SaleController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $auth = Auth::user();
+        Gate::allowIf(($auth instanceof User && $auth->hasRole('shop_clerk')), 'صلاحیت این صفحه ندارین!', 403);
         $request->merge([
             'customer_id' => $request->input('customer_id') ?: null,
         ]);
@@ -318,8 +324,8 @@ class SaleController extends Controller
             Gate::allowIf(!$user->hasRole('factory_clerk'));
 
         try {
-            if($sale->status==='cancelled')
-                throw new Error('این جنس قبلا لغوه شده است');      
+            if ($sale->status === 'cancelled')
+                throw new Error('این جنس قبلا لغوه شده است');
             $sale->load('invoice:id,sale_id,invoice_number', 'invoice.payments:id,invoice_id,amount');
             $sale->load('saleLines:id,sale_id,item_id,quantity');
             if ($sale->invoice->payments->count() ?? 0 > 1) {
@@ -346,6 +352,7 @@ class SaleController extends Controller
             return redirect()->back();
         }
         $des = sprintf('فروش بل نمبر  %s  لغو شد', $sale->invoice()->exists() ? $sale->invoice->invoice_number : '#00' . $sale->id);
+        (new Log())->create('update',$des,'',"/sales/$sale->id/invoice/print");
         Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
         return redirect()->back();
     }
@@ -493,7 +500,7 @@ class SaleController extends Controller
                 'label' => $jalaliDate->format('m/d'),
                 'sales' => round((float) $daySales->sum('after_descount_total'), 2),
             ];
-        })->filter(fn (?array $item) => $item !== null)->values();
+        })->filter(fn(?array $item) => $item !== null)->values();
     }
 
     public function mostSold(Request $request)

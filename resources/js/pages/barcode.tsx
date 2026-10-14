@@ -131,7 +131,7 @@ export default function Barcode({ products, missingBarcodeCount }: Props) {
 
                             <div id="printArea" className="barcode-print-area rounded-md border border-border bg-white p-6 text-center text-black sm:p-10 hidden print:block">
                                 
-                                {Array.from(([1,2,3,4,5])).map(id=> <>
+                                {Array.from(([1,2,3])).map(id=> <>
                                     <p className="barcode-print-name">{selectedProduct.name}</p>
                                     <p className="barcode-print-code">{selectedProduct.code || selectedProduct.sku || ''}</p>
                                     <img className="barcode-image mx-auto mt-5 w-full max-w-md" src={barcodeUrl} alt={`بارکود ${selectedProduct.name}: ${selectedProduct.barcode}`} />

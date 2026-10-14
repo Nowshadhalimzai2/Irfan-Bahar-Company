@@ -1,9 +1,8 @@
 import { router } from '@inertiajs/react';
-import { Accessibility, AlertTriangle, Boxes, CheckCircle2, Filter, PackageOpen, Search, SearchX, SlidersHorizontal, Sparkles, Store, Warehouse } from 'lucide-react';
+import { AlertTriangle, Boxes, CheckCircle2, Filter, PackageOpen, Search, SearchX, SlidersHorizontal, Sparkles, Store, Warehouse } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import LocationTranslator, { getDariCategory, getDariItemType, getDariItemUnit, locationColor } from '@/components/location-translator';
 import PageLinks from '@/components/page-links';
-import { SectionTitle } from '@/components/section-title';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import type { InventoryBalance } from '@/types';
@@ -11,11 +10,6 @@ import type { Item } from '@/types/item';
 import PageHead from '@/components/page-head';
 import ItemDrawer from '@/components/item-drawer';
 
-type Balance = {
-    location_id: number;
-    quantity_on_hand: number;
-    reserved: number;
-};
 
 
 type ItemWithInventory = Item & {
@@ -140,7 +134,7 @@ const Index = ({ items, locations }: Props) => {
                 <PageHead
                     HeadIcon={Store}
                     title="ذخیره اجناس"
-                    description={" تمام اجناس که در شرکت فروخته می شود "+items.data.filter(item=>item.inventory_balances.reduce((acc,balance)=>acc+=balance.quantity_on_hand,0)>0).length+" اقلام است."}
+                    description={" تمام اجناس که در شرکت فروخته می شود " + items.data.filter(item => item.inventory_balances.reduce((acc, balance) => acc += balance.quantity_on_hand, 0) > 0).length + " اقلام است."}
                     subtitle="اجناس شرکت"
                     tone='cyan'
                 />
@@ -266,7 +260,7 @@ const Index = ({ items, locations }: Props) => {
                             />
                         </div>
 
-                       
+
 
                         <div className={`grid grid-cols-1 ${filteredItems.length > 0 ? 'lg:grid-cols-3' : ' lg:grid-cols-1'} gap-5 md:gap-3 mt-5`}>
                             {filteredItems.length > 0 ? filteredItems.map((item, ind) =>
@@ -275,8 +269,7 @@ const Index = ({ items, locations }: Props) => {
                                         <img src={"https://picsum.photos/275/60"} alt="" className="h-24 w-full object-cover opacity-90" />
                                         <div className="absolute inset-0 bg-linear-to-t from-slate-950/50 to-transparent" />
                                         <h2 className="absolute inset-x-4 bottom-3 text-center text-lg font-bold text-white drop-shadow-md">
-                                            <ItemDrawer item={item} trigger={`${item.code} ${item.name}` }/>
-                                                
+                                            <ItemDrawer item={item as Item} trigger={<div ><span className='text-sm font-normal text-white'>{item.code}</span><span>{item.name}</span></div>} />
                                         </h2>
                                         <div className={`absolute right-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${totalStock(item) <= 10
                                             ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'

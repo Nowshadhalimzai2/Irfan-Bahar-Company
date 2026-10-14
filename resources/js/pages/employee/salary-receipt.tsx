@@ -21,17 +21,14 @@ const formatDate = (value: string | Date | null | undefined) => {
     if (!value) return '—';
 
     const date = new Date(value);
-    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('fa-AF',{
-        year:'numeric',
-        month:'numeric',
-        day:'2-digit',
+    return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('fa-AF', {
+        year: 'numeric',
+        month: 'numeric',
+        day: '2-digit',
     });
 };
 
 const SalaryReceipt = ({ employee, salary, grossMonthSalary, adjustedSalary, absentDays, paidThisMonth, remainingSalary, perDay }: Props) => {
-    useEffect(() => {
-        window.print();
-    }, []);
 
     return (
         <div dir="rtl" lang="fa">

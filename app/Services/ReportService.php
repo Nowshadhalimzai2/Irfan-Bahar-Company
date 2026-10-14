@@ -444,7 +444,6 @@ class ReportService
                 'preset' => $preset,
                 'date' => $selectedPersianDate,
                 'dateGregorian' => $selectedDate->toDateString(),
-                'business_unit' => $filters['business_unit'] ?? 'consolidated',
                 'product' => $filters['product'] ?? null,
                 'category' => $filters['category'] ?? null,
                 'vendor' => $filters['vendor'] ?? null,
