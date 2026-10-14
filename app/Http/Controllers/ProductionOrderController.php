@@ -17,7 +17,9 @@ use App\Notifications\OrderProcessed;
 use Carbon\Carbon;
 use Error;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -26,6 +28,9 @@ use Inertia\Response;
 class ProductionOrderController extends Controller
 {
 
+    private function getAuthUser():User{
+        return Auth::user();
+    }
     public function index(): Response
     {
         $production_orders = ProductionOrder::with([
@@ -43,6 +48,7 @@ class ProductionOrderController extends Controller
     }
     public function junks(): Response
     {
+        Gate::authorize(!$this->getAuthUser()->hasRole('shop_clerk'));
         $junkOrders = ProductionOrder::with([
             'bom:id,category_id',
             'bom.category:id,name',
@@ -50,6 +56,7 @@ class ProductionOrderController extends Controller
             'productionOutputs.product:item_id,weight,per_pack',
         ])
             ->select(['id', 'ordered_by', 'status', 'order_date', 'notes', 'bom_id'])
+            // ->whereDate('order_date','>=',now(config('app.timezone')))
             ->whereIn('status', ['drafted', 'cancelled'])
             ->orderBy('id', 'desc')
             ->get();
@@ -66,11 +73,6 @@ class ProductionOrderController extends Controller
             return redirect()->to(route('boms.create'));
         }
 
-        // $products = Product::with(['item:id,name,unit,category_id','item.category:id,name'])
-        // ->whereHas('item.category', function ($query) use ($bomCategory) {
-        //     $query->where('name', $bomCategory);
-        // })
-        // ->get();
         return Inertia::render('factory/order/create', compact('boms'));
     }
 
@@ -133,6 +135,7 @@ class ProductionOrderController extends Controller
 
     public function changeOrderStatus(ProductionOrder $production_order, string $status)
     {
+        Gate::allowIf($this->getAuthUser()->hasRole('factory_clerk'));
         $currentStatus = $production_order->status;
         DB::beginTransaction();
         try {

@@ -108,6 +108,7 @@ export default function Dashboard({ businessDate, todayIncomes, todaysExpenses, 
         { name: 'موقعیت ها', url: '/locations' },
         { name: 'تاریخچه اجرآات', url: '/logs' },
         { name: 'بارکود', url: '/barcode' },
+        { name: 'اجناس', url: '/items' },
 
     ];
 

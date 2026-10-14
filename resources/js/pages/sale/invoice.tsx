@@ -17,8 +17,7 @@ type InvoicePageProps = {
 
 
 export default function Invoice({ sale, invoice }: InvoicePageProps) {
-    console.log(sale);
-    
+
     type ReceiptItem = {
         itemName: string;
         quantity: number;

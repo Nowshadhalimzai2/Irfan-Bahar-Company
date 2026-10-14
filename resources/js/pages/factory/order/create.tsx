@@ -134,7 +134,7 @@ const Create = ({ boms }: Props) => {
   return (
     <AppLayout breadcrumbs={[
       { title: 'کارخانه', href: '/factory/home' },
-      { title: 'لیست سفارش جات', href: '/factory/production-orders' },
+      { title: 'لیست سفارشات', href: '/factory/production-orders' },
       { title: 'سفارش جدید', href: '/factory/production-orders/create' },
     ]}>
       <div className="min-h-screen space-y-6 bg-linear-to-b from-slate-50 via-background to-background p-3 md:p-6 dark:from-slate-950">

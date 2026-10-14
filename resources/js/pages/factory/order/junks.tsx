@@ -61,18 +61,23 @@ const Index = ({ junkOrders }: Props) => {
                                                 <TableCell className="text-center">{order.ordered_by}</TableCell>
                                                 <TableCell className="text-center">{getDariCategory(order.bom.category.name)}</TableCell>
                                                 <TableCell className={`text-center font-medium ${getStatusColor(order.status)}`}>{getDariOrderStatus(order.status)}</TableCell>
-                                                <TableCell className="text-center">{new Date(order.order_date).toDateString()}</TableCell>
-                                                <TableCell className="text-center p-0">
+                                                <TableCell className="text-center">{new Date(order.order_date).toLocaleDateString('fa-AF',{
+                                                    year:'numeric',
+                                                    month:'long',
+                                                    day:'numeric',
+                                                    weekday:'long'
+                                                })}</TableCell>
+                                                <TableCell className="flex justify-center items-center  p-0">
                                                     <DropdownMenu>
-                                                        <DropdownMenuTrigger className='bg-teal-800 p-1 px-5 text-white'  asChild>
+                                                        <DropdownMenuTrigger className='' >
                                                             <Recycle />
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
                                                             <DropdownMenu >
                                                                {statusController(order.status).map((status, ind) =>
-                                                                    <div className='flex flex-col p-1' key={ind}>
-                                                                        <DropdownMenuItem asChild disabled={status.value == order.status} className={`hover:bg-secondary ${status.value === order.status ? buttonVariants({ variant: 'default' }) : buttonVariants({ variant: 'secondary' })}`} onClick={() => handleOrderStatus(order.id, status.value)}>{status.label}</DropdownMenuItem>
-                                                                    </div>
+                                                                    // <div className='flex flex-col p-1' key={ind}>
+                                                                        <DropdownMenuItem key={status.value+1} disabled={status.value == order.status} className={`hover:bg-secondary ${status.value === order.status ? buttonVariants({ variant: 'default' }) : buttonVariants({ variant: 'secondary' })}`} onClick={() => handleOrderStatus(order.id, status.value)}>{status.label}</DropdownMenuItem>
+                                                                    // </div>
                                                                 )}
                                                             </DropdownMenu>
                                                         </DropdownMenuContent>

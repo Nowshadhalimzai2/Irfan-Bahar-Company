@@ -33,7 +33,7 @@ class ItemController extends Controller
 
     public function create(): Response
     {
-        Gate::authorize('manage-users');
+        // Gate::authorize('manage-users');
 
         $categories = Category::select('id', 'name')->get();
 
@@ -42,7 +42,7 @@ class ItemController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        Gate::authorize('manage-users');
+        // Gate::authorize('manage-users');
 
         $itemData = $this->validateItemData($request);
         $productData = $this->validateProductData($request, null, $itemData['item_type'], null);

@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Employee, Salary } from '@/types';
 import { Button } from '@/components/ui/button';
 import '@/components/thermal-receipt.css';
+import { usePage } from '@inertiajs/react';
 
 interface Props {
     employee: Employee;
@@ -29,6 +30,7 @@ const formatDate = (value: string | Date | null | undefined) => {
 };
 
 const SalaryReceipt = ({ employee, salary, grossMonthSalary, adjustedSalary, absentDays, paidThisMonth, remainingSalary, perDay }: Props) => {
+        const { logo } = usePage().props;
 
     return (
         <div dir="rtl" lang="fa">
@@ -56,7 +58,7 @@ const SalaryReceipt = ({ employee, salary, grossMonthSalary, adjustedSalary, abs
                 <div className="thermal-receipt__rule" />
 
                 <section aria-label="جزئیات پرداخت">
-                    <table className="thermal-receipt__totals">
+                    <table className="thermal-receipt__totals relative">
                         <tbody>
                             <tr><td>تاریخ پرداخت</td><td dir="ltr">{formatDate(salary.payment_date)}</td></tr>
                             <tr><td>معاش ماهانه</td><td>{formatNumber(employee.salary)}</td></tr>
@@ -66,6 +68,8 @@ const SalaryReceipt = ({ employee, salary, grossMonthSalary, adjustedSalary, abs
                             <tr><td>ارزش هر روز</td><td>{formatNumber(perDay)}</td></tr>
                             <tr><td>پرداختی این ماه</td><td>{formatNumber(paidThisMonth)}</td></tr>
                         </tbody>
+                        <img src={logo as string} className="absolute top-0 z-0 -rotate-45 opacity-15 left-20 w-30 h-38" />
+
                     </table>
                 </section>
 

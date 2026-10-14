@@ -1,4 +1,4 @@
-import { Head } from '@inertiajs/react';
+import { Head, usePage } from '@inertiajs/react';
 import { getDariCurrency } from '@/components/location-translator';
 import AppLayout from '@/layouts/app-layout';
 import '@/components/thermal-receipt.css';
@@ -52,6 +52,7 @@ export default function PaymentReceipt({
     const printReceipt = () => window.print();
     const currency = invoice.currency;
     const method = paymentMethodLabels[payment.method] ?? payment.method;
+    const { logo } = usePage().props;
 
     return (
         <AppLayout
@@ -123,7 +124,7 @@ export default function PaymentReceipt({
                         )}
                         <tr>
                             <td>Currency</td>
-                            <td>{invoice.currency  || 'AFG'}</td>
+                            <td>{invoice.currency || 'AFG'}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -138,12 +139,14 @@ export default function PaymentReceipt({
                             <th>Balance due</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody className='relative'>
                         <tr>
                             <td>{payment.amount}</td>
                             <td>{invoice.total}</td>
                             <td>{(invoice.remaining).toFixed(2)}</td>
                         </tr>
+                        <img src={logo as string} className="absolute top-0 z-0 -rotate-45 opacity-15 left-20 w-30 h-38" />
+
                     </tbody>
                 </table>
 

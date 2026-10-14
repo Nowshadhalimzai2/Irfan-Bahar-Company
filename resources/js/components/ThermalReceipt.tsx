@@ -1,5 +1,6 @@
 import React from "react";
 import "./thermal-receipt.css";
+import { usePage } from "@inertiajs/react";
 
 export type ReceiptItem = {
     itemName: string;
@@ -11,7 +12,7 @@ export type ReceiptItem = {
 
 export type ReceiptData = {
     storeName: string;
-    status:string;
+    status: string;
     tagline?: string;
     address?: string;
     phone?: string;
@@ -39,10 +40,11 @@ const money = (value: number, currency: string) =>
     `${value.toLocaleString()} ${currency}`;
 
 export default function ThermalReceipt({
-    receipt ,
+    receipt,
     onPrint,
     showPrintButton = true,
 }: ThermalReceiptProps) {
+    const { logo } = usePage().props;
 
     const currency = receipt.currency ?? "AFN";
     const subtotal = receipt.items.reduce(
@@ -89,7 +91,7 @@ export default function ThermalReceipt({
 
                 <div className="thermal-receipt__rule" />
 
-                <table className="thermal-receipt__meta">
+                <table className="thermal-receipt__meta relative">
                     <tbody>
                         <tr><td>Invoice</td><td>{receipt.invoiceNumber}</td></tr>
                         <tr><td>Date</td><td>{receipt.date}</td></tr>
@@ -97,6 +99,8 @@ export default function ThermalReceipt({
                         {receipt.customer && <tr><td>Customer</td><td>{receipt.customer}</td></tr>}
                         <tr><td>Status</td><td className="font-bold">{receipt.status}</td></tr>
                     </tbody>
+                    <img src={logo as string} className="absolute top-40 z-0 -rotate-45 opacity-15 left-20 w-30 h-38" />
+                    
                 </table>
 
                 <div className="thermal-receipt__rule" />
@@ -120,7 +124,7 @@ export default function ThermalReceipt({
                                         {item.quantity * item.unit_price}
                                     </span>
                                     <span className="thermal-receipt__item-detail block">
-                                        {item.quantity} × {item.unit_price} 
+                                        {item.quantity} × {item.unit_price}
                                     </span>
                                 </td>
                             </tr>

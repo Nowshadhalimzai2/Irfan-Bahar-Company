@@ -160,6 +160,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/employees/{employee}/attendance-record', [AttendanceController::class, 'attendanceRecord'])->name('emplyee-attendance-record');
 
     Route::middleware(['refuseFactoryClerk'])->group(function () {
+        Route::get('/sales/order/create',[ProductionOrderController::class,'create'])->name('sales.order');
         Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
         Route::resource('expenses', ExpenseController::class)->names('expenses');
         Route::resource('customers', CustomerController::class)->except('index')->names('customers');
@@ -210,8 +211,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/barcode', [BarcodeController::class, 'index'])->name('barcode.index')->middleware(['superadmin']);
     Route::get('/barcode/image', [BarcodeController::class, 'show'])->name('barcode.image')->middleware('superadmin');
     Route::prefix('factory')->group(function () {
+        // Route::middleware('allowOnlyFactoryClerk')->group(function(){});
         Route::get('/home', function () {
-
+            $auth=Auth::user();
+            if($auth instanceof User)
+                Gate::allowIf(!$auth->hasRole('shop_clerk'));
             //  ===========  get items available in Factory  ===========
             $items = Item::with([
                 'inventoryBalances' => function ($query) {

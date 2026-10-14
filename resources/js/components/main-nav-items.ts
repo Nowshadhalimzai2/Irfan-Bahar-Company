@@ -101,11 +101,7 @@ export const mainNevShopClerkItems: NavItem[] = [
         href: '/inventory-balances',
         icon: Store,
     },
-    {
-        title: 'تقویم شمسی',
-        href: '/persian-date-picker',
-        icon: CalendarDays,
-    },
+    
     {
         title: ' انتقال اموال',
         href: '/receipts',
@@ -134,11 +130,7 @@ export const mainNavFactoryClerkItems: NavItem[] = [
         href: '/inventory-balances',
         icon: Store,
     },
-    {
-        title: 'تقویم شمسی',
-        href: '/persian-date-picker',
-        icon: CalendarDays,
-    },
+   
     {
         title: ' انتقال اموال',
         href: '/receipts',

@@ -1,14 +1,12 @@
 import { getDariItemType, getDariItemUnit } from '@/components/location-translator';
 import PageHead from '@/components/page-head';
 import PageLinks from '@/components/page-links';
-import { SectionTitle } from '@/components/section-title';
-import { buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import { Item } from '@/types/item';
-import { Link, router, usePage } from '@inertiajs/react';
-import { ArrowUpDown, Package, PackagePlus } from 'lucide-react';
+import {  router, usePage } from '@inertiajs/react';
+import { ArrowUpDown, PackagePlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface Props {
@@ -41,7 +39,6 @@ const Index = ({ items }: Props) => {
     }
   }, [searchTerm]);
   const userRole = usePage().props.auth.role;
-  console.log('role:: ', userRole);
 
   const canModifyItems: boolean = ['admin', 'super_admin'].includes(userRole);
   return (
@@ -50,20 +47,14 @@ const Index = ({ items }: Props) => {
       { title: 'اجناس', href: '/items' }
     ]}>
       <div className="py-5 px-2 md:px-5">
-        {canModifyItems ? <PageHead
+   <PageHead
           HeadIcon={PackagePlus}
           subtitle='اجناس شرکت'
           title='لیست اجناس '
           description='اجناس که فروخت در شرکت میشه لیست شان ذیل است'
           actionTitle='جنس جدید'
           actionURL='/items/create'
-        /> :
-          <PageHead
-            HeadIcon={PackagePlus}
-            subtitle='اجناس شرکت'
-            title='لیست اجناس '
-            description='اجناس که فروخت در شرکت میشه لیست شان ذیل است'
-          />}
+        />
         <section className="max-w-5xl mx-auto mt-8" dir='rtl'>
           <div className=" grid grid-cols-1 gap-5 ">
             <div className="flex gap-2 ">

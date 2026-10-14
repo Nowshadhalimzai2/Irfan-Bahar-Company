@@ -1,7 +1,6 @@
-import { Link, router } from '@inertiajs/react';
-import { Activity, ArrowLeft, ClipboardList, Factory, Filter, Plus, Recycle, Search, X } from 'lucide-react';
+import { router, usePage, usePrefetch } from '@inertiajs/react';
+import { Activity, ClipboardList, Factory, Filter, Recycle, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
 import { getDariCategory, getDariOrderStatus, getStatusColor } from '@/components/location-translator';
 import { statusController } from '@/components/status-controller';
 import { buttonVariants } from '@/components/ui/button';
@@ -86,7 +85,7 @@ const Index = ({ production_orders }: Props) => {
 
         return `${daysAgo} روز پیش`;
     };
-
+    const canChangeStatus:boolean = usePage().props.auth.role!=='shop_clerk';
     return (
         <AppLayout
             breadcrumbs={[
@@ -128,7 +127,7 @@ const Index = ({ production_orders }: Props) => {
                                     <TableHead className="text-center">جنس</TableHead>
                                     <TableHead className="text-center">حالت سفارش</TableHead>
                                     <TableHead className="text-center">تاریخ سفارش</TableHead>
-                                    <TableHead className="text-center">تغییر حالت</TableHead>
+                                    {canChangeStatus && <TableHead className="text-center">تغییر حالت</TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>{filteredOrders.length > 0 ? filteredOrders.map((order, ind) =>
@@ -139,14 +138,14 @@ const Index = ({ production_orders }: Props) => {
                                     <TableCell className="text-center">{getDariCategory(order.bom.category.name)}</TableCell>
                                     <TableCell className={`text-center font-medium ${getStatusColor(order.status)}`}>{getDariOrderStatus(order.status)}</TableCell>
                                     <TableCell className="text-center text-sm text-muted-foreground">{getOrderAge(order.order_date)}</TableCell>
-                                    <TableCell className="p-0 text-center">
+                                   {canChangeStatus && <TableCell className="p-0 text-center">
                                         <DropdownMenu>
                                             <DropdownMenuTrigger className="inline-flex items-center justify-center rounded-md bg-slate-900 p-2 text-white hover:bg-slate-700"><Recycle className="size-4" /></DropdownMenuTrigger>
                                             <DropdownMenuContent>{statusController(order.status).map((status) =>
                                                 <DropdownMenuItem key={status.value} disabled={status.value === order.status} className={status.value === order.status ? buttonVariants({ variant: 'default' }) : buttonVariants({ variant: 'secondary' })} onClick={() => handleOrderStatus(order.id, status.value)}>{status.label}</DropdownMenuItem>)}
                                             </DropdownMenuContent>
                                         </DropdownMenu>
-                                    </TableCell>
+                                    </TableCell>}
                                    
                                 </TableRow>) :
                                 <TableRow>
