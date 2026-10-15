@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import './barcode.css';
+import { getDariItemUnit } from '@/components/location-translator';
+import { __invoke } from '@/actions/Laravel/Fortify/Http/Controllers/EmailVerificationPromptController';
 
 type Product = {
     id: number;
@@ -25,6 +27,7 @@ interface Props {
 
 export default function Barcode({ products, missingBarcodeCount }: Props) {
     const [search, setSearch] = useState('');
+    const [times,setTimes] = useState<number>(1);
     const [selectedId, setSelectedId] = useState<number | null>(products[0]?.id ?? null);
     const filteredProducts = useMemo(() => {
         const query = search.trim().toLocaleLowerCase();
@@ -128,15 +131,22 @@ export default function Barcode({ products, missingBarcodeCount }: Props) {
                                 <Info label="وزن" value={selectedProduct.weight ? `${selectedProduct.weight} kg` : null} />
                                 <Info label="تعداد در بسته" value={String(selectedProduct.perPack)} />
                             </div>
+                            <div className="grid-gap-x-6 gap-y-3 border-y border-border py-4 sm:grid-cols-2">
+                                <div className='flex justify-center items-center gap-3'>
+                                    <button className='border-border border px-3 py-1.5 rounded-md bg-white shadow hover:bg-slate-800 hover:text-white font-semi-bold' disabled={times===1} onClick={()=>setTimes(pre=>pre>0 ? pre-1:1)}>-</button>
+                                    <span>{times}</span>
+                                    <button className='border-border border px-3 py-1.5 rounded-md bg-white shadow hover:bg-slate-800 hover:text-white font-semi-bold' onClick={()=>setTimes(pre=>pre+1)}>+</button>
+                                </div>
+                            </div>
 
-                            <div id="printArea" className="barcode-print-area rounded-md border border-border bg-white p-6 text-center text-black sm:p-10 hidden print:block">
-                                
-                                {Array.from(([1,2,3])).map(id=> <>
+                            <div id="printArea" className="barcode-print-area print:grid print:grid-cols-2 h-70 print:h-auto overflow-auto print:overflow-hidden rounded-md border border-border bg-white p-6 text-center text-black sm:p-10">
+
+                                {Array.from(({length:times})).map((id) => <div className='mb-5' key={id as number}>
                                     <p className="barcode-print-name">{selectedProduct.name}</p>
                                     <p className="barcode-print-code">{selectedProduct.code || selectedProduct.sku || ''}</p>
-                                    <img className="barcode-image mx-auto mt-5 w-full max-w-md" src={barcodeUrl} alt={`بارکود ${selectedProduct.name}: ${selectedProduct.barcode}`} />
-                                    <p className="mt-2 font-mono text-sm tracking-normal">{selectedProduct.barcode}</p>
-                                    <p className="barcode-print-detail">{selectedProduct.weight} kg · {selectedProduct.perPack} در بسته</p></>)}
+                                    <img className="barcode-image mx-auto mt-2 w-full max-w-md" src={barcodeUrl} alt={`بارکود ${selectedProduct.name}: ${selectedProduct.barcode}`} />
+                                    <p className="mt-2 font-mono text-xs ">{selectedProduct.barcode}</p>
+                                    <p className="barcode-print-detail">{selectedProduct.weight} kg · {selectedProduct.perPack} در {getDariItemUnit(selectedProduct.unit ?? 'kg')}</p></div>)}
                             </div>
                         </section>
                     ) : (

@@ -30,17 +30,17 @@
     }
 
     #printArea .barcode-image {
-        max-width: 62mm;
-        max-height: 20mm;
+        max-width: 30mm;
+        max-height: 9mm;
         object-fit: contain;
     }
 
     #printArea .barcode-print-name {
-        font-size: 12pt;
+        font-size: 8pt;
     }
 
     #printArea .barcode-print-code,
     #printArea .barcode-print-detail {
-        font-size: 8pt;
+        font-size: 6pt;
     }
 }

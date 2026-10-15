@@ -91,7 +91,7 @@ export default function ThermalReceipt({
 
                 <div className="thermal-receipt__rule" />
 
-                <table className="thermal-receipt__meta relative">
+                <table className="thermal-receipt__meta">
                     <tbody>
                         <tr><td>Invoice</td><td>{receipt.invoiceNumber}</td></tr>
                         <tr><td>Date</td><td>{receipt.date}</td></tr>
@@ -99,8 +99,7 @@ export default function ThermalReceipt({
                         {receipt.customer && <tr><td>Customer</td><td>{receipt.customer}</td></tr>}
                         <tr><td>Status</td><td className="font-bold">{receipt.status}</td></tr>
                     </tbody>
-                    <img src={logo as string} className="absolute top-40 z-0 -rotate-45 opacity-15 left-20 w-30 h-38" />
-                    
+
                 </table>
 
                 <div className="thermal-receipt__rule" />
