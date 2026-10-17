@@ -8,7 +8,6 @@ use App\Models\Item;
 use App\Models\Location;
 use App\Models\ProductionInput;
 use App\Models\ProductionOrder;
-use App\Models\ProductionOutput;
 use App\Models\User;
 use App\Notifications\OrderProcessed;
 use Illuminate\Http\Request;

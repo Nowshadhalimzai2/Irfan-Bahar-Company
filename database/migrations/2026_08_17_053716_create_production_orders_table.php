@@ -15,7 +15,7 @@ return new class extends Migration
         Schema::create('production_orders', function (Blueprint $table) {
             $table->id();
             $table->string('ordered_by',255)->default('دوکان');
-            $table->foreignIdFor(BOM::class,'bom_id')->constrained('boms')->noActionOnDelete()->nullOnUpdate();
+            $table->foreignIdFor(BOM::class,'bom_id')->constrained('boms')->noActionOnDelete()->cascadeOnUpdate();
             $table->enum('status',['pending','progress','completed','drafted','cancelled'])->default('pending');
             $table->date('order_date');
             $table->string('reference_no',15);

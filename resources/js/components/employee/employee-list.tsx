@@ -21,7 +21,6 @@ interface Props {
 }
 
 function EmployeeList({ employees }: Props) {
-  console.log('hello',employees[0].today_attendance?.is_present);
   const [emps,setEmps] = useState<Employee[]>(employees);
   const [searchTerm,setSearchTerm] = useState<string>('');
   const [filter,setFilter] = useState<'all' | 'absent' | 'present'>('all');

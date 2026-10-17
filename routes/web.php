@@ -43,6 +43,52 @@ use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use App\Http\Controllers\StackholderController;
 
+
+// ---------------------------------------------------------------------------------
+
+Route::get('/register', function () {
+    $roles = Role::select('id', 'name');
+    if (User::query()->exists()) {
+        Gate::authorize('manage-users');
+        $roles = $roles->where('name', 'super_admin')->get();
+    }
+    else{
+        $roles = $roles->get();
+    }
+
+    return Inertia::render('auth/register', [
+        'passwordRules' => Password::defaults()->toPasswordRulesString(),
+        'roles' => $roles,
+    ]);
+})->name('register');
+
+Route::post('/register', function (Request $request, CreateNewUser $creator) {
+    if (User::query()->exists()) {
+        Gate::authorize('manage-users');
+    }
+
+    DB::beginTransaction();
+    try {
+        $user = $creator->create($request->all());
+
+        if (! Auth::check()) {
+            Auth::login($user);
+        }
+
+        $log = new Log();
+        $log->create('insert', ' یوزر  جدید', $user->name);
+        Inertia::flash('toast', ['type' => 'success', 'message' => ' موفقانه ایجاد شد {$request->name} اکونت یوزر']);
+        DB::commit();
+    } catch (\Throwable $th) {
+        DB::rollBack();
+        Inertia::flash('toast', ['type' => 'success', 'message' => ' یک مشکل در وجود امد. ' . $th->getMessage()]);
+        return redirect()->back();
+    }
+
+    return redirect()->route('dashboard')->with('success', 'User created successfully.');
+})->name('register.store');
+
+
 Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/', function (): RedirectResponse {
@@ -92,57 +138,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ));
     })->name('dashboard')->middleware('refuseFactoryClerk');
 
-   
+
 
     Route::get('/reports/export', [ReportController::class, 'export'])
-    ->name('reports.export')
-    ->middleware('superadmin');
+        ->name('reports.export')
+        ->middleware('superadmin');
     Route::get('/reports', [ReportController::class, 'index'])->name('reports.index')->middleware('superadmin');
 
     Route::get('/total-revenue-and-expenses/{currency}', function (string $currency, DashboardService $dashboardService) {
         return response()->json($dashboardService->averageExpensesForCurrency($currency));
     })->middleware('refuseFactoryClerk');
 
-    // ---------------------------------------------------------------------------------
-
-    Route::get('/register', function () {
-
-
-        if (User::query()->exists()) {
-            Gate::authorize('manage-users');
-        }
-
-        return Inertia::render('auth/register', [
-            'passwordRules' => Password::defaults()->toPasswordRulesString(),
-            'roles' => Role::select('id', 'name')->get(),
-        ]);
-    })->name('register')->middleware('superadmin');
-
-    Route::post('/register', function (Request $request, CreateNewUser $creator) {
-        if (User::query()->exists()) {
-            Gate::authorize('manage-users');
-        }
-
-        DB::beginTransaction();
-        try {
-            $user = $creator->create($request->all());
-
-            if (! Auth::check()) {
-                Auth::login($user);
-            }
-
-            $log = new Log();
-            $log->create('insert', ' یوزر  جدید', $user->name);
-            Inertia::flash('toast', ['type' => 'success', 'message' => ' موفقانه ایجاد شد {$request->name} اکونت یوزر']);
-            DB::commit();
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            Inertia::flash('toast', ['type' => 'success', 'message' => ' یک مشکل در وجود امد. ' . $th->getMessage()]);
-            return redirect()->back();
-        }
-
-        return redirect()->route('dashboard')->with('success', 'User created successfully.');
-    })->name('register.store')->middleware('superadmin');
 
     Route::get('/stackholders', [StackholderController::class, 'index'])->name('employees.index');
     Route::get('/logs', [LogController::class, 'index'])->name('logs.index');
@@ -160,7 +166,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/employees/{employee}/attendance-record', [AttendanceController::class, 'attendanceRecord'])->name('emplyee-attendance-record');
 
     Route::middleware(['refuseFactoryClerk'])->group(function () {
-        Route::get('/sales/order/create',[ProductionOrderController::class,'create'])->name('sales.order');
+        Route::get('/sales/order/create', [ProductionOrderController::class, 'create'])->name('sales.order');
         Route::get('/expenses/expenses-range', [ExpenseController::class, 'expensesRange'])->name('expenses.expenses-range');
         Route::resource('expenses', ExpenseController::class)->names('expenses');
         Route::resource('customers', CustomerController::class)->except('index')->names('customers');
@@ -213,8 +219,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('factory')->group(function () {
         // Route::middleware('allowOnlyFactoryClerk')->group(function(){});
         Route::get('/home', function () {
-            $auth=Auth::user();
-            if($auth instanceof User)
+            $auth = Auth::user();
+            if ($auth instanceof User)
                 Gate::allowIf(!$auth->hasRole('shop_clerk'));
             //  ===========  get items available in Factory  ===========
             $items = Item::with([

@@ -26,7 +26,7 @@ class HighProductionService
                 DB::raw('DATE(production_orders.updated_at) as production_date'),
                 DB::raw('SUM(production_outputs.quantity_produced) as quantity_produced'),
             )
-            ->groupBy('categories.id', 'categories.name', DB::raw('DATE(production_orders.order_date)'))
+            ->groupBy('categories.id', 'categories.name', DB::raw('DATE(production_orders.updated_at)'))
             ->get();
 
         return $productionByCategory;
