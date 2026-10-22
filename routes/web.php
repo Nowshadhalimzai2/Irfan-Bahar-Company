@@ -50,10 +50,10 @@ Route::get('/register', function () {
     $roles = Role::select('id', 'name');
     if (User::query()->exists()) {
         Gate::authorize('manage-users');
-        $roles = $roles->where('name', 'super_admin')->get();
-    }
-    else{
         $roles = $roles->get();
+        }
+        else{
+        $roles = $roles->where('name', 'super_admin')->get();
     }
 
     return Inertia::render('auth/register', [
