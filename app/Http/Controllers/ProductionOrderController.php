@@ -20,7 +20,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -126,7 +125,7 @@ class ProductionOrderController extends Controller
 
     public function show(ProductionOrder $productionOrder): Response
     {
-        $logo = Storage::url('public/logo/nobg.png');
+        $logo = asset('nobg.png');
         $productionOrder->load('bom:id,category_id', 'bom.category:id,name');
         $productionOrder->load('productionOutputs:id,product_id,quantity_produced,production_order_id', 'productionOutputs.product:item_id,per_pack,weight', 'productionOutputs.product.item:id,name,unit,code');
         $productionOrder->load('wastes:id,production_order_id');

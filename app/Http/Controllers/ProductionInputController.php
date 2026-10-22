@@ -13,7 +13,6 @@ use App\Notifications\OrderProcessed;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -31,7 +30,7 @@ class ProductionInputController extends Controller
             'productionInputs.item:id,name,unit,code',
         ]);
 
-        $logo = Storage::url('public/logo/nobg.png');
+        $logo = asset('nobg.png');
 
         return Inertia::render('factory/order/ingredients', compact('production_order', 'logo'));
     }

@@ -6,7 +6,6 @@ use App\Models\Role;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
@@ -47,7 +46,7 @@ class HandleInertiaRequests extends Middleware
                 'role' => Auth::user()->role->name ?? '',
             ],
             'roles' => Role::query()->select('id','name')->get(),
-            'logo' => Storage::url('public/logo/nobg.png'),
+            'logo' => asset('nobg.png'),
             'notifications' => fn() => $request->user() ? [
                 'unread_count' => $request->user()->unreadNotifications()->count(),
                 'recent' => $request->user()->notifications()->latest()->limit(6)->get()->map(fn($notification) => [
