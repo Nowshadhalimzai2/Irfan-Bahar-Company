@@ -128,8 +128,6 @@ const Create = ({ boms }: Props) => {
   }, [currentLine, relatedProducts]);
 
   const selectedBom = boms.find((bom) => bom.id === data.bom_id);
-
-  console.log(boms);
   
   return (
     <AppLayout breadcrumbs={[
@@ -239,7 +237,7 @@ const Create = ({ boms }: Props) => {
                       >
                         {relatedProducts.map((product) => (
                           <option value={product.item_id} key={product.item_id}>
-                            {product.item.name} {(product.weight / product.per_pack) * 1000}
+                            {product.item.name} {product.per_pack!==1 ? (product.weight * 1000)  / product.per_pack: product.weight}
                           </option>
                         ))}
                       </select>
@@ -300,6 +298,7 @@ const Create = ({ boms }: Props) => {
                     <TableHeader>
                       <TableRow>
                         <TableHead className='text-center'>شماره</TableHead>
+                        <TableHead className='text-center'>کود</TableHead>
                         <TableHead className='text-center'>جنس</TableHead>
                         <TableHead className='text-center'>مقدار</TableHead>
                         <TableHead className='text-center'>قیمت</TableHead>
@@ -312,6 +311,7 @@ const Create = ({ boms }: Props) => {
                         productionOutput.map((output, ind) =>
                           <TableRow key={ind}>
                             <TableCell className='text-center'>{ind + 1}</TableCell>
+                            <TableCell className='text-center'>{relatedProducts.find(item => item.item_id === output.product_id)?.item.code}</TableCell>
                             <TableCell className='text-center'>{relatedProducts.find(item => item.item_id === output.product_id)?.item.name}</TableCell>
                             <TableCell className='text-center'>{output.quantity_produced}</TableCell>
                             <TableCell className='text-center'>

@@ -76,7 +76,6 @@ class TransferController extends Controller
             // each line validation
             'transferLines.*.item_id' => 'required|integer|exists:items,id|distinct',
             'transferLines.*.quantity' => 'required|integer|gt:0',
-            'transferLines.*.itemPrice' => 'required|numeric|gt:0',
         ]);
 
         $log = new Log();
@@ -131,14 +130,11 @@ class TransferController extends Controller
             // BOTH RECEIPTS AND TRANSFERS ARE IN SINGLE TABL       
             return redirect()->route('receipts.index');
         } catch (\Throwable $th) {
-            // Let validation exceptions bubble so Inertia/Laravel can return proper validation responses
             if ($th instanceof ValidationException) {
                 throw $th;
             }
-            $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' پیشنهاد نشد';
-            $log->create('insert', $des);
             DB::rollBack();
-            Inertia::flash('toast', ['type' => 'error', 'message' => $des . $th->getMessage()]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'ثبت انتقال اجناس ناموفق بود: ' . $th->getMessage()]);
             return redirect()->back();
         }
     }
