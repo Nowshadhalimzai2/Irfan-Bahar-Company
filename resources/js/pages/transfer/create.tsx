@@ -23,7 +23,6 @@ interface Props {
 type TransferLine = {
     item_id: number;
     quantity: number;
-    // itemPrice: number;
 }
 
 type TransferType = {
@@ -41,7 +40,6 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
     const [currentLine, setCurrentLine] = useState<TransferLine>(() => ({
         item_id: items[0]?.id ?? 0,
         quantity: 1,
-        itemPrice: items[0]?.default_sale_price ?? 1,
     }));
 
     const { data, setData, errors, post, processing } = useForm<TransferType>({
@@ -51,6 +49,8 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
         'notes': '',
         'transferLines': [],
     });
+
+    const transferErrors = Object.entries(errors).filter(([field]) => field.startsWith('transferLines'));
 
     useEffect(() => {
         setData('transferLines', transferLine);
@@ -87,7 +87,6 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                 setCurrentLine({
                     item_id: availableItems[0]?.id ?? 0,
                     quantity: 1,
-                    // itemPrice: availableItems[0]?.default_sale_price
                 });
             } else {
                 console.log('failed fetching Item data : ', response.statusText);
@@ -101,12 +100,11 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
         e.preventDefault();
 
         post('/transfers', {
-            onFinish: () => {
+            onSuccess: () => {
                 setTransferLine([]);
                 setCurrentLine({
                     item_id: items[0]?.id ?? 1,
                     quantity: 1,
-                    // itemPrice: items[0]?.default_sale_price,
                 });
             },
         });
@@ -163,6 +161,9 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                             <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div className="space-y-3"><div className="flex items-center gap-2 text-sm font-medium text-cyan-300"><Truck className="size-4" /> مرکز جابه‌جایی اجناس</div><h1 className="text-3xl font-bold tracking-tight md:text-4xl">ثبت انتقال جدید</h1><p className="text-sm text-slate-300">مبدأ، مقصد و اجناس را بررسی کنید تا انتقال با موجودی واقعی هماهنگ باشد.</p></div><Route className="size-8 text-cyan-300" /></div>
                         </div>
                         <form onSubmit={handleTransfer} className="space-y-6" name="receipt" id="receipt" dir='rtl'>
+                            {transferErrors.map(([field, message]) => (
+                                <InputError key={field} message={message} />
+                            ))}
                             <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
                                 <div className="mb-6 flex items-center gap-3 border-b border-border/60 pb-4"><div className="rounded-xl bg-primary/10 p-2 text-primary"><ClipboardList className="size-5" /></div><div><h2 className="font-semibold">جزئیات انتقال</h2><p className="text-xs text-muted-foreground">مسیر و زمان جابه‌جایی را مشخص کنید.</p></div></div>
                                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
@@ -259,8 +260,6 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                                                     </option>
                                                 ))}
                                             </select>
-                                            <InputError message={errors.transferLines} className="mt-2" />
-
                                         </div>
 
                                         <div className="grid gap-2">
@@ -285,8 +284,6 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                                                 placeholder="مقدار"
                                                 className="border p-1.5 rounded-md"
                                             />
-                                            <InputError message={errors.transferLines} className="mt-2" />
-
                                         </div>
 
 

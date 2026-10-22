@@ -76,12 +76,11 @@ class TransferController extends Controller
             // each line validation
             'transferLines.*.item_id' => 'required|integer|exists:items,id|distinct',
             'transferLines.*.quantity' => 'required|integer|gt:0',
-            'transferLines.*.itemPrice' => 'required|numeric|gt:0',
         ]);
 
         $log = new Log();
 
-        if ($data['source_id'] === $data['destination_id']) {
+        if ((int) $data['source_id'] === (int) $data['destination_id']) {
             Inertia::flash('toast', ['type' => 'error', 'message' => 'موقیعت ها ممکن نیست که بک جای باشد.']);
             return redirect()->back()->withInput();
         }
@@ -120,27 +119,27 @@ class TransferController extends Controller
             $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' پیشنهاد شد';
             $log->create('insert', $des);
             DB::commit();
-            $transfer->load('source:id,name', 'destination:id,name');
-            $shopUsers = User::query()->with('role:id,name')->whereHas('role', fn($q) => $q->where('name', 'shop_clerk'))->get();
-            foreach ($shopUsers as $user) {
-                $user->notify(new TransferCreated($transfer, 'اجناس نو یشنهاد شد'));
-            }
-
-            Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
-
-            // BOTH RECEIPTS AND TRANSFERS ARE IN SINGLE TABL       
-            return redirect()->route('receipts.index');
         } catch (\Throwable $th) {
-            // Let validation exceptions bubble so Inertia/Laravel can return proper validation responses
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
             if ($th instanceof ValidationException) {
                 throw $th;
             }
-            $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' پیشنهاد نشد';
-            $log->create('insert', $des);
-            DB::rollBack();
-            Inertia::flash('toast', ['type' => 'error', 'message' => $des . $th->getMessage()]);
-            return redirect()->back();
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'ثبت انتقال اجناس ناموفق بود: ' . $th->getMessage()]);
+            return redirect()->back()->withInput();
         }
+
+        $transfer->load('source:id,name', 'destination:id,name');
+        $shopUsers = User::query()->with('role:id,name')->whereHas('role', fn($q) => $q->where('name', 'shop_clerk'))->get();
+        foreach ($shopUsers as $user) {
+            $user->notify(new TransferCreated($transfer, 'اجناس نو یشنهاد شد'));
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
+
+        // BOTH RECEIPTS AND TRANSFERS ARE IN SINGLE TABL
+        return redirect()->route('receipts.index');
     }
 
     /**
