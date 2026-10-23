@@ -96,7 +96,7 @@ class TransferController extends Controller
                 'status' => 'suggested',
             ]);
 
-            $transfer->reference_no = sprintf('TR-%s-%s', Carbon::now(config('app.timezone'))->year, str_pad($transfer->id, 5, '0', STR_PAD_LEFT));
+            $transfer->reference_no = sprintf('TR-%s-%s', Carbon::now(config('app.timezone'))->year, str_pad($transfer->id, 4, '0', STR_PAD_LEFT));
             $transfer->save();
             // ===== CREATE THE TRANSFER LINES =====
             foreach ($data['transferLines'] as $line) {

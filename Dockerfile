@@ -1,4 +1,4 @@
-FROM php:8.4-cli-bookworm
+FROM php:8.4.27-cli-bookworm
 
 COPY --from=node:22-bookworm-slim /usr/local/ /usr/local/
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer

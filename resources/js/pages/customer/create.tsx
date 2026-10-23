@@ -35,7 +35,7 @@ const Create = () => {
                 { title: 'ایجاد مشتری', href: '/customers/create' },
             ]
         } >
-            <section className="section">
+            <section className="section" dir="rtl">
                 <div>
                     <SectionTitle title="ایجاد مشتری" description="لطفا اشخاص را اینجا ثبت کنید از کسان که شما اجناس را وارد می کنین." />
 
