@@ -153,7 +153,7 @@ function EmployeeList({ employees }: Props) {
               <TableRow>
                 <TableCell className="text-right" colSpan={6}>
                   جمله معاشات کارمندان  {' '}
-                  {employees.reduce((acc, emp) => acc + emp.salary, 0)} افغانی
+                  {employees.reduce((acc, emp) => acc + emp.salary, 0).toFixed(1)} افغانی
                 </TableCell>
               </TableRow>
             </TableFooter>
