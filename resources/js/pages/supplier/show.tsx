@@ -513,10 +513,11 @@ export default function Show({
 
                             <button
                                 type="button"
-                                onClick={() =>
-                                    router.put(
-                                        `/suppliers/status/${supplier.id}`,
-                                    )
+                                onClick={() => console.log('leter plan')
+                                
+                                    // router.put(
+                                    //     `/suppliers/status/${supplier.id}`,
+                                    // )
                                 }
                                 className="rounded-xl border border-white/30 px-4 py-2 text-sm hover:bg-white/10"
                             >

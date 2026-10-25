@@ -1,5 +1,5 @@
 import { Link, useForm } from '@inertiajs/react';
-import { CalendarDays, CheckCircle2, ClipboardList, PackagePlus, Trash2, Warehouse } from 'lucide-react';
+import { CalendarDays, CheckCircle2, ClipboardList, CurlyBraces, PackagePlus, Trash2, Warehouse } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import InputError from '@/components/input-error';
@@ -13,6 +13,7 @@ import AppLayout from '@/layouts/app-layout';
 import type { Currency, Location, Supplier } from '@/types';
 import type { Item } from '@/types/item';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import PersionDatePicker from '@/components/persion-date-picker';
 
 interface Props {
     suppliers: Supplier[];
@@ -25,7 +26,6 @@ type ReceiptLine = {
     item_id: number;
     quantity: number;
     unit_cost: number;
-    currency_id:number;
 }
 
 type GoodReceiptType = {
@@ -43,13 +43,13 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
         item_id: items[0]?.id ?? 0,
         quantity: 1,
         unit_cost: 10,
-        currency_id: currencies[0]?.id ?? 0,
     }));
-
+    const [selectedDate,setSelectedDate] = useState<Date | null> (new Date());
+    const [persionDate,setPersionDate] = useState<string | null> ('');
     const { data, setData, errors, post, processing } = useForm<GoodReceiptType>({
         supplier_id: suppliers[0]?.id ?? 0,
         destination_location_id: locations[0]?.id ?? 0,
-        received_at: new Date().toISOString().slice(0, 10),
+        received_at: selectedDate?.toString() ?? new Date().toString(),
         notes: '',
         receiptLines,
         currency_id: currencies[0].id ?? 0,
@@ -59,7 +59,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
     useEffect(() => {
         setData('receiptLines', receiptLines);
     }, [receiptLines, setData]);
-
+    
     const handleReceipt = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
@@ -70,7 +70,6 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                     item_id: items[0]?.id ?? 0,
                     quantity: 1,
                     unit_cost: 0,
-                    currency_id:1,
                 });
             },
         });
@@ -122,7 +121,13 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                         </div>
                         <form onSubmit={handleReceipt} name="receipt" id="receipt" className="space-y-6" dir='rtl'>
                             <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
-                                <div className="mb-6 flex items-center gap-3 border-b border-border/60 pb-4"><div className="rounded-xl bg-primary/10 p-2 text-primary"><ClipboardList className="size-5" /></div><div><h2 className="font-semibold">جزئیات رسید</h2><p className="text-xs text-muted-foreground">منبع خرید و محل ذخیره‌سازی را مشخص کنید.</p></div></div>
+                                <div className="mb-6 flex items-center gap-3 border-b border-border/60 pb-4">
+                                    <div className="rounded-xl bg-primary/10 p-2 text-primary"><ClipboardList className="size-5" /></div>
+                                    <div>
+                                        <h2 className="font-semibold">جزئیات رسید</h2>
+                                        <p className="text-xs text-muted-foreground">منبع خرید و محل ذخیره‌سازی را مشخص کنید.</p>
+                                    </div>
+                                </div>
                                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
                                     <div className="grid gap-2">
                                         <Label htmlFor="supplier_id">نام تأمین کننده <span className="text-destructive">*</span></Label>
@@ -187,10 +192,21 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="received_at">تاریخ دریافت <span className="text-destructive">*</span></Label>
+                                        {/* <Label htmlFor="received_at">تاریخ دریافت <span className="text-destructive">*</span></Label> */}
                                         <div className="relative">
-                                            <CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                                            <Input id="received_at" type="date" value={data.received_at} onChange={(e) => setData('received_at', e.target.value)} className=" " />
+                                            {/* <CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /> */}
+                                            {/* <Input id="received_at" type="date" value={data.received_at} onChange={(e) => setData('received_at', e.target.value)} className="" /> */}
+                                            <PersionDatePicker 
+                                                id={'id'}
+                                                initialDate={selectedDate ?? new Date()}
+                                                type='date'
+                                                label='تاریخ دریافت'
+                                                value={selectedDate}
+                                                onChange={(date,persion)=>{
+                                                    setSelectedDate(date);
+                                                    setPersionDate(persion)
+                                                }}
+                                            />
                                         </div>
                                         <InputError message={errors.received_at} />
                                     </div>
@@ -214,33 +230,20 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                 </div>
                             </div>
 
-                                <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
-                                    <div>
-                                        <div className="mb-6 flex items-center justify-between gap-3 border-b border-border/60 pb-4"><div className="flex items-center gap-2"><PackagePlus className="size-5 text-primary" /><div><h2 className="font-semibold">اقلام دریافتی</h2><p className="text-xs text-muted-foreground">قیمت و مقدار هر جنس را اضافه کنید.</p></div></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{receiptLines.length} قلم</span></div>
-                                        <div className="grid gap-6   grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                                            <div className="grid gap-2">
-                                                    <Label htmlFor="currency_id">واحد پول <span className="text-destructive">*</span></Label>
-                                                <select
-                                                    className="border p-1.5 rounded-md"
-                                                    name="currency_id"
-                                                    tabIndex={4}
-                                                    value={currentLine.currency_id}
-                                                    disabled={receiptLines.length > 0}
-                                                    onChange={(e) =>
-                                                        setCurrentLine((prev) => ({
-                                                            ...prev,
-                                                            currency_id: Number(e.target.value),
-                                                        }))
-                                                    }
-                                                >
-                                                    <option value={0} className=" dark:text-accent-foreground dark:bg-secondary-foreground">پولی واحد را انتخاب نماید</option>
-                                                    {currencies.map((currency) => (
-                                                        <option value={currency.id} key={currency.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
-                                                            {currency.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                <InputError message={errors.receiptLines} className="mt-2" />
+                            <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
+                                <div>
+                                    <div className="mb-6 flex items-center justify-between gap-3 border-b border-border/60 pb-4">
+                                        <div className="flex items-center gap-2"><PackagePlus className="size-5 text-primary" />
+                                            <div>
+                                                <h2 className="font-semibold">اقلام دریافتی</h2>
+                                                <p className="text-xs text-muted-foreground">قیمت و مقدار هر جنس را اضافه کنید.</p>
+                                            </div>
+                                        </div>
+                                        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{receiptLines.length} قلم</span>
+                                    </div>
+
+                                    <div className="grid gap-6   grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                        
 
                                         <div className="grid gap-2">
                                             <Label htmlFor="item_id">جنس <span className="text-destructive">*</span></Label>
@@ -313,20 +316,19 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                             <InputError message={errors.receiptLines} className="mt-2" />
 
                                         </div>
-                                    </div>
 
-                                    <div className="mt-4">
-                                        <Button
-                                            type="button"
-                                            className="w-full"
-                                            variant={'secondary'}
-                                            tabIndex={6}
-                                            onClick={handleAddLine}
-                                        >
-                                            <PackagePlus className="size-4" /> اضافه کردن جنس
-                                        </Button>
-                                    </div>
-                                </div>
+                                        </div>
+                                        <div className="mt-4">
+                                            <Button
+                                                type="button"
+                                                className="w-full"
+                                                variant={'secondary'}
+                                                tabIndex={6}
+                                                onClick={handleAddLine}
+                                            >
+                                                <PackagePlus className="size-4" /> اضافه کردن جنس
+                                            </Button>
+                                        </div>
                                 </div>
                             </section>
 
