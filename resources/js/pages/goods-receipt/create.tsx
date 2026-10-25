@@ -1,9 +1,10 @@
 import { Link, useForm } from '@inertiajs/react';
-import { CalendarDays, CheckCircle2, ClipboardList, PackagePlus, Trash2, Warehouse } from 'lucide-react';
+import { CheckCircle2, ClipboardList, PackagePlus, Trash2, Warehouse } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
+import { PersianDatePicker } from '@/components/persian-date-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -161,7 +162,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
 
                                 </div>
                                 <div className="mt-5 grid gap-4 md:grid-cols-2">
-                                    <div className="grid gap-2"><Label htmlFor="received_at">تاریخ دریافت <span className="text-destructive">*</span></Label><div className="relative"><CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input id="received_at" type="date" value={data.received_at} onChange={(e) => setData('received_at', e.target.value)} className="h-11 pr-10" /></div><InputError message={errors.received_at} /></div>
+                                    <div className="grid gap-2"><Label htmlFor="received_at">تاریخ دریافت <span className="text-destructive">*</span></Label><PersianDatePicker id="received_at" value={data.received_at} onChange={(value) => setData('received_at', value)} /><InputError message={errors.received_at} /></div>
                                     <div className="grid gap-2"><Label htmlFor="notes">یادداشت</Label>
                                     <textarea
                                         className="min-h-11 rounded-md border bg-transparent p-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
@@ -190,6 +191,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                     name="currency_id"
                                                     tabIndex={4}
                                                     value={currentLine.currency_id}
+                                                    disabled={receiptLines.length > 0}
                                                     onChange={(e) =>
                                                         setCurrentLine((prev) => ({
                                                             ...prev,

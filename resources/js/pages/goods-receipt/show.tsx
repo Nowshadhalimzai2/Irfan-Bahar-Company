@@ -1,9 +1,11 @@
+import React from 'react';
 import LocationTranslator from '@/components/location-translator';
+import { formatPersianDate } from '@/components/persian-date-picker';
 import { SectionTitle } from '@/components/section-title';
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { GoodsReceipt } from '@/types/item';
-import React from 'react'
+import type { GoodsReceipt } from '@/types/item';
+
 interface Props {
     receipt: GoodsReceipt;
 }
@@ -26,7 +28,7 @@ const Show = ({ receipt }: Props) => {
                                     <ul className="flex gap-5 justify-between w-full flex-wrap">
                                         <li className="font-medium">نام کننده : {receipt.supplier.name}</li>
                                         <li className="font-medium">امد به :  {LocationTranslator(receipt.location.name)}</li>
-                                        <li className="font-medium">تاریخ : {new Date(receipt.received_at).toDateString()}</li>
+                                        <li className="font-medium">تاریخ : {formatPersianDate(String(receipt.received_at))}</li>
                                     </ul>
                                 </div>
                             </div>

@@ -58,7 +58,7 @@ const CustomerList = ({ customers }: Props) => {
                                 <DollarSign className="text-sky-500" />
                             </span>
                         </div>
-                        <p className="font-semibold text-2xl mt-3">{filteredCustomers.reduce((acc, customer) => acc += customer.balance, 0)}</p>
+                        <p className="font-semibold text-2xl mt-3">{filteredCustomers.reduce((acc, customer) => acc += customer.balance, 0).toFixed(2)}</p>
                     </div>
                 </div>
             </div>
@@ -95,7 +95,7 @@ const CustomerList = ({ customers }: Props) => {
                                             <TableCell className="text-center">{customer.name}</TableCell>
                                             <TableCell className="text-center">{customer.nick_name ?? 'N/A'}</TableCell>
                                             <TableCell className="text-center">{customer.phone}</TableCell>
-                                            <TableCell className="text-center">{customer.balance}</TableCell>
+                                            <TableCell className="text-center">{customer.balance.toFixed(2)}</TableCell>
                                             <TableCell className="flex justify-center">
                                                 <ScanEye className={`${customer.is_active ? 'text-emerald-500 ' : 'text-red-500'}`} onClick={() => router.get(`/customers/${customer.id}`)} />
                                             </TableCell>

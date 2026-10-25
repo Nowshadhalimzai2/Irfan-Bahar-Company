@@ -2,7 +2,7 @@ import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowRight, CalendarDays, ChevronDown, PackagePlus, Search, SlidersHorizontal, Warehouse, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import LocationTranslator from '@/components/location-translator';
-import { SectionTitle } from '@/components/section-title';
+import { formatPersianDate } from '@/components/persian-date-picker';
 import { buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -108,7 +108,7 @@ const GoodsReceiptList = ({ goodsReceipts }: Props) => {
                                     <TableCell className="text-center">{receipt.supplier.name}</TableCell>
                                     <TableCell className="text-center">{LocationTranslator(receipt.location.name)}</TableCell>
                                     <TableCell className="text-center">{receipt.reference_no}</TableCell>
-                                    <TableCell className="text-center text-sm text-muted-foreground">{new Date(receipt.received_at).toLocaleDateString()}</TableCell>
+                                    <TableCell className="text-center text-sm text-muted-foreground">{formatPersianDate(String(receipt.received_at))}</TableCell>
                                     <TableCell className="text-center font-semibold">{receipt.receipt_lines.reduce((total, line) => total + Number(line.quantity) * Number(line.unit_cost), 0).toLocaleString()}</TableCell>
                                     <TableCell className="w-8"><ArrowRight className="size-4 text-muted-foreground" /></TableCell>
                                 </TableRow>

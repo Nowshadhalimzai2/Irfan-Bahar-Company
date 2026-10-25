@@ -22,6 +22,7 @@ use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleReturnController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\WasteController;
 use App\Models\Currency;
@@ -202,6 +203,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::put('/suppliers/status/{supplier}', [SupplierController::class, 'status'])->name('suppliers.status');
     Route::resource('suppliers', SupplierController::class)->names('suppliers');
+    Route::post('/supplier-payments', [SupplierPaymentController::class, 'store'])->name('supplier-payments.store');
     Route::get('/locations', [LocationController::class, 'index'])->name('locations.index');
     Route::post('/locations', [LocationController::class, 'store'])->name('locations.index');
     Route::put('/locations/{location}/toggle-is-active/{is_active}', [LocationController::class, 'update'])->name('locations.index');

@@ -4,13 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SupplierPayment extends Model
 {
     protected $fillable = ['id','supplier_id','goods_receipt_id','reference_no','paid_at','amount','notes','payment_method','created_by','status','payment_no','currency_id'];
 
-    // SupplierPayment.php
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
@@ -26,8 +25,13 @@ class SupplierPayment extends Model
         return $this->belongsTo(Currency::class);
     }
 
-    public function createdBy(): BelongsToMany
+    public function createdBy(): BelongsTo
     {
-        return $this->belongsToMany(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function allocations(): HasMany
+    {
+        return $this->hasMany(SupplierPaymentAllocation::class);
     }
 }

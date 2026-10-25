@@ -19,6 +19,11 @@ class GoodsReceipt extends Model
     {
         return $this->hasMany(SupplierPayment::class);
     }
+
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(SupplierPaymentAllocation::class);
+    }
     public function receiptLines(): HasMany
     {
 

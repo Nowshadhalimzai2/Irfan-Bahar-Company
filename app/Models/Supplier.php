@@ -16,18 +16,13 @@ class Supplier extends Model
         'has_account'
     ];
 
-    // public function goodsReceipts(): HasMany
-    // {
-    //     return $this->hasMany(GoodsReceipt::class);
-    // }
-    // Supplier.php
-public function goodsReceipts(): HasMany
-{
-    return $this->hasMany(GoodsReceipt::class);
-}
+    public function goodsReceipts(): HasMany
+    {
+        return $this->hasMany(GoodsReceipt::class);
+    }
 
-public function payments(): HasMany
-{
-    return $this->hasMany(SupplierPayment::class);
-}
+    public function payments(): HasMany
+    {
+        return $this->hasMany(SupplierPayment::class);
+    }
 }
