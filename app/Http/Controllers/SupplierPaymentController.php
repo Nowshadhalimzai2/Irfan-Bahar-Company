@@ -88,16 +88,16 @@ class SupplierPaymentController extends Controller
                 'payment_no' => sprintf('SP-%s-%06d', Carbon::parse($data['paid_at'])->format('Y'), $payment->id),
             ]);
             //  check if the payment is from shop or elsewhere if shop debit the shop account and add as an expense!
-            if((string) $data['payment_method']== 'cash'){
-                $sa =ShopAccount::query()->where('currency_id',$data['currency_id'])->first();
-                if($sa->amount< (float)$data['amount']){
-                        throw ValidationException::withMessages(['allocation'=>"مبلغ پرداخت شده ګی زیاتر از حساب $payment->amount زیات شده نمی شه"]);
+            if ((string) $data['payment_method'] == 'cash') {
+                $sa = ShopAccount::query()->where('currency_id', $data['currency_id'])->first();
+                if ($sa->amount < (float)$data['amount']) {
+                    throw ValidationException::withMessages(['allocation' => "مبلغ پرداخت شده ګی زیاتر از حساب $payment->amount زیات شده نمی شه"]);
                 }
-                (new SHA())->debit($data['amount'],$data['currency_id']);
+                (new SHA())->debit($data['amount'], $data['currency_id']);
                 Expense::create([
                     'amount' => $data['amount'],
                     'currency_id' => $data['currency_id'],
-                    'description' => sprintf('برای %s پول پراخت شد  ',$supplier->name),
+                    'description' => sprintf('برای %s پول پراخت شد  ', $supplier->name),
                     'date' => $data['paid_at'],
                 ]);
             }
@@ -106,7 +106,7 @@ class SupplierPaymentController extends Controller
                     'supplier_payment_id' => $payment->id,
                     'goods_receipt_id' => $receipt->id,
                     'amount' => $amount,
-                    
+
                 ]);
                 $receipt->increment('amount_paid', $amount);
             }
@@ -120,5 +120,93 @@ class SupplierPaymentController extends Controller
 
             return redirect()->route('suppliers.show', $supplier);
         }, 3);
+    }
+
+    public function allocate(Request $request, SupplierPayment $supplierPayment)
+    {
+        $data = $request->validate([
+            'allocations' => ['required', 'array', 'min:1'],
+            'allocations.*.goods_receipt_id' => [
+                'required',
+                'integer',
+                'distinct',
+                'exists:goods_receipts,id',
+            ],
+            'allocations.*.amount' => [
+                'required',
+                'numeric',
+                'gt:0',
+            ],
+        ]);
+
+        return DB::transaction(function () use ($data, $supplierPayment) {
+            $payment = SupplierPayment::query()
+                ->whereKey($supplierPayment->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($payment->status !== 'completed') {
+                throw ValidationException::withMessages([
+                    'allocations' => 'این پرداخت قابل تخصیص نیست.',
+                ]);
+            }
+
+            $alreadyAllocated = (float) $payment->allocations()->sum('amount');
+            $availableCredit = round($payment->amount - $alreadyAllocated, 2);
+            $requestedAmount = round(
+                collect($data['allocations'])->sum('amount'),
+                2
+            );
+
+            if ($requestedAmount > $availableCredit) {
+                throw ValidationException::withMessages([
+                    'allocations' => 'مبلغ تخصیص‌یافته از اعتبار باقی‌مانده بیشتر است.',
+                ]);
+            }
+
+            foreach ($data['allocations'] as $allocation) {
+                $receipt = GoodsReceipt::query()
+                    ->whereKey($allocation['goods_receipt_id'])
+                    ->where('supplier_id', $payment->supplier_id)
+                    ->where('currency_id', $payment->currency_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (! $receipt) {
+                    throw ValidationException::withMessages([
+                        'allocations' => 'رسید متعلق به این تأمین‌کننده یا واحد پول نیست.',
+                    ]);
+                }
+
+                $remaining = round(
+                    $receipt->total_amount - $receipt->amount_paid,
+                    2
+                );
+
+                if ($allocation['amount'] > $remaining) {
+                    throw ValidationException::withMessages([
+                        'allocations' => "مبلغ تخصیص از باقی‌مانده رسید {$receipt->reference_no} بیشتر است.",
+                    ]);
+                }
+
+                SupplierPaymentAllocation::create([
+                    'supplier_payment_id' => $payment->id,
+                    'goods_receipt_id' => $receipt->id,
+                    'amount' => round($allocation['amount'], 2),
+                ]);
+
+                $receipt->increment(
+                    'amount_paid',
+                    round($allocation['amount'], 2)
+                );
+            }
+
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => 'اعتبار پرداخت با موفقیت تخصیص داده شد.',
+            ]);
+
+            return redirect()->route('suppliers.show', $payment->supplier_id);
+        });
     }
 }

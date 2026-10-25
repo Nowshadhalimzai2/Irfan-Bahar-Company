@@ -28,8 +28,8 @@ interface Props {
 export default function Index({ stackholders }: Props) {
     const data = stackholders[0];
 
-    const { auth, roles } = usePage().props;
-    const userRole = roles[auth.user.role_id-1].name;
+    const { auth } = usePage().props;
+    const userRole = auth.role;
     
     return (
         <AppLayout breadcrumbs={[
@@ -48,8 +48,8 @@ export default function Index({ stackholders }: Props) {
 
                                 {data.customers && <TabsTrigger value="customers">مشتری ها</TabsTrigger>}
                                 {data.employees && <TabsTrigger value="employees">کاریګر ها</TabsTrigger>}
-                                {data.users && <TabsTrigger value="users">استفاده کنندګان سیستم</TabsTrigger>}
                                 {data.suppliers && <TabsTrigger value="suppliers">تامین کنندگان</TabsTrigger>}
+                                {data.users && <TabsTrigger value="users">استفاده کنندګان سیستم</TabsTrigger>}
                             </TabsList>
                             {/*1: CUSTOMERS  */}
                            {data.customers && <TabsContent value="customers">
@@ -60,12 +60,12 @@ export default function Index({ stackholders }: Props) {
                                 <EmployeeList employees={data.employees} />
                             </TabsContent>}
                             {/* 3: USERS */}
-                            {data.users && <TabsContent value="users">
-                                <UserList users={data.users} />
-                            </TabsContent>}
-                            {/* 4: SUPPLIERS */}
                             {data.suppliers && <TabsContent value="suppliers">
                                 <SupplierList suppliers={data.suppliers} />
+                            </TabsContent>}
+                            {/* 4: SUPPLIERS */}
+                            {data.users && <TabsContent value="users">
+                                <UserList users={data.users} />
                             </TabsContent>}
                         </Tabs>
                     </div>
