@@ -1,10 +1,11 @@
+import React from 'react';
 import LocationTranslator from '@/components/location-translator';
+import { formatPersianDate } from '@/components/persian-date-picker';
 import { SectionTitle } from '@/components/section-title';
 import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
-import { GoodsReceipt } from '@/types/item';
-import React from 'react'
-import { Line } from 'recharts';
+import type { GoodsReceipt } from '@/types/item';
+
 interface Props {
     receipt: GoodsReceipt;
 }

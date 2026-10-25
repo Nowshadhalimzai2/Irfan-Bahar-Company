@@ -3,7 +3,7 @@ import { Accessibility, ArrowLeft, ArrowRight, Banknote, CalendarDays, CheckCirc
 import { CustomeDropDownMenu } from '@/components/customer-dropdwon';
 import { getDariCurrency } from '@/components/location-translator';
 import AppLayout from '@/layouts/app-layout';
-import type { Currency, Customer } from '@/types';
+import type {  Customer } from '@/types';
 import { useMemo, useState } from 'react';
 import PaymentDialog from '@/components/sale/payment-dialog';
 
@@ -93,6 +93,7 @@ export default function Show({ customer, sales, invoices }: Props) {
         refunded: 0,
     };
 
+    
     return <AppLayout breadcrumbs={[{ title: 'مشتریان', href: '/stackholders' }, { title: customer.name, href: `/customers/${customer.id}` }]}>
         <div dir="rtl" className="min-h-screen space-y-6 bg-[#f6f9fc] p-3 pb-10 md:p-6">
             <section className="relative overflow-hidden rounded-4xl bg-[#092b4c] p-6 text-white shadow-xl md:p-8">
@@ -122,6 +123,7 @@ export default function Show({ customer, sales, invoices }: Props) {
 
                 </div>
             </section>
+
             <div className=''>
                 <select className='w-full bg-white shadow p-2 rounded-md' onChange={(e) => setSelectedCurrency(e.target.value as 'AFG' | 'PKR' | 'USD' | string)}>
                     {accounts.map(account => <option value={account} key={account}>{getDariCurrency(account)}</option>)}

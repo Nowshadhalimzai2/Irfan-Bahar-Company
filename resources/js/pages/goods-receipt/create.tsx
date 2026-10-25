@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import InputError from '@/components/input-error';
 import LocationTranslator, { getDariCurrency, getDariItemUnit } from '@/components/location-translator';
+import { PersianDatePicker } from '@/components/persian-date-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,7 @@ type ReceiptLine = {
     item_id: number;
     quantity: number;
     unit_cost: number;
+    currency_id:number;
 }
 
 type GoodReceiptType = {
@@ -68,6 +70,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                     item_id: items[0]?.id ?? 0,
                     quantity: 1,
                     unit_cost: 0,
+                    currency_id:1,
                 });
             },
         });
@@ -211,10 +214,33 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                 </div>
                             </div>
 
-                            <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
-                                <div>
-                                    <div className="mb-6 flex items-center justify-between gap-3 border-b border-border/60 pb-4"><div className="flex items-center gap-2"><PackagePlus className="size-5 text-primary" /><div><h2 className="font-semibold">اقلام دریافتی</h2><p className="text-xs text-muted-foreground">قیمت و مقدار هر جنس را اضافه کنید.</p></div></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{receiptLines.length} قلم</span></div>
-                                    <div className="grid gap-6   grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
+                                    <div>
+                                        <div className="mb-6 flex items-center justify-between gap-3 border-b border-border/60 pb-4"><div className="flex items-center gap-2"><PackagePlus className="size-5 text-primary" /><div><h2 className="font-semibold">اقلام دریافتی</h2><p className="text-xs text-muted-foreground">قیمت و مقدار هر جنس را اضافه کنید.</p></div></div><span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{receiptLines.length} قلم</span></div>
+                                        <div className="grid gap-6   grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                                            <div className="grid gap-2">
+                                                    <Label htmlFor="currency_id">واحد پول <span className="text-destructive">*</span></Label>
+                                                <select
+                                                    className="border p-1.5 rounded-md"
+                                                    name="currency_id"
+                                                    tabIndex={4}
+                                                    value={currentLine.currency_id}
+                                                    disabled={receiptLines.length > 0}
+                                                    onChange={(e) =>
+                                                        setCurrentLine((prev) => ({
+                                                            ...prev,
+                                                            currency_id: Number(e.target.value),
+                                                        }))
+                                                    }
+                                                >
+                                                    <option value={0} className=" dark:text-accent-foreground dark:bg-secondary-foreground">پولی واحد را انتخاب نماید</option>
+                                                    {currencies.map((currency) => (
+                                                        <option value={currency.id} key={currency.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
+                                                            {currency.name}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                                <InputError message={errors.receiptLines} className="mt-2" />
 
                                         <div className="grid gap-2">
                                             <Label htmlFor="item_id">جنس <span className="text-destructive">*</span></Label>
@@ -300,6 +326,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                             <PackagePlus className="size-4" /> اضافه کردن جنس
                                         </Button>
                                     </div>
+                                </div>
                                 </div>
                             </section>
 

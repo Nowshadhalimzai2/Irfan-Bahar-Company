@@ -23,6 +23,7 @@ use App\Http\Controllers\SalaryController;
 use App\Http\Controllers\SaleController;
 use App\Http\Controllers\SaleReturnController;
 use App\Http\Controllers\SupplierController;
+use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\TransferController;
 use App\Http\Controllers\WasteController;
 use App\Models\Currency;
@@ -192,8 +193,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
 
-
+    Route::put('/suppliers/status/{supplier}', [SupplierController::class, 'status'])->name('suppliers.status');
     Route::resource('suppliers', SupplierController::class)->names('suppliers');
+    Route::post('/supplier-payments', [SupplierPaymentController::class, 'store'])->name('supplier-payments.store');
     Route::get('/locations', [LocationController::class, 'index'])->name('locations.index');
     Route::post('/locations', [LocationController::class, 'store'])->name('locations.index');
     Route::put('/locations/{location}/toggle-is-active/{is_active}', [LocationController::class, 'update'])->name('locations.index');
@@ -210,6 +212,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/inventory-movements', [InventoryMovementController::class, 'index'])->name('movements.index');
     Route::resource('boms', BOMController::class)->names('boms')->except('destroy');
     Route::put('/boms/{bom}/block', [BOMController::class, 'block'])->name('boms.block');
+
+    // ALLCATING SECTION ROUTES:
+    Route::post(
+        '/supplier-payments/{supplierPayment}/allocations',
+        [SupplierPaymentController::class, 'allocate']
+    )->name('supplier-payments.allocate');
 
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'read'])->name('notifications.read');

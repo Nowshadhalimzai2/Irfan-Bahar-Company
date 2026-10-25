@@ -16,6 +16,7 @@ interface Props {
     tone?: 'emerald' | 'yellow' | 'cyan' | 'pink' | 'indigo';
 }
 const PageHead = ({ title, subtitle, description, HeadIcon, menuItems, actionTitle,actionURL,ActionIcon=Plus ,tone='emerald'}: Props) => {
+    
     const lighting = tone==='emerald' ? 'bg-emerald-400/60' : tone==='cyan' ? 'bg-cyan-400/60' : tone==='indigo' ? 'bg-indigo-400/60' : tone==='pink' ? 'bg-pink-400/60' : tone==='yellow' ? 'bg-yellow-400/60' : '';
     const titleStyle = tone==='emerald' ? 'text-emerald-300' : tone==='cyan' ? 'text-cyan-300' : tone==='indigo' ? 'text-indigo-300' : tone==='pink' ? 'text-pink-300' : tone==='yellow' ? 'text-yellow-300' : '';
     return (

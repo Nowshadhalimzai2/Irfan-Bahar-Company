@@ -43,7 +43,7 @@ type Props = {
     currencies: Currency[];
     locations: Location[];
     customers: Customer[];
-    nextInvoiceID:number;
+    nextInvoiceID: number;
 };
 
 
@@ -180,9 +180,9 @@ export default function Create({
             ),
         );
     const removeLine = (itemId: number) => {
-            setLines((current) =>
-                current.filter((line) => line.item_id !== itemId),
-            );
+        setLines((current) =>
+            current.filter((line) => line.item_id !== itemId),
+        );
     };
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -246,23 +246,27 @@ export default function Create({
                                         <ScanLine className="size-5" />
                                     </div>
                                 </div>
-                                <div className="flex gap-2" aria-disabled={lines.length>12}>
+                                <div className="flex gap-2" aria-disabled={lines.length > 12}>
                                     <div className="relative flex-1">
                                         <Barcode className="absolute top-1/2 right-3 size-5 -translate-y-1/2 text-primary" />
+                                        {barcode && <X className="absolute top-1/2 left-2 size-4 hover:text-destructive -translate-y-1/2 text-primary" onClick={() => {
+                                            setBarcode('');
+                                            barcodeRef.current?.focus();
+                                        }} />}
                                         <Input
                                             ref={barcodeRef}
                                             autoFocus
                                             value={barcode}
                                             onChange={(event) =>
                                                 setBarcode(event.target.value)
-                                                
+
                                             }
                                             onKeyDown={(event) => {
                                                 if (event.key === 'Enter') {
                                                     scan(event);
                                                 }
                                             }}
-                                            disabled={lines.length>12}
+                                            disabled={lines.length > 12}
                                             placeholder="بارکد را اسکن کنید و Enter بزنید..."
                                             className="h-12 border-blue-200 bg-blue-50/40 pr-11 text-base"
                                         />
@@ -303,17 +307,17 @@ export default function Create({
                                         }
                                         placeholder="جستجوی نام، کد یا SKU..."
                                         className="pr-10"
-                                        disabled={lines.length>12}
+                                        disabled={lines.length > 12}
                                     />
                                 </div>
                                 {search && (
-                                    <SearchSuggesstion 
+                                    <SearchSuggesstion
                                         addItem={addItem}
                                         currency={currency}
                                         filteredItems={filteredItems}
                                         getStock={getStock}
                                     />
-                                  
+
                                 )}
                             </section>
                             {/* ============== SALE ITEM LIST  */}
@@ -339,19 +343,19 @@ export default function Create({
                                 setData={setData}
                                 errors={errors}
                             />
-                                <SalePayment 
-                                    currency={currency}                                    
-                                    data={data}
-                                    errors={errors}
-                                    grandTotal={grandTotal}
-                                    lines={lines}
-                                    processing={processing}
-                                    setData={setData}
-                                    subtotal={subtotal}
-                                    createInvoice={data.create_invoice}
-                                    onCreateInvoiceChange={(value) => setData('create_invoice', value)}
-                                    nextInvoiceID={nextInvoiceID}
-                                />
+                            <SalePayment
+                                currency={currency}
+                                data={data}
+                                errors={errors}
+                                grandTotal={grandTotal}
+                                lines={lines}
+                                processing={processing}
+                                setData={setData}
+                                subtotal={subtotal}
+                                createInvoice={data.create_invoice}
+                                onCreateInvoiceChange={(value) => setData('create_invoice', value)}
+                                nextInvoiceID={nextInvoiceID}
+                            />
                         </aside>
                     </form>
                 </div>
@@ -360,54 +364,54 @@ export default function Create({
     );
 }
 
-interface SuggestProps{
-    filteredItems:Item[];
-    addItem: (item:Item)=>void;
-    getStock:(item:Item)=>number;
-    currency:{id:number;name:string;}
+interface SuggestProps {
+    filteredItems: Item[];
+    addItem: (item: Item) => void;
+    getStock: (item: Item) => number;
+    currency: { id: number; name: string; }
 }
-function SearchSuggesstion({filteredItems, addItem, getStock,currency}:SuggestProps){
+function SearchSuggesstion({ filteredItems, addItem, getStock, currency }: SuggestProps) {
     return (
-         <div className="mt-2 divide-y rounded-xl border bg-white shadow-lg dark:bg-slate-900">
-                                        {filteredItems.map((item) => (
-                                            <button
-                                                type="button"
-                                                key={item.id}
-                                                onClick={() => addItem(item)}
-                                                className="flex w-full items-center gap-3 p-2 text-right hover:bg-slate-50"
-                                            >
-                                                <Package className="size-4 text-primary" />
-                                                <span className="min-w-0 flex-1">
-                                                    <b className="block truncate text-sm">
-                                                        {item.name}  <small className='text-gray-500 text-xs'>
-                                                            :
-                                                            ({getStock(item)} {getDariItemUnit(item.unit)})
-                                                        </small>
-                                                    </b>
-                                                    <small className="text-xs text-slate-400">
-                                                        {item.product
-                                                            ?.barcode ??
-                                                            item.sku}{' '}
+        <div className="mt-2 divide-y rounded-xl border bg-white shadow-lg dark:bg-slate-900">
+            {filteredItems.map((item) => (
+                <button
+                    type="button"
+                    key={item.id}
+                    onClick={() => addItem(item)}
+                    className="flex w-full items-center gap-3 p-2 text-right hover:bg-slate-50"
+                >
+                    <Package className="size-4 text-primary" />
+                    <span className="min-w-0 flex-1">
+                        <b className="block truncate text-sm">
+                            {item.name}  <small className='text-gray-500 text-xs'>
+                                :
+                                ({getStock(item)} {getDariItemUnit(item.unit)})
+                            </small>
+                        </b>
+                        <small className="text-xs text-slate-400">
+                            {item.product
+                                ?.barcode ??
+                                item.sku}{' '}
 
-                                                    </small>
-                                                </span>
-                                                <div className='flex flex-col'>
-                                                    <span className="text-sm font-bold">
-                                                        {item.default_sale_price}
-                                                        {' '} {getDariCurrency(currency?.name ?? 'AFG')}
-                                                    </span>
-                                                    {item.product &&
-                                                        <small className='text-xs text-gray-400'>
-                                                            {((item?.product?.weight ?? 1) / (item.product?.per_pack ?? 1)) * 1000} وزن
-                                                        </small>}
-                                                </div>
-                                            </button>
-                                        ))}
-                                        {filteredItems.length === 0 && (
-                                            <p className="p-4 text-center text-xs text-slate-500">
-                                                جنسی پیدا نشد.
-                                            </p>
-                                        )}
-                                    </div>
+                        </small>
+                    </span>
+                    <div className='flex flex-col'>
+                        <span className="text-sm font-bold">
+                            {item.default_sale_price}
+                            {' '} {getDariCurrency(currency?.name ?? 'AFG')}
+                        </span>
+                        {item.product &&
+                            <small className='text-xs text-gray-400'>
+                                {((item?.product?.weight ?? 1) / (item.product?.per_pack ?? 1)) * 1000} وزن
+                            </small>}
+                    </div>
+                </button>
+            ))}
+            {filteredItems.length === 0 && (
+                <p className="p-4 text-center text-xs text-slate-500">
+                    جنسی پیدا نشد.
+                </p>
+            )}
+        </div>
     )
 }

@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
 class GoodsReceiptController extends Controller
@@ -103,9 +104,21 @@ class GoodsReceiptController extends Controller
             'receiptLines.*.quantity' => 'required|integer|gt:0',
             'receiptLines.*.unit_cost' => 'required|numeric|gt:0',
         ]);
+
+        $currencyIds = collect($data['receiptLines'])->pluck('currency_id')->unique();
+        if ($currencyIds->count() !== 1) {
+            throw ValidationException::withMessages([
+                'receiptLines' => 'تمام اقلام یک رسید باید واحد پول یکسان داشته باشند.',
+            ]);
+        }
+
         $log = new Log();
         DB::beginTransaction();
         try {
+            $totalAmount = collect($data['receiptLines'])->sum(
+                fn (array $line) => round((float) $line['quantity'] * (float) $line['unit_cost'], 2)
+            );
+
             // create the goods receipt 
             $receipt = GoodsReceipt::create([
                 'supplier_id' => $data['supplier_id'],
@@ -114,6 +127,9 @@ class GoodsReceiptController extends Controller
                 'notes' => $data['notes'] ?? '',
                 'received_at' => $data['received_at'],
                 'reference_no' => '',
+                'currency_id' => $currencyIds->first(),
+                'total_amount' => $totalAmount,
+                'amount_paid' => 0,
             ]);
 
             $receipt->reference_no = sprintf('GR-%s-%s', Carbon::now(config('app.timezone'))->year, $receipt->id);

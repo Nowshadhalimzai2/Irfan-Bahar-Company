@@ -8,11 +8,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class GoodsReceipt extends Model
 {
-    protected $fillable = ['supplier_id', 'destination_location_id', 'reference_no', 'received_at', 'notes','currency_id'];
+    protected $fillable = ['supplier_id', 'destination_location_id', 'reference_no', 'received_at', 'notes', 'total_amount', 'amount_paid', 'currency_id'];
 
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);
+    }
+    // GoodsReceipt.php
+    public function payments(): HasMany
+    {
+        return $this->hasMany(SupplierPayment::class);
+    }
+
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(SupplierPaymentAllocation::class);
     }
     public function receiptLines(): HasMany
     {
@@ -26,7 +36,6 @@ class GoodsReceipt extends Model
     }
     public function currency(): BelongsTo
     {
-
         return $this->belongsTo(Currency::class);
     }
 }
