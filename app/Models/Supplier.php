@@ -4,7 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Override;
 
 class Supplier extends Model
 {
@@ -17,8 +16,18 @@ class Supplier extends Model
         'has_account'
     ];
 
-    public function goodsReceipts(): HasMany
-    {
-        return $this->hasMany(GoodsReceipt::class);
-    }
+    // public function goodsReceipts(): HasMany
+    // {
+    //     return $this->hasMany(GoodsReceipt::class);
+    // }
+    // Supplier.php
+public function goodsReceipts(): HasMany
+{
+    return $this->hasMany(GoodsReceipt::class);
+}
+
+public function payments(): HasMany
+{
+    return $this->hasMany(SupplierPayment::class);
+}
 }
