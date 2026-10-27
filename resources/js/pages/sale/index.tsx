@@ -1,4 +1,4 @@
-import { Head, Link, router } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import {
     ArrowDownLeft,
     ArrowLeft,
@@ -108,15 +108,17 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <Button
+                          { usePage().props.auth.role==='shop_clerk' && 
+                            <Button className="bg-accent text-slate-950 hover:bg-[#ffd34d]" onClick={() => router.get('/sales/create')}>
+                                <Plus className="h-4 w-4" /> ثبت فروش جدید
+                            </Button>
+                            }
+                           <Button
                                 className="bg-white/10 text-white hover:bg-white/20"
                                 variant="ghost"
                                 onClick={()=>router.get('/sales/order/create')}
                             >
                                 <ClipboardCheck className="h-4 w-4" /> ثبت سفارش جدید
-                            </Button>
-                            <Button className="bg-accent text-slate-950 hover:bg-[#ffd34d]" onClick={() => router.get('/sales/create')}>
-                                <Plus className="h-4 w-4" /> ثبت فروش جدید
                             </Button>
                         </div>
                     </div>

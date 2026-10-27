@@ -43,7 +43,12 @@ class Sale extends Model
     {
         $grossTotal = (float) $this->total;
         $netTotal = (float) $this->after_descount_total;
-        $netFactor = $grossTotal > 0 ? min(1, max(0, $netTotal / $grossTotal)) : 1;
+
+        if ($grossTotal <= 0) {
+            return 0.0;
+        }
+
+        $netFactor = min(1, max(0, $netTotal / $grossTotal));
 
         return round($unitPrice * $netFactor, 2);
     }

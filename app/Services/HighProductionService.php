@@ -34,6 +34,12 @@ class HighProductionService
 
     public function topProductionCategory($productionByCategory)
     {
+        $productionByCategory = collect($productionByCategory ?? []);
+
+        if ($productionByCategory->isEmpty()) {
+            return collect();
+        }
+
         return $productionByCategory
             ->groupBy('category_id')
             ->map(fn($rows) => [
@@ -47,6 +53,8 @@ class HighProductionService
     }
     public function GenerateProductionChart($productionByCategory, $topProductionCategories)
     {
+        $productionByCategory = collect($productionByCategory ?? []);
+        $topProductionCategories = collect($topProductionCategories ?? []);
         $productionStartDate = Carbon::today()->subDays(6);
         $productionChart = collect(range(0, 6))->map(function ($daysAgo) use ($productionStartDate, $productionByCategory, $topProductionCategories) {
             $date = $productionStartDate->copy()->addDays($daysAgo);
@@ -61,7 +69,6 @@ class HighProductionService
 
             return $dayData;
         });
-
 
         return $productionChart;
     }

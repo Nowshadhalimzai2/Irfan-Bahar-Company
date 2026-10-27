@@ -9,6 +9,7 @@ import PageLinks from './page-links';
 import { Role } from '@/types';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { Transfer } from '@/types/item';
+import PersionDatePicker from './persion-date-picker';
 type TransferLine = { id: number, itemName: string, itemPrice: number, quantity: number };
 // type Transfer = { id: number, reference_no: string,status: 'completed'|'suggested'|'cancelled', source: string, destination: string, transfered_at: Date, lines: TransferLine[] }
 interface Props {
@@ -33,10 +34,11 @@ const TransferList = ({ transfers }: Props) => {
     const [search, setSearch] = useState('');
     const [source, setSource] = useState('all');
     const [destination, setDestination] = useState('all');
-    const [period, setPeriod] = useState<'daily' | 'monthly'>('daily');
+    const [persionDate, setPersionDate] = useState<string | null>(null);
+    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
 
-    const currentDate = period === 'daily' ? new Date().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 7);
-    const [date, setDate] = useState(currentDate);
+    // const currentDate = period === 'daily' ? new Date().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 7);
+    const [date, setDate] = useState(new Date().toLocaleDateString());
 
     const sourceLocations = useMemo(() => Array.from(new Set(transfers.data.map((transfer) => LocationTranslator(transfer.source.name)))), [transfers.data]);
     const destinationLocations = useMemo(() => Array.from(new Set(transfers.data.map((transfer) => LocationTranslator(transfer.destination.name)))), [transfers.data]);
@@ -49,8 +51,8 @@ const TransferList = ({ transfers }: Props) => {
         return searchable.includes(search.toLowerCase())
             && (source === 'all' || source === LocationTranslator(transfer.source.name))
             && (destination === 'all' || destination === LocationTranslator(transfer.destination.name))
-            && (date === 'all' || (period == 'monthly' ? transferredDate.toISOString().slice(0, 7) === date : transferredDate.toISOString().slice(0, 10) === date));
-    }), [date, destination, search, source, transfers.data]);
+            && (date === 'all' || transferredDate.toDateString() === selectedDate?.toDateString());
+    }), [date, destination,selectedDate, search, source, transfers.data]);
 
 
 
@@ -100,19 +102,29 @@ const TransferList = ({ transfers }: Props) => {
 
                         </div>
                         {(search || source !== 'all' || destination !== 'all' || date !== 'all') && <button type="button" onClick={clearFilters} className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"><X className="size-3" /> پاک کردن</button>}
-                        <div>
-                            <select className='border p-1.5 rounded-sm w-30 md:w-50' onChange={(e) => setPeriod(e.target.value as 'daily' | 'monthly')} >
-                                <option value="daily">daily</option>
-                                <option value="monthly">monthly</option>
-                            </select>
-                        </div>
+                       
                     </div>
                 </div>
                 <div className="grid gap-3 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
                     <label className="relative block"><Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="جستجو به اساس حواله نمبر" className="h-11 pr-10" /></label>
                     <label className="relative block"><select value={source} onChange={(event) => setSource(event.target.value)} className="h-11 w-full appearance-none rounded-md border border-input bg-background px-3 pl-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"><option value="all">همه مراجع</option>{sourceLocations.map((item) => <option key={item} value={item}>{item}</option>)}</select><ChevronDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /></label>
                     <label className="relative block"><select value={destination} onChange={(event) => setDestination(event.target.value)} className="h-11 w-full appearance-none rounded-md border border-input bg-background px-3 pl-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"><option value="all">همه مقاصد</option>{destinationLocations.map((item) => <option key={item} value={item}>{item}</option>)}</select><ChevronDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /></label>
-                    <label className="relative block"><CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input type={period === "daily" ? 'date' : 'month'} value={date === 'all' ? '' : date} onChange={(event) => setDate(event.target.value || 'all')} className="h-11 pr-10" /></label>
+                    <label className="relative block"><CalendarDays className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    {/* <Input type={'date'} value={date === 'all' ? '' : date} onChange={(event) => setDate(event.target.value || 'all')} className="h-11 pr-10" /> */}
+                        <PersionDatePicker 
+                            id={persionDate ?? ''}
+                            initialDate={new Date()}
+                            maxDate={new Date()}
+                            label=''
+                            type='date'
+                            value={selectedDate}
+                            onChange={(date,changeDate)=>{
+                                setSelectedDate(date);
+                                setPersionDate(changeDate);
+                            }}
+                        
+                        />
+                    </label>
                 </div>
             </div>
 

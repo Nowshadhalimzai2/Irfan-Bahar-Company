@@ -490,7 +490,9 @@ class SaleController extends Controller
             }
 
             $daySales = $completedSales->filter(function (Sale $sale) use ($date) {
-                return Carbon::parse($sale->sold_at ?? $sale->created_at)->isSameDay($date);
+                $saleDate = $sale->sold_at ?? $sale->created_at ?? now();
+
+                return Carbon::parse($saleDate)->isSameDay($date);
             });
 
             $jalaliDate = Jalalian::fromCarbon(Carbon::instance($date));

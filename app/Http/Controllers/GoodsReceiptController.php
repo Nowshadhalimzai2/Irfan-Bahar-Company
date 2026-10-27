@@ -24,8 +24,12 @@ use Inertia\Inertia;
 class GoodsReceiptController extends Controller
 {
 
-    function index()
+    function index(Request $request)
     {
+        $filters = $request->validate([
+            'received_date' => ['nullable', 'date_format:Y-m-d'],
+        ]);
+        $receivedDate = $filters['received_date'] ?? null;
         $user = Auth::user();
         if ($user instanceof User) {
             if ($user->hasRole('factory_clerk')) {
@@ -35,8 +39,10 @@ class GoodsReceiptController extends Controller
                             ->from('locations')
                             ->whereIn('type', ['factory', 'warehouse']);
                     })
+                    ->when($receivedDate, fn ($query) => $query->whereDate('received_at', $receivedDate))
                     ->orderBy('id', 'desc')
-                    ->paginate(10);
+                    ->paginate(10)
+                    ->withQueryString();
             }
             if ($user->hasRole('shop_clerk')) {
                 $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name', 'currency:id,name')
@@ -45,16 +51,22 @@ class GoodsReceiptController extends Controller
                             ->from('locations')
                             ->whereIn('type', ['shop']);
                     })
+                    ->when($receivedDate, fn ($query) => $query->whereDate('received_at', $receivedDate))
                     ->orderBy('id', 'desc')
-                    ->paginate(10);
+                    ->paginate(10)
+                    ->withQueryString();
             } else {
-                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')->orderBy('id', 'desc')->paginate(10);
+                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')
+                    ->when($receivedDate, fn ($query) => $query->whereDate('received_at', $receivedDate))
+                    ->orderBy('id', 'desc')
+                    ->paginate(10)
+                    ->withQueryString();
             }
         }
         $transfers = Transfer::with('source:id,name', 'destination:id,name', 'transferLines:id,item_id,transfer_id,quantity,unit_price', 'transferLines.item:id,name,unit,item_type,default_sale_price')
             ->select('id', 'source_id', 'destination_id', 'reference_no', 'notes', 'transferred_at', 'status')
             ->orderBy('id', 'desc')->paginate(10);
-        return Inertia::render('goods-receipt/index', compact('goodsReceipts', 'transfers'));
+        return Inertia::render('goods-receipt/index', compact('goodsReceipts', 'transfers', 'receivedDate'));
     }
     function create()
     {
