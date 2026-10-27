@@ -28,8 +28,11 @@ class GoodsReceiptController extends Controller
     {
         $filters = $request->validate([
             'received_date' => ['nullable', 'date_format:Y-m-d'],
+            'transfer_date' => ['nullable', 'date_format:Y-m-d'],
         ]);
-        $receivedDate = $filters['received_date'] ?? null;
+        $today = Carbon::today(config('app.timezone'))->toDateString();
+        $receivedDate = $filters['received_date'] ?? $today;
+        $transferDate = $filters['transfer_date'] ?? $today;
         $user = Auth::user();
         if ($user instanceof User) {
             if ($user->hasRole('factory_clerk')) {
@@ -44,7 +47,7 @@ class GoodsReceiptController extends Controller
                     ->paginate(10)
                     ->withQueryString();
             }
-            if ($user->hasRole('shop_clerk')) {
+            elseif ($user->hasRole('shop_clerk')) {
                 $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name', 'currency:id,name')
                     ->whereIn('destination_location_id', function ($query) {
                         $query->select('id')
@@ -65,8 +68,11 @@ class GoodsReceiptController extends Controller
         }
         $transfers = Transfer::with('source:id,name', 'destination:id,name', 'transferLines:id,item_id,transfer_id,quantity,unit_price', 'transferLines.item:id,name,unit,item_type,default_sale_price')
             ->select('id', 'source_id', 'destination_id', 'reference_no', 'notes', 'transferred_at', 'status')
-            ->orderBy('id', 'desc')->paginate(10);
-        return Inertia::render('goods-receipt/index', compact('goodsReceipts', 'transfers', 'receivedDate'));
+            ->when($transferDate, fn ($query) => $query->whereDate('transferred_at', $transferDate))
+            ->orderBy('id', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+        return Inertia::render('goods-receipt/index', compact('goodsReceipts', 'transfers', 'receivedDate', 'transferDate'));
     }
     function create()
     {

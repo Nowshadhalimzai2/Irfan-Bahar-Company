@@ -6,7 +6,8 @@ import AppLayout from '@/layouts/app-layout';
 import { GoodsReceipt, Transfer } from '@/types/item';
 
 interface Props {
-    receivedDate: string | null;
+    receivedDate: string;
+    transferDate: string;
     goodsReceipts: {
         data: GoodsReceipt[];
         current_page: number;
@@ -30,7 +31,7 @@ interface Props {
         }[];
     };
 }
-const Index = ({ goodsReceipts, transfers, receivedDate }: Props) => {
+const Index = ({ goodsReceipts, transfers, receivedDate, transferDate }: Props) => {
     
     return (
         <AppLayout breadcrumbs={[
@@ -45,10 +46,10 @@ const Index = ({ goodsReceipts, transfers, receivedDate }: Props) => {
                         <TabsTrigger value="receipts"> اجناس امده</TabsTrigger>
                     </TabsList>
                     <TabsContent value="transfers">
-                        <TransferList transfers={transfers}/>
+                        <TransferList transfers={transfers} transferDate={transferDate} receivedDate={receivedDate} />
                     </TabsContent>
                     <TabsContent value="receipts">
-                        <GoodsReceiptList goodsReceipts={goodsReceipts} receivedDate={receivedDate} />
+                        <GoodsReceiptList goodsReceipts={goodsReceipts} receivedDate={receivedDate} transferDate={transferDate} />
                     </TabsContent>
                 </Tabs>
 

@@ -11,7 +11,8 @@ import PageLinks from './page-links';
 import PersionDatePicker from './persion-date-picker';
 
 interface Props {
-    receivedDate: string | null;
+    receivedDate: string;
+    transferDate: string;
     goodsReceipts: {
         data: GoodsReceipt[];
         current_page: number;
@@ -25,7 +26,7 @@ interface Props {
     };
 }
 
-const GoodsReceiptList = ({ goodsReceipts, receivedDate }: Props) => {
+const GoodsReceiptList = ({ goodsReceipts, receivedDate, transferDate }: Props) => {
     const { auth } = usePage().props;
     const userRole = auth.role;
     const [search, setSearch] = useState('');
@@ -48,7 +49,9 @@ const GoodsReceiptList = ({ goodsReceipts, receivedDate }: Props) => {
         setSearch('');
         setSupplier('all');
         setLocation('all');
-        router.get('/receipts', {}, { preserveScroll: true, preserveState: true, replace: true });
+        router.get('/receipts', {
+            transfer_date: transferDate ?? undefined,
+        }, { preserveScroll: true, preserveState: true, replace: true });
     };
 
     return (
@@ -74,7 +77,7 @@ const GoodsReceiptList = ({ goodsReceipts, receivedDate }: Props) => {
             <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm md:p-5">
                 <div className="mb-4 flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2"><SlidersHorizontal className="size-4 text-primary" /><h2 className="font-semibold">جستجو و فیلتر</h2></div>
-                    {(search || supplier !== 'all' || location !== 'all' || receivedDate) && <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"><X className="size-3" /> پاک کردن</button>}
+                    {(search || supplier !== 'all' || location !== 'all') && <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"><X className="size-3" /> پاک کردن</button>}
                 </div>
                 <div className="grid gap-3 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
                     <label className="relative block"><Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="جستجو در حواله، تأمین‌کننده یا موقعیت..." className="h-11 pr-10" /></label>
@@ -87,6 +90,7 @@ const GoodsReceiptList = ({ goodsReceipts, receivedDate }: Props) => {
                         value={receivedDate ? new Date(`${receivedDate}T00:00:00`) : null}
                         onChange={(date) => router.get('/receipts', {
                             received_date: date ? formatGregorianDate(date) : undefined,
+                            transfer_date: transferDate ?? undefined,
                         }, { preserveScroll: true, preserveState: true, replace: true })}
                     />
                 </div>

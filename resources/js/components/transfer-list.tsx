@@ -1,7 +1,8 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { CalendarDays, ChevronDown, PackageCheck, Search, SlidersHorizontal, Truck, X } from 'lucide-react';
+import { ChevronDown, PackageCheck, Search, SlidersHorizontal, Truck, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import LocationTranslator from '@/components/location-translator';
+import { formatGregorianDate } from '@/components/persian-date-picker';
 import { buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,6 +14,8 @@ import PersionDatePicker from './persion-date-picker';
 type TransferLine = { id: number, itemName: string, itemPrice: number, quantity: number };
 // type Transfer = { id: number, reference_no: string,status: 'completed'|'suggested'|'cancelled', source: string, destination: string, transfered_at: Date, lines: TransferLine[] }
 interface Props {
+    transferDate: string;
+    receivedDate: string;
     transfers: {
         data: Transfer[];
         current_page: number;
@@ -25,7 +28,7 @@ interface Props {
         }[];
     };
 }
-const TransferList = ({ transfers }: Props) => {
+const TransferList = ({ transfers, transferDate, receivedDate }: Props) => {
 
     const { auth, roles } = usePage().props;
     const UserRoles = roles as Role[];
@@ -34,25 +37,16 @@ const TransferList = ({ transfers }: Props) => {
     const [search, setSearch] = useState('');
     const [source, setSource] = useState('all');
     const [destination, setDestination] = useState('all');
-    const [persionDate, setPersionDate] = useState<string | null>(null);
-    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
-
-    // const currentDate = period === 'daily' ? new Date().toISOString().slice(0, 10) : new Date().toISOString().slice(0, 7);
-    const [date, setDate] = useState(new Date().toLocaleDateString());
-
     const sourceLocations = useMemo(() => Array.from(new Set(transfers.data.map((transfer) => LocationTranslator(transfer.source.name)))), [transfers.data]);
     const destinationLocations = useMemo(() => Array.from(new Set(transfers.data.map((transfer) => LocationTranslator(transfer.destination.name)))), [transfers.data]);
 
     const filteredTransfers = useMemo(() => transfers.data.filter((transfer) => {
 
         const searchable = `${transfer.reference_no}`.toLowerCase();
-        const transferredDate = new Date(transfer.transferred_at);
-
         return searchable.includes(search.toLowerCase())
             && (source === 'all' || source === LocationTranslator(transfer.source.name))
-            && (destination === 'all' || destination === LocationTranslator(transfer.destination.name))
-            && (date === 'all' || transferredDate.toDateString() === selectedDate?.toDateString());
-    }), [date, destination,selectedDate, search, source, transfers.data]);
+            && (destination === 'all' || destination === LocationTranslator(transfer.destination.name));
+    }), [destination, search, source, transfers.data]);
 
 
 
@@ -61,7 +55,9 @@ const TransferList = ({ transfers }: Props) => {
         setSearch('');
         setSource('all');
         setDestination('all');
-        setDate('all');
+        router.get('/receipts', {
+            received_date: receivedDate ?? undefined,
+        }, { preserveScroll: true, preserveState: true, replace: true });
     };
 
 
@@ -101,7 +97,7 @@ const TransferList = ({ transfers }: Props) => {
                             <SlidersHorizontal className="size-4 text-primary" /><h2 className="font-semibold">جستجو و فیلتر</h2>
 
                         </div>
-                        {(search || source !== 'all' || destination !== 'all' || date !== 'all') && <button type="button" onClick={clearFilters} className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"><X className="size-3" /> پاک کردن</button>}
+                        {(search || source !== 'all' || destination !== 'all') && <button type="button" onClick={clearFilters} className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"><X className="size-3" /> پاک کردن</button>}
                        
                     </div>
                 </div>
@@ -109,22 +105,16 @@ const TransferList = ({ transfers }: Props) => {
                     <label className="relative block"><Search className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="جستجو به اساس حواله نمبر" className="h-11 pr-10" /></label>
                     <label className="relative block"><select value={source} onChange={(event) => setSource(event.target.value)} className="h-11 w-full appearance-none rounded-md border border-input bg-background px-3 pl-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"><option value="all">همه مراجع</option>{sourceLocations.map((item) => <option key={item} value={item}>{item}</option>)}</select><ChevronDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /></label>
                     <label className="relative block"><select value={destination} onChange={(event) => setDestination(event.target.value)} className="h-11 w-full appearance-none rounded-md border border-input bg-background px-3 pl-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"><option value="all">همه مقاصد</option>{destinationLocations.map((item) => <option key={item} value={item}>{item}</option>)}</select><ChevronDown className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /></label>
-                    <label className="relative block"><CalendarDays className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                    {/* <Input type={'date'} value={date === 'all' ? '' : date} onChange={(event) => setDate(event.target.value || 'all')} className="h-11 pr-10" /> */}
-                        <PersionDatePicker 
-                            id={persionDate ?? ''}
-                            initialDate={new Date()}
-                            maxDate={new Date()}
+                    <PersionDatePicker
+                            id="transfer-date"
                             label=''
                             type='date'
-                            value={selectedDate}
-                            onChange={(date,changeDate)=>{
-                                setSelectedDate(date);
-                                setPersionDate(changeDate);
-                            }}
-                        
+                            value={transferDate ? new Date(`${transferDate}T00:00:00`) : null}
+                            onChange={(date) => router.get('/receipts', {
+                                transfer_date: date ? formatGregorianDate(date) : undefined,
+                                received_date: receivedDate ?? undefined,
+                            }, { preserveScroll: true, preserveState: true, replace: true })}
                         />
-                    </label>
                 </div>
             </div>
 
@@ -151,7 +141,7 @@ const TransferList = ({ transfers }: Props) => {
                                         <TableCell className='text-center'>{LocationTranslator(transfer.source.name)}</TableCell>
                                         <TableCell className='text-center' >{LocationTranslator(transfer.destination.name)}</TableCell>
                                         <TableCell className='text-center'>{transfer.reference_no}</TableCell>
-                                        <TableCell className='text-center text-sm text-muted-foreground'>{new Date(transfer.transferred_at).toLocaleDateString('fa-AF')}</TableCell>
+                                        <TableCell className='text-center text-sm text-muted-foreground'>{new Date(transfer.transferred_at).toLocaleDateString('fa-AF',{year:'numeric',month:'long',day:'numeric'})}</TableCell>
                                         <TableCell className={`text-center font-semibold ${getTransferStyle(transfer.status)} `}>
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger disabled={transfer.status !== 'suggested' || usePage().props.auth.role !== 'factory_clerk'}>{getTransferStatus(transfer.status)}</DropdownMenuTrigger>
