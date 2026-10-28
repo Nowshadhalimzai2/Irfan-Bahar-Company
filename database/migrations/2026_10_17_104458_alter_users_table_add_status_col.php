@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
+           if(!Schema::hasColumn('users','status')) 
             $table->boolean('status')->default(true);
         });
     }
@@ -22,7 +23,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('status');
+            if(Schema::hasColumn('users','status'))
+                $table->dropColumn('status');
         });
     }
 };

@@ -13,8 +13,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Inertia;
+use RuntimeException;
 
 class PaymentController extends Controller
 {
@@ -76,7 +78,7 @@ class PaymentController extends Controller
                 $summary = $invoice->financialSummary();
                 $paid = $summary['gross_paid'];
                 $remaining = $summary['due'];
-                if($invoice->sale->status=='cancelled'){
+                if ($invoice->sale->status == 'cancelled') {
                     throw new \RuntimeException(('این فروش لغو شده است. قابل پرداخت نیست'));
                 }
                 if ((float) $data['amount'] > $remaining) {
@@ -119,7 +121,7 @@ class PaymentController extends Controller
                     ->with('role:id,name')
                     ->whereHas('role', fn($query) => $query->whereIn('name', ['admin', 'super_admin']))
                     ->get();
-                (new Log())->create('insert','پرداخت ثبت شد','',"/payments/$payment->id/receipt");
+                (new Log())->create('insert', 'پرداخت ثبت شد', '', "/payments/$payment->id/receipt");
                 Notification::send($admins, new PaymentCreated($payment));
                 return $payment;
             });
@@ -133,42 +135,42 @@ class PaymentController extends Controller
     }
 
 
-public function receipt(Payment $payment)
-{
-    $payment->load(['invoice.sale:id,amount_paid,status,currency_id', 'invoice.payments', 'invoice.sale.saleReturns:id,sale_id,total,refund_amount']);
+    public function receipt(Payment $payment)
+    {
+        $payment->load(['invoice.sale:id,amount_paid,status,currency_id', 'invoice.payments', 'invoice.sale.saleReturns:id,sale_id,total,refund_amount']);
 
-    $invoice = $payment->invoice;
-    $summary = $invoice->financialSummary();
+        $invoice = $payment->invoice;
+        $summary = $invoice->financialSummary();
 
-    return Inertia::render('payments/receipt', [
-        'payment' => [
-            'receiptNumber' => $payment->payment_number ?? 'REC-' . $payment->id,
-            'amount' => (float) $payment->amount,
-            'method' => $payment->method,
-            'reference' => $payment->reference,
-            'paidAt' => $payment->paid_at
-                ? Carbon::parse($payment->paid_at)->format('Y/m/d H:i')
-                : '',
-            'notes' => $payment->notes,
-            'cashier' => Auth::user()?->name ?? '',
-        ],
-        'invoice' => [
-            'id' => $invoice->id,
-            'number' => $invoice->invoice_number,
-            'issuedOn' => $invoice->issued_on
-                ? Carbon::parse($invoice->issued_on)->format('Y/m/d')
-                : '',
-            'status' => $invoice->status,
-            'customer' => $invoice->bill_to_name,
-            'phone' => $invoice->bill_to_phone,
-            'currency' => $invoice->currency,
-            'total' => $summary['total'],
-            'paid' => $summary['paid'],
-            'remaining' => $summary['due'],
-        ],
-        'storeName' => config('app.name', 'Irfan Bahar Detergent Company'),
-    ]);
-}
+        return Inertia::render('payments/receipt', [
+            'payment' => [
+                'receiptNumber' => $payment->payment_number ?? 'REC-' . $payment->id,
+                'amount' => (float) $payment->amount,
+                'method' => $payment->method,
+                'reference' => $payment->reference,
+                'paidAt' => $payment->paid_at
+                    ? Carbon::parse($payment->paid_at)->format('Y/m/d H:i')
+                    : '',
+                'notes' => $payment->notes,
+                'cashier' => Auth::user()?->name ?? '',
+            ],
+            'invoice' => [
+                'id' => $invoice->id,
+                'number' => $invoice->invoice_number,
+                'issuedOn' => $invoice->issued_on
+                    ? Carbon::parse($invoice->issued_on)->format('Y/m/d')
+                    : '',
+                'status' => $invoice->status,
+                'customer' => $invoice->bill_to_name,
+                'phone' => $invoice->bill_to_phone,
+                'currency' => $invoice->currency,
+                'total' => $summary['total'],
+                'paid' => $summary['paid'],
+                'remaining' => $summary['due'],
+            ],
+            'storeName' => config('app.name', 'Irfan Bahar Detergent Company'),
+        ]);
+    }
 
     public function invoicePayments(Invoice $invoice)
     {
@@ -209,14 +211,88 @@ public function receipt(Payment $payment)
         ]);
     }
 
+    public function destroy(Payment $payment)
+    {
+        try {
+            $message = DB::transaction(function () use ($payment) {
+                Gate::authorize('allow-shop-clerk');
+
+                $payment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+                $invoice = $payment->invoice;
+
+                if (!$invoice) {
+                    throw new RuntimeException('فاکتور موجود نیست.');
+                }
+
+                $invoice = Invoice::query()
+                    ->with('sale')
+                    ->lockForUpdate()
+                    ->findOrFail($invoice->id);
+
+                if ($payment->method === 'cash' && !(new SHA())->debit(
+                    (float) $payment->amount,
+                    $payment->currency_id
+                )) {
+                    throw new RuntimeException('موجودی حساب برای حذف پرداخت کافی نیست.');
+                }
+
+                $payment->delete();
+                $payments = $invoice->payments()->get();
+                $paidAmount = (float) $payments->sum('amount');
+                $invoice->sale?->update(['amount_paid' => $payments->count()===1 ? $paidAmount: ($payments->count()===0?0:$payments->sortByDesc('created_at')->first()->amount_paid)]);
+
+                $lastPayment = $payments
+                    ->sortByDesc('created_at')
+                    ->first();
+
+                $invoice->load(['payments', 'sale.saleReturns']);
+                $summary = $invoice->financialSummary();
+                $status = match (true) {
+                    $summary['due'] <= 0 => 'paid',
+                    $summary['paid'] > 0 => 'partially_paid',
+                    default => 'issued',
+                };
+
+                $invoice->update([
+                    'status' => $status,
+                    'paid_at' => $status === 'paid' && $lastPayment
+                        ? $lastPayment?->paid_at
+                        : null,
+                ]);
+
+                $message = "پرداخت فاکتور شماره {$invoice->invoice_number} حذف شد.";
+
+                (new Log())->create('delete', $message);
+
+                return $message;
+            });
+
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => $message,
+            ]);
+
+            return redirect()->route('payments.index');
+        } catch (\Throwable $th) {
+            report($th);
+
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => ' حذف پرداخت انجام نشد. '.$th->getMessage(),
+            ]);
+
+            return redirect()->back();
+        }
+    }
+
     public function allPayments()
     {
         // $now = Carbon::now(config('app.timezone'));
         // $threeMonthsAgo = $now->copy()->subMonth()->subMonth();
-    
+
         $invoices = Invoice::query()
             ->with(['sale:id,amount_paid,status,currency_id', 'sale.saleReturns:id,sale_id,total,refund_amount', 'payments:id,invoice_id,amount,method,reference,paid_at', 'sale.customer:id,name'])
-            ->whereIn('status', ['issued', 'partially_paid', 'paid', 'over_due', 'refunded', 'partially_refunded'])    
+            ->whereIn('status', ['issued', 'partially_paid', 'paid', 'over_due', 'refunded', 'partially_refunded'])
             ->whereHas('sale', fn($query) => $query->whereNotIn('status', ['draft', 'cancelled']))
             ->latest('issued_on')
             ->paginate(30);

@@ -190,6 +190,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/payments', [PaymentController::class, 'index'])->name('payments.index');
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
+        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
     });
 
 

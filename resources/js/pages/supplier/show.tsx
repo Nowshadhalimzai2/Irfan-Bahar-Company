@@ -205,13 +205,13 @@ export default function Show({
 
     const allocationCreditRemaining = allocationPayment
         ? Math.max(
-              0,
-              Number(allocationPayment.unallocated || 0) -
-                  allocationData.allocations.reduce(
-                      (sum, allocation) => sum + Number(allocation.amount || 0),
-                      0,
-                  ),
-          )
+            0,
+            Number(allocationPayment.unallocated || 0) -
+            allocationData.allocations.reduce(
+                (sum, allocation) => sum + Number(allocation.amount || 0),
+                0,
+            ),
+        )
         : 0;
 
     const closePayment = () => {
@@ -316,12 +316,12 @@ export default function Show({
             data.allocations.map((allocation) =>
                 allocation.goods_receipt_id === receipt.id
                     ? {
-                          ...allocation,
-                          amount: Math.min(
-                              Math.max(amount, 0),
-                              maximum,
-                          ),
-                      }
+                        ...allocation,
+                        amount: Math.min(
+                            Math.max(amount, 0),
+                            maximum,
+                        ),
+                    }
                     : allocation,
             ),
         );
@@ -361,7 +361,7 @@ export default function Show({
         const available = Math.max(
             0,
             Number(allocationPayment?.unallocated || 0) -
-                otherAllocatedAmount,
+            otherAllocatedAmount,
         );
 
         const amount = Math.min(receipt.remaining, available);
@@ -398,7 +398,7 @@ export default function Show({
             Math.max(
                 0,
                 Number(allocationPayment?.unallocated || 0) -
-                    otherAllocatedAmount,
+                otherAllocatedAmount,
             ),
         );
 
@@ -407,12 +407,12 @@ export default function Show({
             allocationData.allocations.map((allocation) =>
                 allocation.goods_receipt_id === receipt.id
                     ? {
-                          ...allocation,
-                          amount: Math.min(
-                              Math.max(amount, 0),
-                              maximum,
-                          ),
-                      }
+                        ...allocation,
+                        amount: Math.min(
+                            Math.max(amount, 0),
+                            maximum,
+                        ),
+                    }
                     : allocation,
             ),
         );
@@ -447,10 +447,10 @@ export default function Show({
 
     const allocationReceipts = allocationPayment
         ? receipts.filter(
-              (receipt) =>
-                  receipt.currency_id === allocationPayment.currency_id &&
-                  receipt.remaining > 0,
-          )
+            (receipt) =>
+                receipt.currency_id === allocationPayment.currency_id &&
+                receipt.remaining > 0,
+        )
         : [];
 
     return (
@@ -484,11 +484,10 @@ export default function Show({
                                 </h1>
 
                                 <span
-                                    className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs ${
-                                        supplier.status
+                                    className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs ${supplier.status
                                             ? 'bg-emerald-300/20 text-emerald-100'
                                             : 'bg-red-300/20 text-red-100'
-                                    }`}
+                                        }`}
                                 >
                                     {supplier.status ? 'فعال' : 'غیرفعال'}
                                 </span>
@@ -514,7 +513,7 @@ export default function Show({
                             <button
                                 type="button"
                                 onClick={() => console.log('leter plan')
-                                
+
                                     // router.put(
                                     //     `/suppliers/status/${supplier.id}`,
                                     // )
@@ -668,7 +667,7 @@ export default function Show({
                                             <span className="mt-1 block text-xs text-slate-500">
                                                 {formatPersianDate(
                                                     receipt.received_at ??
-                                                        undefined,
+                                                    undefined,
                                                 )}
                                             </span>
                                         </td>
@@ -676,11 +675,11 @@ export default function Show({
                                         <td className="max-w-xs px-4 py-4">
                                             {receipt.lines.length
                                                 ? receipt.lines
-                                                      .map(
-                                                          (line) =>
-                                                              `${line.item ?? 'جنس'} (${line.quantity})`,
-                                                      )
-                                                      .join('، ')
+                                                    .map(
+                                                        (line) =>
+                                                            `${line.item ?? 'جنس'} (${line.quantity})`,
+                                                    )
+                                                    .join('، ')
                                                 : '—'}
                                         </td>
 
@@ -757,7 +756,7 @@ export default function Show({
                                         مبلغ پرداخت
                                     </th>
                                     <th className="px-4 py-3 text-left">
-                                        اعتبار تخصیص‌نیافته
+                                        اعتبار تخصیص‌ نیافته
                                     </th>
                                     <th className="px-4 py-3 text-center">
                                         عملیات
@@ -789,14 +788,11 @@ export default function Show({
                                         <td className="px-4 py-4">
                                             {payment.allocations.length
                                                 ? payment.allocations
-                                                      .map(
-                                                          (allocation) =>
-                                                              `${allocation.receipt ?? 'رسید'} (${money(
-                                                                  allocation.amount,
-                                                                  currencyName,
-                                                              )})`,
-                                                      )
-                                                      .join('، ')
+                                                    .map(
+                                                        (allocation) =>
+                                                            `${allocation.receipt ?? 'رسید'} (${allocation.amount})`,
+                                                    )
+                                                    .join('، ')
                                                 : 'پیش‌پرداخت'}
                                         </td>
 

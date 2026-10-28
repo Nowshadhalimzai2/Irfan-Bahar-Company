@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/react';
-import { Clock12, PercentDiamondIcon, Printer, SearchXIcon, User } from 'lucide-react';
+import { Clock12, Delete, DeleteIcon, PercentDiamondIcon, Printer, SearchXIcon, Trash2, User } from 'lucide-react';
 import React from 'react'
 import PageHead from '@/components/page-head';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -11,12 +11,9 @@ interface Props {
     invoice: Invoice;
 }
 const Index = ({ invoice }: Props) => {
-    console.log('payments::: ', invoice.payments);
-
-
     return (
         <AppLayout breadcrumbs={[
-            { title: 'پرداخت ها', href: '/payments' },
+            { title: 'انوایس ها', href: '/payments' },
             { title: 'پرداخت ها', href: `/sales/invoice/${invoice.id}/payments` },
         ]}>
             <div className="p-2">
@@ -69,22 +66,25 @@ const Index = ({ invoice }: Props) => {
                                         <TableHead className='text-center'>تاریخ پرداخت</TableHead>
                                         <TableHead className='text-center'>یادداشت</TableHead>
                                         <TableHead className='text-center'>پرینت</TableHead>
+                                        <TableHead className='text-start'>لغو</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {invoice.payments.length > 0 ? invoice.payments.reverse().map((payment, ind) => <TableRow key={ind}>
                                         <TableCell className='text-center'>{ind + 1}</TableCell>
-                                        <TableCell className='text-center'>{payment.payment_number ?? 'RCT-'+payment.id}</TableCell>
+                                        <TableCell className='text-center'>{payment.payment_number ?? 'RCT-' + payment.id}</TableCell>
                                         <TableCell className='text-center'>{payment.amount}</TableCell>
                                         <TableCell className='text-center'>
-                                            {payment.method ==='cash'? 'نغده':payment.method==='bank_transfer'? 'بانګ/ صراف':payment.method==='card'?'کارت':"سایر"}
-                                            </TableCell>
+                                            {payment.method === 'cash' ? 'نغده' : payment.method === 'bank_transfer' ? 'بانګ/ صراف' : payment.method === 'card' ? 'کارت' : "سایر"}
+                                        </TableCell>
                                         <TableCell className='text-center'>{new Date(payment.paid_at).toLocaleString('fa-AF')}</TableCell>
-                                        <TableCell className='text-center w-14 text-wrap'>{payment.notes?.slice(0,25)?? '_'}</TableCell>
+                                        <TableCell className='text-center w-14 text-wrap'>{payment.notes?.slice(0, 25) ?? '_'}</TableCell>
                                         <TableCell className='flex justify-center items-center'><Printer className='text-blue-500 size-5 hover:text-blue-400' onClick={() => router.get(`/payments/${payment.id}/receipt`)} /></TableCell>
+                                        <TableCell className=''>
+                                            <button className='text-red-200 hover:text-red-400 hover:scale-101 ' onClick={() => confirm('آیا مطمئن هستین؟') && router.delete(`/payments/${payment.id}`)}><Trash2 className='size-4' /></button>                                        </TableCell>
 
                                     </TableRow>) : <TableRow>
-                                        <TableCell colSpan={5} className='text-gray-400 py-5 text-sm text-center'>کدام پرداخت ندارد <SearchXIcon className='text-gray-400 font-medium size-10 inline' /></TableCell>
+                                        <TableCell colSpan={6} className='text-gray-400 py-5 text-sm text-center'>کدام پرداخت ندارد <SearchXIcon className='text-gray-400 font-medium size-10 inline' /></TableCell>
                                     </TableRow>}
                                 </TableBody>
                             </Table>
