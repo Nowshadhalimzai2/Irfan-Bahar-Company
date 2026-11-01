@@ -117,6 +117,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $todayIncomes = $dashboardService->todayIncomes();
 
         $totalPayments = $dashboardService->todaysRealPayments();
+        // dd($totalPayments);
         $totalLoans = $dashboardService->todaysLoans();
         $overallLoans = $dashboardService->totalOverallLoans();
 

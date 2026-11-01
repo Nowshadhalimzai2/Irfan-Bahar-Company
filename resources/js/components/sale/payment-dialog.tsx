@@ -18,7 +18,6 @@ const money = (value: number, currency: string) => {
     return `${total.toFixed(2).toString()} ${getDariCurrency(currency)}`;
 }
 
-type Payment = { id: number; amount: number; method: string; reference?: string; paidAt: string };
 
 
 type Invoice = {
@@ -42,14 +41,12 @@ function PaymentDialog({
     onClose: () => void;
 }) {
 
-    console.log('dialog inoive', invoice);
 
     const { data, setData, post, processing, errors } = useForm({
         invoice_id: invoice.id,
         amount: invoice.due,
         method: 'cash',
         reference: '',
-        paid_at: new Date().toISOString().slice(0, 16),
         notes: '',
     });
     const submit = (event: FormEvent<HTMLFormElement>) => {

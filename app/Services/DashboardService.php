@@ -70,7 +70,7 @@ class DashboardService
     public function todaysRealPayments(): Collection
     {
         $todayRange = $this->todayRange();
-
+        // dd($todayRange['start']);
         return Payment::query()
             ->selectRaw('currency_id, SUM(amount) as total_amount')
             ->whereBetween('paid_at', [$todayRange['start'], $todayRange['end']])
