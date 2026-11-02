@@ -1,48 +1,67 @@
-import AppLayout from '@/layouts/app-layout';
-import { useForm } from '@inertiajs/react';
-import { FormEvent, ReactNode } from 'react';
+import InputError from '@/components/input-error';
+import {
+    getDariCategory,
+    getUnitOfMeasurements,
+} from '@/components/location-translator';
+import PageHead from '@/components/page-head';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import InputError from '@/components/input-error';
+import AppLayout from '@/layouts/app-layout';
+import { useForm } from '@inertiajs/react';
+import { FormEvent, ReactNode } from 'react';
+import { Package } from 'lucide-react';
 import { Category, unitType } from '@/types/item';
-import { getDariCategory, getUnitOfMeasurements } from '@/components/location-translator';
-import PageHead from '@/components/page-head';
-import { Barcode, Boxes, Check, Package, Tag } from 'lucide-react';
 
 type ItemTypeName = 'product' | 'raw_material' | 'packing';
+
+type UnitForm = {
+    id: number | null;
+    name: unitType | '';
+    symbol: string;
+    conversion_to_base: number;
+    barcode: string;
+    selling_price: number;
+    purchase_price: number | null;
+    is_active: boolean;
+};
 
 type ItemForm = {
     name: string;
     item_type: ItemTypeName;
-    unit: unitType;
-    price: number;
     category_id: number;
-    barcode: string;
+    base_unit: UnitForm;
+    additional_units: UnitForm[];
     weight: number | '';
-    per_pack: number | '';
     description: string;
 };
 
-type Product = {
-    item_id: number;
-    weight: number;
-    per_pack: number;
+type ItemUnit = {
+    id: number;
+    name: string;
+    symbol: string | null;
+    conversion_to_base: number | string;
     barcode: string | null;
-    description: string | null;
+    selling_price: number | string;
+    purchase_price: number | string | null;
+    is_active: boolean;
 };
 
 type Item = {
     id: number;
     name: string;
+    code: string | null;
     item_type: ItemTypeName;
     category_id: number;
     unit: unitType;
-    default_sale_price: number;
-    code: string;
     sku: string;
-    product?: Product | null;
+    base_unit?: ItemUnit | null;
+    units: ItemUnit[];
+    product?: {
+        weight: number | string | null;
+        description: string | null;
+    } | null;
 };
 
 interface Props {
@@ -50,26 +69,115 @@ interface Props {
     item: Item;
 }
 
+const toUnitForm = (unit: ItemUnit, isBase = false): UnitForm => ({
+    id: unit.id,
+    name: unit.name as unitType,
+    symbol: unit.symbol ?? '',
+    conversion_to_base: isBase ? 1 : Number(unit.conversion_to_base),
+    barcode: unit.barcode ?? '',
+    selling_price: Number(unit.selling_price),
+    purchase_price:
+        unit.purchase_price === null ? null : Number(unit.purchase_price),
+    is_active: isBase ? true : unit.is_active,
+});
+
 const Edit = ({ categories, item }: Props) => {
-    const product = item.product ?? null;
+    const baseUnit =
+        item.base_unit ??
+        item.units.find((unit) => unit.name === item.unit) ??
+        item.units[0];
+    const additionalUnits = item.units
+        .filter((unit) => unit.id !== baseUnit?.id)
+        .map((unit) => toUnitForm(unit));
 
     const { data, setData, errors, put, processing } = useForm<ItemForm>({
         name: item.name,
         item_type: item.item_type,
-        unit: item.unit,
-        price: item.default_sale_price,
         category_id: item.category_id,
-        barcode: product?.barcode ?? '',
-        weight: product?.weight ?? '',
-        per_pack: product?.per_pack ?? '',
-        description: product?.description ?? '',
+        base_unit: baseUnit
+            ? toUnitForm(baseUnit, true)
+            : {
+                  id: null,
+                  name: item.unit,
+                  symbol: '',
+                  conversion_to_base: 1,
+                  barcode: '',
+                  selling_price: 0,
+                  purchase_price: null,
+                  is_active: true,
+              },
+        additional_units: additionalUnits,
+        weight:
+            item.product?.weight === null || item.product?.weight === undefined
+                ? ''
+                : Number(item.product.weight),
+        description: item.product?.description ?? '',
     });
 
+    const unitOptions = getUnitOfMeasurements();
     const isProduct = data.item_type === 'product';
+
+    const updateBaseUnit = <K extends keyof UnitForm>(
+        field: K,
+        value: UnitForm[K],
+    ) => {
+        setData('base_unit', {
+            ...data.base_unit,
+            [field]: value,
+        });
+    };
+
+    const updateAdditionalUnit = <K extends keyof UnitForm>(
+        index: number,
+        field: K,
+        value: UnitForm[K],
+    ) => {
+        setData(
+            'additional_units',
+            data.additional_units.map((unit, unitIndex) =>
+                unitIndex === index ? { ...unit, [field]: value } : unit,
+            ),
+        );
+    };
+
+    const addAdditionalUnit = () => {
+        setData('additional_units', [
+            ...data.additional_units,
+            {
+                id: null,
+                name: '',
+                symbol: '',
+                conversion_to_base: 1,
+                barcode: '',
+                selling_price: 0,
+                purchase_price: null,
+                is_active: true,
+            },
+        ]);
+    };
+
+    const removeAdditionalUnit = (index: number) => {
+        const unit = data.additional_units[index];
+
+        if (unit.id === null) {
+            setData(
+                'additional_units',
+                data.additional_units.filter(
+                    (_, unitIndex) => unitIndex !== index,
+                ),
+            );
+            return;
+        }
+
+        updateAdditionalUnit(index, 'is_active', false);
+    };
+
+    const errorFor = (key: string) =>
+        (errors as Record<string, string | undefined>)[key];
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        put(`/items/${item.id}`);
+        put('/items/' + item.id);
     };
 
     return (
@@ -77,183 +185,222 @@ const Edit = ({ categories, item }: Props) => {
             breadcrumbs={[
                 { title: 'کارخانه', href: '/factory/home' },
                 { title: 'اجناس', href: '/items' },
-                { title: 'ویرایش', href: `/items/${item.id}/edit` },
+                { title: item.name, href: '/items/' + item.id },
+                { title: 'ویرایش', href: '/items/' + item.id + '/edit' },
             ]}
         >
-            <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8" dir="rtl">
+            <main
+                className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8"
+                dir="rtl"
+            >
                 <PageHead
                     HeadIcon={Package}
-                    subtitle={`کد جنس: ${item.code}`}
+                    subtitle={
+                        'کود: ' + (item.code ?? '—') + ' | SKU: ' + item.sku
+                    }
                     title="ویرایش جنس"
-                    description="معلومات جنس، قیمت و مشخصات محصول را به‌روزرسانی کنید."
+                    description="معلومات جنس، واحدها و مشخصات محصول را به‌روزرسانی کنید."
                 />
 
                 <form onSubmit={handleSubmit} className="mt-5 space-y-5">
-                    <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-                        <div className="flex items-center gap-3 border-b bg-linear-to-l from-primary/10 to-background p-5">
-                            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                <Tag className="size-5" />
-                            </div>
-                            <div>
-                                <h2 className="font-bold">اطلاعات اصلی</h2>
-                                <p className="text-sm text-muted-foreground">مشخصات عمومی و قیمت جنس.</p>
-                            </div>
-                        </div>
-
-                        <div className="grid gap-5 p-5 md:grid-cols-2 lg:grid-cols-3">
-                            <Field label="نام جنس" error={errors.name} className="lg:col-span-2">
+                    <section className="rounded-2xl border bg-card p-5 shadow-sm">
+                        <h2 className="mb-4 font-bold">اطلاعات اصلی</h2>
+                        <div className="grid gap-5 md:grid-cols-3">
+                            <Field label="نام جنس" error={errors.name}>
                                 <Input
-                                    id="name"
-                                    autoFocus
                                     required
                                     value={data.name}
-                                    onChange={(event) => setData('name', event.target.value)}
-                                    placeholder="نام جنس را وارد کنید"
-                                    className="h-11"
-                                />
-                            </Field>
-
-                            <Field label="کد جنس">
-                                <div className="flex h-11 items-center gap-2 rounded-md border bg-muted/50 px-3 text-sm text-muted-foreground">
-                                    <Barcode className="size-4" />
-                                    <code dir="ltr">{item.code}</code>
-                                </div>
-                            </Field>
-
-                            <Field label="نرخ فروش" error={errors.price}>
-                                <Input
-                                    id="price"
-                                    type="number"
-                                    min="0"
-                                    step="any"
-                                    dir="ltr"
-                                    required
-                                    value={data.price}
-                                    onChange={(event) => setData('price', Number(event.target.value))}
-                                    className="h-11"
+                                    onChange={(event) =>
+                                        setData('name', event.target.value)
+                                    }
                                 />
                             </Field>
 
                             <Field label="دسته‌بندی" error={errors.category_id}>
                                 <select
-                                    id="category_id"
                                     value={data.category_id}
-                                    onChange={(event) => setData('category_id', Number(event.target.value))}
-                                    className="h-11 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                                    onChange={(event) =>
+                                        setData(
+                                            'category_id',
+                                            Number(event.target.value),
+                                        )
+                                    }
+                                    className="h-11 w-full rounded-md border bg-background px-3 text-sm"
                                     required
                                 >
-                                    <option value="">دسته‌بندی را انتخاب کنید</option>
                                     {categories.map((category) => (
-                                        <option key={category.id} value={category.id}>
+                                        <option
+                                            key={category.id}
+                                            value={category.id}
+                                        >
                                             {getDariCategory(category.name)}
                                         </option>
                                     ))}
                                 </select>
                             </Field>
 
-                            <Field label="واحد اندازه‌گیری" error={errors.unit}>
-                                <select
-                                    id="unit"
-                                    value={data.unit}
-                                    onChange={(event) => setData('unit', event.target.value as unitType)}
-                                    className="h-11 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
-                                    required
-                                >
-                                    {getUnitOfMeasurements().map((unit) => (
-                                        <option key={unit.value} value={unit.value}>{unit.label}</option>
-                                    ))}
-                                </select>
-                            </Field>
-
                             <Field label="نوع جنس" error={errors.item_type}>
                                 <select
-                                    id="item_type"
                                     value={data.item_type}
-                                    onChange={(event) => setData('item_type', event.target.value as ItemTypeName)}
-                                    className="h-11 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+                                    onChange={(event) =>
+                                        setData(
+                                            'item_type',
+                                            event.target.value as ItemTypeName,
+                                        )
+                                    }
+                                    className="h-11 w-full rounded-md border bg-background px-3 text-sm"
                                     required
                                 >
-                                    <option value="raw_material">مواد خام</option>
+                                    <option value="raw_material">
+                                        مواد خام
+                                    </option>
                                     <option value="product">محصول</option>
-                                    <option value="packing">پیکنگ</option>
+                                    <option value="packing">پیکنګ</option>
                                 </select>
                             </Field>
                         </div>
                     </section>
 
-                    {isProduct && (
-                        <section className="overflow-hidden rounded-2xl border bg-card shadow-sm">
-                            <div className="flex items-center gap-3 border-b bg-linear-to-l from-cyan-500/10 to-background p-5">
-                                <div className="flex size-10 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300">
-                                    <Boxes className="size-5" />
-                                </div>
-                                <div>
-                                    <h2 className="font-bold">مشخصات محصول</h2>
-                                    <p className="text-sm text-muted-foreground">اطلاعات بسته‌بندی و شناسایی محصول.</p>
-                                </div>
-                            </div>
+                    <UnitEditor
+                        title="واحد اصلی جنس"
+                        unit={data.base_unit}
+                        unitOptions={unitOptions}
+                        base
+                        errorFor={errorFor}
+                        onChange={updateBaseUnit}
+                    />
 
-                            <div className="grid gap-5 p-5 md:grid-cols-3">
-                                <Field label="وزن هر جنس" error={errors.weight}>
+                    <section className="rounded-2xl border bg-card p-5 shadow-sm">
+                        <div className="mb-4 flex items-center justify-between gap-4">
+                            <div>
+                                <h2 className="font-bold">
+                                    واحدهای اضافی فروش
+                                </h2>
+                                <p className="text-sm text-muted-foreground">
+                                    واحدهای موجود حذف نمی‌شوند؛ در صورت نیاز
+                                    غیرفعال می‌شوند.
+                                </p>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={addAdditionalUnit}
+                            >
+                                افزودن واحد
+                            </Button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {data.additional_units.map((unit, index) => (
+                                <div
+                                    key={unit.id ?? 'new-' + index}
+                                    className={
+                                        'rounded-lg border p-4 ' +
+                                        (unit.is_active
+                                            ? ''
+                                            : 'bg-muted/40 opacity-75')
+                                    }
+                                >
+                                    <div className="mb-4 flex items-center justify-between">
+                                        <h3 className="font-medium">
+                                            واحد شماره {index + 1}
+                                            {!unit.is_active && (
+                                                <span className="mr-2 text-xs text-destructive">
+                                                    غیرفعال
+                                                </span>
+                                            )}
+                                        </h3>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={() => {
+                                                if (unit.is_active) {
+                                                    removeAdditionalUnit(index);
+                                                } else {
+                                                    updateAdditionalUnit(
+                                                        index,
+                                                        'is_active',
+                                                        true,
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            {unit.is_active
+                                                ? 'غیرفعال‌سازی'
+                                                : 'فعال‌سازی'}
+                                        </Button>
+                                    </div>
+
+                                    <UnitEditor
+                                        title=""
+                                        unit={unit}
+                                        unitOptions={unitOptions}
+                                        errorFor={errorFor}
+                                        index={index}
+                                        onChange={(field, value) =>
+                                            updateAdditionalUnit(
+                                                index,
+                                                field,
+                                                value,
+                                            )
+                                        }
+                                    />
+                                </div>
+                            ))}
+                        </div>
+                        <InputError message={errors.additional_units} />
+                    </section>
+
+                    {isProduct && (
+                        <section className="rounded-2xl border bg-card p-5 shadow-sm">
+                            <h2 className="mb-4 font-bold">مشخصات محصول</h2>
+                            <div className="grid gap-5 md:grid-cols-2">
+                                <Field label="وزن محصول" error={errors.weight}>
                                     <Input
-                                        id="weight"
                                         type="number"
-                                        min="0.000001"
-                                        step="any"
-                                        dir="ltr"
+                                        min="0.001"
+                                        step="0.001"
                                         required
                                         value={data.weight}
-                                        onChange={(event) => setData('weight', event.target.value === '' ? '' : Number(event.target.value))}
-                                        className="h-11"
+                                        onChange={(event) =>
+                                            setData(
+                                                'weight',
+                                                event.target.value === ''
+                                                    ? ''
+                                                    : Number(
+                                                          event.target.value,
+                                                      ),
+                                            )
+                                        }
                                     />
                                 </Field>
-
-                                <Field label="مقدار در هر پیک" error={errors.per_pack}>
-                                    <Input
-                                        id="per_pack"
-                                        type="number"
-                                        min="1"
-                                        step="1"
-                                        dir="ltr"
-                                        required
-                                        value={data.per_pack}
-                                        onChange={(event) => setData('per_pack', event.target.value === '' ? '' : Number(event.target.value))}
-                                        className="h-11"
-                                    />
-                                </Field>
-
-                                <Field label="بارکد" error={errors.barcode}>
-                                    <Input
-                                        id="barcode"
-                                        dir="ltr"
-                                        maxLength={16}
-                                        value={data.barcode}
-                                        onChange={(event) => setData('barcode', event.target.value)}
-                                        placeholder="اختیاری"
-                                        className="h-11"
-                                    />
-                                </Field>
-
-                                <Field label="توضیحات بیشتر" error={errors.description} className="md:col-span-3">
+                                <Field
+                                    label="توضیحات بیشتر"
+                                    error={errors.description}
+                                >
                                     <textarea
-                                        id="description"
                                         maxLength={255}
                                         value={data.description}
-                                        onChange={(event) => setData('description', event.target.value)}
-                                        className="min-h-28 w-full resize-y rounded-md border bg-background p-3 text-sm outline-none placeholder:text-muted-foreground focus:ring-2 focus:ring-primary/30"
-                                        placeholder="توضیحات اختیاری درباره محصول"
+                                        onChange={(event) =>
+                                            setData(
+                                                'description',
+                                                event.target.value,
+                                            )
+                                        }
+                                        className="min-h-28 w-full rounded-md border bg-background p-3 text-sm"
                                     />
                                 </Field>
                             </div>
                         </section>
                     )}
 
-                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                        <Button type="button" variant="outline" onClick={() => window.history.back()}>
-                            انصراف
-                        </Button>
-                        <Button type="submit" disabled={processing} className="gap-2 sm:min-w-44">
-                            {processing ? <Spinner /> : <Check className="size-4" />}
+                    <div className="flex justify-end">
+                        <Button
+                            type="submit"
+                            disabled={processing}
+                            className="gap-2 sm:min-w-44"
+                        >
+                            {processing && <Spinner />}
                             ذخیره تغییرات
                         </Button>
                     </div>
@@ -263,18 +410,146 @@ const Edit = ({ categories, item }: Props) => {
     );
 };
 
+type UnitEditorProps = {
+    title: string;
+    unit: UnitForm;
+    unitOptions: ReturnType<typeof getUnitOfMeasurements>;
+    base?: boolean;
+    index?: number;
+    errorFor: (key: string) => string | undefined;
+    onChange: <K extends keyof UnitForm>(field: K, value: UnitForm[K]) => void;
+};
+
+const UnitEditor = ({
+    title,
+    unit,
+    unitOptions,
+    base = false,
+    index,
+    errorFor,
+    onChange,
+}: UnitEditorProps) => {
+    const key = index === undefined ? 'base_unit' : 'additional_units.' + index;
+
+    return (
+        <section
+            className={title ? 'rounded-2xl border bg-card p-5 shadow-sm' : ''}
+        >
+            {title && <h2 className="mb-4 font-bold">{title}</h2>}
+            <div className="grid gap-5 md:grid-cols-3">
+                <Field label="نام واحد" error={errorFor(key + '.name')}>
+                    <select
+                        value={unit.name}
+                        onChange={(event) =>
+                            onChange(
+                                'name',
+                                event.target.value as UnitForm['name'],
+                            )
+                        }
+                        className="h-11 w-full rounded-md border bg-background px-3 text-sm"
+                        required
+                    >
+                        <option value="">واحد را انتخاب کنین</option>
+                        {unitOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                                {option.label}
+                            </option>
+                        ))}
+                    </select>
+                </Field>
+
+                <Field label="سمبول" error={errorFor(key + '.symbol')}>
+                    <Input
+                        value={unit.symbol}
+                        onChange={(event) =>
+                            onChange('symbol', event.target.value)
+                        }
+                    />
+                </Field>
+
+                <Field
+                    label={base ? 'تبدیل به واحد اصلی' : 'چند واحد اصلی؟'}
+                    error={errorFor(key + '.conversion_to_base')}
+                >
+                    <Input
+                        type="number"
+                        min={base ? '1' : '0.000001'}
+                        step={base ? '1' : '0.000001'}
+                        value={base ? 1 : unit.conversion_to_base}
+                        readOnly={base}
+                        disabled={base}
+                        onChange={(event) =>
+                            onChange(
+                                'conversion_to_base',
+                                Number(event.target.value),
+                            )
+                        }
+                    />
+                </Field>
+
+                <Field
+                    label="نرخ فروش"
+                    error={errorFor(key + '.selling_price')}
+                >
+                    <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        required
+                        value={unit.selling_price}
+                        onChange={(event) =>
+                            onChange(
+                                'selling_price',
+                                Number(event.target.value),
+                            )
+                        }
+                    />
+                </Field>
+
+                <Field
+                    label="نرخ خرید"
+                    error={errorFor(key + '.purchase_price')}
+                >
+                    <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={unit.purchase_price ?? ''}
+                        onChange={(event) =>
+                            onChange(
+                                'purchase_price',
+                                event.target.value === ''
+                                    ? null
+                                    : Number(event.target.value),
+                            )
+                        }
+                    />
+                </Field>
+
+                <Field label="بارکد" error={errorFor(key + '.barcode')}>
+                    <Input
+                        value={unit.barcode}
+                        onChange={(event) =>
+                            onChange('barcode', event.target.value)
+                        }
+                        placeholder="اختیاری"
+                    />
+                </Field>
+            </div>
+        </section>
+    );
+};
+
 const Field = ({
     label,
     error,
-    className = '',
     children,
 }: {
     label: string;
     error?: string;
-    className?: string;
     children: ReactNode;
 }) => (
-    <div className={`space-y-2 ${className}`}>
+    <div className="space-y-2">
         <Label>{label}</Label>
         {children}
         <InputError message={error} />

@@ -1,4 +1,4 @@
-import { Currency, Customer, Location, Supplier } from ".";
+import type { Currency, Customer, Location, Supplier } from '.';
 
 export interface GoodsReceipt {
     id: number;
@@ -9,7 +9,8 @@ export interface GoodsReceipt {
     received_at: Date;
     notes?: string;
     currency: Currency;
-
+    total_amount?: number;
+    amount_paid?: number;
 }
 export interface GoodsReceiptLine {
     id: number;
@@ -17,6 +18,22 @@ export interface GoodsReceiptLine {
     item: Item;
     quantity: number;
     unit_cost: number;
+    conversion_factor?: number;
+    base_quantity?: number;
+    item_unit?: ItemUnit;
+}
+
+export interface ItemUnit {
+    id: number;
+    item_id: number;
+    name: string;
+    symbol?: string | null;
+    conversion_to_base: number;
+    code: string;
+    barcode?: string | null;
+    selling_price: number;
+    purchase_price?: number | null;
+    is_active: boolean;
 }
 
 export interface Item {
@@ -24,14 +41,35 @@ export interface Item {
     name: string;
     item_type: 'product' | 'raw_material' | 'packing';
     code: string;
-    unit: 'kg' | 'gr' | 'ltr' | 'packet' | 'carton' | 'bundle' | 'pair' | 'unit' | 'bag';
+    unit:
+        | 'kg'
+        | 'gr'
+        | 'ltr'
+        | 'packet'
+        | 'carton'
+        | 'bundle'
+        | 'pair'
+        | 'unit'
+        | 'bag';
     sku: string;
     default_sale_price: number;
     category: Category;
     product?: Product;
+    base_unit_id?: number | null;
+    base_unit?: ItemUnit | null;
+    units?: ItemUnit[];
 }
 
-export type unitType = 'kg' | 'gr' | 'ltr' | 'packet' | 'carton' | 'bundle' | 'pair' | 'unit' | 'bag';
+export type unitType =
+    | 'kg'
+    | 'gr'
+    | 'ltr'
+    | 'packet'
+    | 'carton'
+    | 'bundle'
+    | 'pair'
+    | 'unit'
+    | 'bag';
 
 export interface Category {
     id: number;
@@ -54,7 +92,7 @@ export interface Transfer {
     transferred_at: Date;
     notes?: string;
     transfer_lines: TransferLine[];
-    status: 'suggested' | 'cancelled' | 'completed',
+    status: 'suggested' | 'cancelled' | 'completed';
 }
 export interface TransferLine {
     id: number;
@@ -70,7 +108,8 @@ export interface Sale {
     customer_name?: string;
     created_by: string;
 
-    status: 'draft' | 'completed' | 'cancelled' | 'partially_returned' | 'returned';
+    status:
+        'draft' | 'completed' | 'cancelled' | 'partially_returned' | 'returned';
     currency_id: Currency;
 
     total: number;
@@ -87,7 +126,16 @@ export interface SaleLine {
     sale: Sale;
 
     item: Item;
-    unit: 'kg' | 'gr' | 'ltr' | 'packet' | 'carton' | 'bundle' | 'pair' | 'unit' | 'bag';
+    unit:
+        | 'kg'
+        | 'gr'
+        | 'ltr'
+        | 'packet'
+        | 'carton'
+        | 'bundle'
+        | 'pair'
+        | 'unit'
+        | 'bag';
     unit_cost: number;
 
     quantity: number;
@@ -103,7 +151,14 @@ export interface Invoice {
     payments: Payment[];
 
     invoice_number: string;
-    status: 'draft' | 'issued' | 'partially_paid' | 'paid' | 'over_due' | 'partially_refunded' | 'refunded';
+    status:
+        | 'draft'
+        | 'issued'
+        | 'partially_paid'
+        | 'paid'
+        | 'over_due'
+        | 'partially_refunded'
+        | 'refunded';
 
     issued_on: Date;
     due_on: Date;
@@ -125,7 +180,7 @@ export interface Payment {
     id: number;
     invoice: Invoice;
     amount: number;
-    method: "cash" | 'bank_transfer' | "office" | "teller";
+    method: 'cash' | 'bank_transfer' | 'office' | 'teller';
     reference_no?: string;
     paid_at: Date;
     notes?: string;
@@ -139,10 +194,10 @@ export interface SaleReturn {
     return_no: string;
     status: string;
     reason: string;
-    currency: "AFG" | "PKR" | "USD";
+    currency: 'AFG' | 'PKR' | 'USD';
     total: number;
     refund_amount: number;
-    refund_method: "cash" | "office" | "bank_transfer" | "teller";
+    refund_method: 'cash' | 'office' | 'bank_transfer' | 'teller';
     refund_reference_no: string;
 
     notes?: string;
@@ -160,6 +215,3 @@ export interface SaleReturnLine {
     restock_action: string;
     notes?: string;
 }
-
-
-

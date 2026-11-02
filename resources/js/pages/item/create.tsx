@@ -1,266 +1,732 @@
 import { SectionTitle } from '@/components/section-title';
 import AppLayout from '@/layouts/app-layout';
-import { useForm } from "@inertiajs/react";
-import { FormEvent, useState } from "react";
+import { useForm } from '@inertiajs/react';
+import { FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import InputError from '@/components/input-error';
 import { Category, unitType } from '@/types/item';
-import { getDariCategory, getUnitOfMeasurements } from '@/components/location-translator';
+import {
+    getDariCategory,
+    getUnitOfMeasurements,
+} from '@/components/location-translator';
 
-type ItemType = {
+type UnitForm = {
+    name: unitType | '';
+    symbol: string;
+    conversion_to_base: number;
+    barcode: string;
+    selling_price: number;
+    purchase_price: number | null;
+};
+
+type ItemForm = {
     name: string;
     item_type: 'product' | 'raw_material' | 'packing';
-    unit: 'kg' | 'gr' | 'ltr' | 'packet' | 'carton' | 'bundle' | 'pair' | 'unit' | 'bag';
-    price: number;
     category_id: number;
-    // product type
-    barcode: string;
-    weight?: number;
-    per_pack?: number;
-    description?: string;
-}
+    base_unit: UnitForm;
+    additional_units: UnitForm[];
+    weight: number;
+    description: string;
+};
 
 interface Props {
     categories: Category[];
 }
+
+const emptyUnit = (): UnitForm => ({
+    name: '',
+    symbol: '',
+    conversion_to_base: 1,
+    barcode: '',
+    selling_price: 0,
+    purchase_price: null,
+});
+
 const Create = ({ categories }: Props) => {
-
-
-    const { data, setData, errors, reset, post, processing } = useForm<ItemType>({
-        'name': '',
-        'item_type': 'product',
-        'unit': 'kg',
-        'price': 1,
-        'category_id': 1,
-        // product related
-        'barcode': '',
-        'weight': 1,
-        'per_pack': 1,
-        'description': '',
+    const { data, setData, errors, post, processing } = useForm<ItemForm>({
+        name: '',
+        item_type: 'product',
+        category_id: categories[0]?.id ?? 0,
+        base_unit: {
+            ...emptyUnit(),
+            name: 'kg',
+            conversion_to_base: 1,
+        },
+        additional_units: [],
+        weight: 1,
+        description: '',
     });
-    const [isItemTypeProduct, setIsItemTypeProduct] = useState<'product' | 'raw_material' | 'packing'>('product');
-    const handleItem = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        post('/items');
-    }
-    return (
-        <AppLayout breadcrumbs={[
-            { title: 'کارخانه', href: '/factory/home' },
-            { title: 'اجناس', href: '/items' },
-            { title: 'جنس جدید', href: '/items/create' },
 
-        ]}>
+    const unitOptions = getUnitOfMeasurements();
+
+    const updateBaseUnit = <K extends keyof UnitForm>(
+        field: K,
+        value: UnitForm[K],
+    ) => {
+        setData('base_unit', {
+            ...data.base_unit,
+            [field]: value,
+        });
+    };
+
+    const updateAdditionalUnit = <K extends keyof UnitForm>(
+        index: number,
+        field: K,
+        value: UnitForm[K],
+    ) => {
+        setData(
+            'additional_units',
+            data.additional_units.map((unit, unitIndex) =>
+                unitIndex === index ? { ...unit, [field]: value } : unit,
+            ),
+        );
+    };
+
+    const addAdditionalUnit = () => {
+        setData('additional_units', [...data.additional_units, emptyUnit()]);
+    };
+
+    const removeAdditionalUnit = (index: number) => {
+        setData(
+            'additional_units',
+            data.additional_units.filter((_, unitIndex) => unitIndex !== index),
+        );
+    };
+
+    const handleItem = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        post('/items');
+    };
+
+    const errorFor = (key: string) =>
+        (errors as Record<string, string | undefined>)[key];
+
+    return (
+        <AppLayout
+            breadcrumbs={[
+                { title: 'کارخانه', href: '/factory/home' },
+                { title: 'اجناس', href: '/items' },
+                { title: 'جنس جدید', href: '/items/create' },
+            ]}
+        >
             <div className="section p-2 md:p-5">
                 <section>
-                    <div>
-                        <SectionTitle title='فورم جنس جدید قبلا ثبت نشده' />
-                        <div className="section" dir='rtl'>
-                            <form onSubmit={handleItem}>
-                                <div className="grid gap-6 grid-cols-2 md:grid-cols-3">
+                    <SectionTitle title="فورم جنس جدید قبلا ثبت نشده" />
+
+                    <div className="section" dir="rtl">
+                        <form onSubmit={handleItem}>
+                            <div className="grid gap-6 md:grid-cols-3">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="name">نام جنس</Label>
+                                    <Input
+                                        id="name"
+                                        type="text"
+                                        required
+                                        autoFocus
+                                        value={data.name}
+                                        onChange={(event) =>
+                                            setData('name', event.target.value)
+                                        }
+                                        placeholder="نام جنس را اینجا وارد کنین"
+                                    />
+                                    <InputError message={errors.name} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="category_id">کتګوری</Label>
+                                    <select
+                                        name="category_id"
+                                        id="category_id"
+                                        required
+                                        value={data.category_id}
+                                        onChange={(event) =>
+                                            setData(
+                                                'category_id',
+                                                Number(event.target.value),
+                                            )
+                                        }
+                                        className="rounded-md border py-2"
+                                    >
+                                        <option value="">
+                                            کتګوری را انتخاب کنین
+                                        </option>
+                                        {categories.map((category) => (
+                                            <option
+                                                key={category.id}
+                                                value={category.id}
+                                            >
+                                                {getDariCategory(category.name)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <InputError message={errors.category_id} />
+                                </div>
+
+                                <div className="grid gap-2">
+                                    <Label htmlFor="item_type">نوع جنس</Label>
+                                    <select
+                                        name="item_type"
+                                        id="item_type"
+                                        required
+                                        value={data.item_type}
+                                        onChange={(event) =>
+                                            setData(
+                                                'item_type',
+                                                event.target
+                                                    .value as ItemForm['item_type'],
+                                            )
+                                        }
+                                        className="rounded-md border py-2"
+                                    >
+                                        <option value="raw_material">
+                                            مواد خام
+                                        </option>
+                                        <option value="product">محصول</option>
+                                        <option value="packing">پیکنګ</option>
+                                    </select>
+                                    <InputError message={errors.item_type} />
+                                </div>
+                            </div>
+
+                            <div className="mt-8 rounded-xl border p-4">
+                                <div className="mb-4">
+                                    <h2 className="font-semibold">
+                                        واحد اصلی جنس
+                                    </h2>
+                                    <p className="text-sm text-muted-foreground">
+                                        موجودی جنس بر اساس این واحد ذخیره
+                                        می‌شود.
+                                    </p>
+                                </div>
+
+                                <div className="grid gap-6 md:grid-cols-3">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="name">نام جنس</Label>
-                                        <Input
-                                            id="name"
-                                            type="text"
+                                        <Label htmlFor="base_unit_name">
+                                            نام واحد اصلی
+                                        </Label>
+                                        <select
+                                            id="base_unit_name"
                                             required
-                                            autoFocus
-                                            tabIndex={1}
-                                            autoComplete="name"
-                                            name="name"
-                                            value={data.name}
-                                            onChange={(e) => setData('name', e.target.value)}
-                                            placeholder="نام جنس را اینجا ورود کنین"
+                                            value={data.base_unit.name}
+                                            onChange={(event) =>
+                                                updateBaseUnit(
+                                                    'name',
+                                                    event.target
+                                                        .value as UnitForm['name'],
+                                                )
+                                            }
+                                            className="rounded-md border py-2"
+                                        >
+                                            <option value="">
+                                                واحد را انتخاب کنین
+                                            </option>
+                                            {unitOptions.map((unit) => (
+                                                <option
+                                                    key={unit.value}
+                                                    value={unit.value}
+                                                >
+                                                    {unit.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <InputError
+                                            message={errorFor('base_unit.name')}
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="base_unit_symbol">
+                                            سمبول
+                                        </Label>
+                                        <Input
+                                            id="base_unit_symbol"
+                                            value={data.base_unit.symbol}
+                                            onChange={(event) =>
+                                                updateBaseUnit(
+                                                    'symbol',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="مثلاً kg"
                                         />
                                         <InputError
-                                            message={errors.name}
-                                            className="mt-2"
+                                            message={errorFor(
+                                                'base_unit.symbol',
+                                            )}
                                         />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="code">کود جنس (خودکار)</Label>
+                                        <Label htmlFor="base_unit_conversion">
+                                            تبدیل به واحد اصلی
+                                        </Label>
                                         <Input
-                                            id="code"
-                                            type="text"
-                                            readOnly
-                                            tabIndex={2}
-                                            value="بعد از ثبت خودکار ساخته می‌شود"
-                                        />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="price">نرخ اوسط</Label>
-                                        <Input
-                                            id="price"
+                                            id="base_unit_conversion"
                                             type="number"
+                                            value={1}
+                                            readOnly
+                                            disabled
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="base_unit_selling_price">
+                                            نرخ فروش
+                                        </Label>
+                                        <Input
+                                            id="base_unit_selling_price"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
                                             required
-                                            autoFocus
-                                            tabIndex={4}
-                                            autoComplete="price"
-                                            name="price"
-                                            value={data.price}
-                                            onChange={(e) => setData('price', Number(e.target.value))}
+                                            value={data.base_unit.selling_price}
+                                            onChange={(event) =>
+                                                updateBaseUnit(
+                                                    'selling_price',
+                                                    Number(event.target.value),
+                                                )
+                                            }
                                         />
                                         <InputError
-                                            message={errors.price}
-                                            className="mt-2"
+                                            message={errorFor(
+                                                'base_unit.selling_price',
+                                            )}
                                         />
                                     </div>
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="category_id">کتګوری</Label>
-                                        <select name="category_id" id="category_id"
-                                            onChange={(e) => setData('category_id', Number(e.target.value))}
-                                            className="border rounded-md py-2"
-                                        >
-                                            <option value="">کتګوری را انتخاب کنین</option>
-                                            {categories.map((category, ind) => <option key={ind} value={category.id}>{getDariCategory(category.name)}</option>)}
-
-                                        </select>
+                                        <Label htmlFor="base_unit_purchase_price">
+                                            نرخ خرید
+                                        </Label>
+                                        <Input
+                                            id="base_unit_purchase_price"
+                                            type="number"
+                                            min="0"
+                                            step="0.01"
+                                            value={
+                                                data.base_unit.purchase_price ??
+                                                ''
+                                            }
+                                            onChange={(event) =>
+                                                updateBaseUnit(
+                                                    'purchase_price',
+                                                    event.target.value === ''
+                                                        ? null
+                                                        : Number(
+                                                            event.target
+                                                                .value,
+                                                        ),
+                                                )
+                                            }
+                                        />
                                         <InputError
-                                            message={errors.category_id}
-                                            className="mt-2"
+                                            message={errorFor(
+                                                'base_unit.purchase_price',
+                                            )}
                                         />
                                     </div>
-
 
                                     <div className="grid gap-2">
-                                        <Label htmlFor="unit">واحد اندازه ګیری</Label>
-                                        <select name="unit" id="unit"
-                                            onChange={(e) => setData('unit', e.target.value as unitType)}
-                                            className="border rounded-md py-2 "
-
-                                        >
-                                            <option value="">واحد اندازه ګیری انتخاب کنین</option>
-                                            {/* <option value="kg">کیلو</option>
-                                            <option value="ltr">لیتر</option>
-                                            <option value="gr">ګرام</option> */}
-                                            {getUnitOfMeasurements().map((unit) => <option value={unit.value} onChange={(e) => setData('unit', e.target.value as unitType)} className="text-center ">.................<span>{unit.label}..................</span></option>)}
-
-                                        </select>
+                                        <Label htmlFor="base_unit_barcode">
+                                            بارکد
+                                        </Label>
+                                        <Input
+                                            id="base_unit_barcode"
+                                            value={data.base_unit.barcode}
+                                            onChange={(event) =>
+                                                updateBaseUnit(
+                                                    'barcode',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            placeholder="در صورت خالی بودن خودکار ساخته می‌شود"
+                                        />
                                         <InputError
-                                            message={errors.unit}
-                                            className="mt-2"
+                                            message={errorFor(
+                                                'base_unit.barcode',
+                                            )}
                                         />
                                     </div>
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="item_type">نوع جنس</Label>
-                                        <select name="item_type" id="item_type"
-                                            onChange={(e) => {
-                                                setData('item_type', e.target.value as 'raw_material' | 'product' | 'packing');
-                                                setIsItemTypeProduct(e.target.value as 'raw_material' | 'product' | 'packing');
-                                            }}
-                                            className="border rounded-md py-2"
-                                        >
-                                            <option value="">نوع جنس را انتخاب کنین</option>
-                                            <option value="raw_material">مواد خام</option>
-                                            <option value="product">محصول</option>
-                                            <option value="packing">پیکنګ</option>
-                                        </select>
-                                        <InputError
-                                            message={errors.item_type}
-                                            className="mt-2"
-                                        />
+                                </div>
+                            </div>
+
+                            <div className="mt-8 rounded-xl border p-4">
+                                <div className="mb-4 flex items-center justify-between gap-4">
+                                    <div>
+                                        <h2 className="font-semibold">
+                                            واحدهای اضافی فروش
+                                        </h2>
+                                        <p className="text-sm text-muted-foreground">
+                                            مثلاً هر کارتن برابر ۲۴ دانه.
+                                        </p>
                                     </div>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={addAdditionalUnit}
+                                    >
+                                        افزودن واحد
+                                    </Button>
+                                </div>
 
-                                    {/* ===============================   Products related attributes  ============================================= */}
+                                {data.additional_units.length === 0 && (
+                                    <p className="rounded-md bg-muted p-3 text-sm">
+                                        هنوز واحد اضافی ثبت نشده است.
+                                    </p>
+                                )}
 
-                                    {isItemTypeProduct === "product" && <>
+                                <div className="space-y-4">
+                                    {data.additional_units.map(
+                                        (unit, index) => (
+                                            <div
+                                                key={index}
+                                                className="rounded-lg border bg-muted/20 p-4"
+                                            >
+                                                <div className="mb-4 flex items-center justify-between">
+                                                    <h3 className="font-medium">
+                                                        واحد شماره {index + 1}
+                                                    </h3>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        onClick={() =>
+                                                            removeAdditionalUnit(
+                                                                index,
+                                                            )
+                                                        }
+                                                    >
+                                                        حذف
+                                                    </Button>
+                                                </div>
+
+                                                <div className="grid gap-6 md:grid-cols-3">
+                                                    <div className="grid gap-2">
+                                                        <Label
+                                                            htmlFor={
+                                                                'unit_name_' +
+                                                                index
+                                                            }
+                                                        >
+                                                            نام واحد
+                                                        </Label>
+                                                        <select
+                                                            id={
+                                                                'unit_name_' +
+                                                                index
+                                                            }
+                                                            required
+                                                            value={unit.name}
+                                                            onChange={(event) =>
+                                                                updateAdditionalUnit(
+                                                                    index,
+                                                                    'name',
+                                                                    event.target
+                                                                        .value as UnitForm['name'],
+                                                                )
+                                                            }
+                                                            className="rounded-md border py-2"
+                                                        >
+                                                            <option value="">
+                                                                واحد را انتخاب
+                                                                کنین
+                                                            </option>
+                                                            {unitOptions.map(
+                                                                (option) => (
+                                                                    <option
+                                                                        key={
+                                                                            option.value
+                                                                        }
+                                                                        value={
+                                                                            option.value
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            option.label
+                                                                        }
+                                                                    </option>
+                                                                ),
+                                                            )}
+                                                        </select>
+                                                        <InputError
+                                                            message={errorFor(
+                                                                'additional_units.' +
+                                                                index +
+                                                                '.name',
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label
+                                                            htmlFor={
+                                                                'unit_symbol_' +
+                                                                index
+                                                            }
+                                                        >
+                                                            سمبول
+                                                        </Label>
+                                                        <Input
+                                                            id={
+                                                                'unit_symbol_' +
+                                                                index
+                                                            }
+                                                            value={unit.symbol}
+                                                            onChange={(event) =>
+                                                                updateAdditionalUnit(
+                                                                    index,
+                                                                    'symbol',
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                        />
+                                                        <InputError
+                                                            message={errorFor(
+                                                                'additional_units.' +
+                                                                index +
+                                                                '.symbol',
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label
+                                                            htmlFor={
+                                                                'unit_conversion_' +
+                                                                index
+                                                            }
+                                                        >
+                                                            چند واحد اصلی؟
+                                                        </Label>
+                                                        <Input
+                                                            id={
+                                                                'unit_conversion_' +
+                                                                index
+                                                            }
+                                                            type="number"
+                                                            min="0.000001"
+                                                            step="0.000001"
+                                                            required
+                                                            value={
+                                                                unit.conversion_to_base
+                                                            }
+                                                            onChange={(event) =>
+                                                                updateAdditionalUnit(
+                                                                    index,
+                                                                    'conversion_to_base',
+                                                                    Number(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    ),
+                                                                )
+                                                            }
+                                                        />
+                                                        <InputError
+                                                            message={errorFor(
+                                                                'additional_units.' +
+                                                                index +
+                                                                '.conversion_to_base',
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label
+                                                            htmlFor={
+                                                                'unit_selling_price_' +
+                                                                index
+                                                            }
+                                                        >
+                                                            نرخ فروش
+                                                        </Label>
+                                                        <Input
+                                                            id={
+                                                                'unit_selling_price_' +
+                                                                index
+                                                            }
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.01"
+                                                            required
+                                                            value={
+                                                                unit.selling_price
+                                                            }
+                                                            onChange={(event) =>
+                                                                updateAdditionalUnit(
+                                                                    index,
+                                                                    'selling_price',
+                                                                    Number(
+                                                                        event
+                                                                            .target
+                                                                            .value,
+                                                                    ),
+                                                                )
+                                                            }
+                                                        />
+                                                        <InputError
+                                                            message={errorFor(
+                                                                'additional_units.' +
+                                                                index +
+                                                                '.selling_price',
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label
+                                                            htmlFor={
+                                                                'unit_purchase_price_' +
+                                                                index
+                                                            }
+                                                        >
+                                                            نرخ خرید
+                                                        </Label>
+                                                        <Input
+                                                            id={
+                                                                'unit_purchase_price_' +
+                                                                index
+                                                            }
+                                                            type="number"
+                                                            min="0"
+                                                            step="0.01"
+                                                            value={
+                                                                unit.purchase_price ??
+                                                                ''
+                                                            }
+                                                            onChange={(event) =>
+                                                                updateAdditionalUnit(
+                                                                    index,
+                                                                    'purchase_price',
+                                                                    event.target
+                                                                        .value ===
+                                                                        ''
+                                                                        ? null
+                                                                        : Number(
+                                                                            event
+                                                                                .target
+                                                                                .value,
+                                                                        ),
+                                                                )
+                                                            }
+                                                        />
+                                                        <InputError
+                                                            message={errorFor(
+                                                                'additional_units.' +
+                                                                index +
+                                                                '.purchase_price',
+                                                            )}
+                                                        />
+                                                    </div>
+
+                                                    <div className="grid gap-2">
+                                                        <Label
+                                                            htmlFor={
+                                                                'unit_barcode_' +
+                                                                index
+                                                            }
+                                                        >
+                                                            بارکد
+                                                        </Label>
+                                                        <Input
+                                                            id={
+                                                                'unit_barcode_' +
+                                                                index
+                                                            }
+                                                            value={unit.barcode}
+                                                            placeholder="در صورت خالی بودن خودکار ساخته می‌شود"
+                                                            onChange={(event) =>
+                                                                updateAdditionalUnit(
+                                                                    index,
+                                                                    'barcode',
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                        />
+                                                        <InputError
+                                                            message={errorFor(
+                                                                'additional_units.' +
+                                                                index +
+                                                                '.barcode',
+                                                            )}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ),
+                                    )}
+                                </div>
+                                <InputError message={errors.additional_units} />
+                            </div>
+
+                            {data.item_type === 'product' && (
+                                <div className="mt-8 rounded-xl border p-4">
+                                    <h2 className="mb-4 font-semibold">
+                                        مشخصات محصول
+                                    </h2>
+                                    <div className="grid gap-6 md:grid-cols-2">
                                         <div className="grid gap-2">
-                                            <Label htmlFor="weight">وزن یک جنس</Label>
+                                            <Label htmlFor="weight">
+                                                وزن محصول
+                                            </Label>
                                             <Input
                                                 id="weight"
                                                 type="number"
+                                                min="0.001"
+                                                step="0.001"
                                                 required
-                                                autoFocus
-                                                tabIndex={5}
-                                                autoComplete="weight"
-                                                name="weight"
                                                 value={data.weight}
-                                                onChange={(e) => setData('weight', Number(e.target.value))}
-
+                                                onChange={(event) =>
+                                                    setData(
+                                                        'weight',
+                                                        Number(
+                                                            event.target.value,
+                                                        ),
+                                                    )
+                                                }
                                             />
                                             <InputError
                                                 message={errors.weight}
-                                                className="mt-2"
                                             />
                                         </div>
 
                                         <div className="grid gap-2">
-                                            <Label htmlFor="per_pack">مقدار پر پیک</Label>
-                                            <Input
-                                                id="per_pack"
-                                                type="text"
-                                                required
-                                                autoFocus
-                                                tabIndex={6}
-                                                autoComplete="per_pack"
-                                                name="per_pack"
-                                                value={data.per_pack}
-                                                onChange={(e) => setData('per_pack', Number(e.target.value))}
-                                            />
-                                            <InputError
-                                                message={errors.per_pack}
-                                                className="mt-2"
-                                            />
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="barcode">بارکد (خودکار)</Label>
-                                            <Input
-                                                id="barcode"
-                                                type="text"
-                                                autoFocus
-                                                tabIndex={7}
-                                                autoComplete="barcode"
-                                                name="barcode"
-                                                value={data.barcode}
-                                                onChange={(e) => setData('barcode', e.target.value)}
-                                                placeholder="در صورت خالی بودن خودکار ساخته می‌شود"
-                                            />
-                                            <InputError
-                                                message={errors.barcode}
-                                                className="mt-2"
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="description">توضیحات بیشتر</Label>
+                                            <Label htmlFor="description">
+                                                توضیحات بیشتر
+                                            </Label>
                                             <textarea
                                                 id="description"
-                                                autoFocus
-                                                tabIndex={8}
-                                                name="description"
                                                 value={data.description}
-                                                onChange={(e) => setData('description', e.target.value)}
-                                                className="border rounded-md p-5 text-sm"
-                                                placeholder="اګر توضیحات بیشتر نیاز است لطفا وارد نماید"
+                                                onChange={(event) =>
+                                                    setData(
+                                                        'description',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                className="min-h-24 rounded-md border p-3 text-sm"
                                             />
                                             <InputError
                                                 message={errors.description}
-                                                className="mt-2"
                                             />
                                         </div>
-                                    </>}
-                                    <Button
-                                        type="submit"
-                                        className="mt-2 w-full"
-                                        tabIndex={9}
-                                        data-test="register-employee-button"
-                                    >
-                                        {processing && <Spinner />}
-                                        ثبت کنید
-                                    </Button>
+                                    </div>
                                 </div>
-                            </form>
-                        </div>
+                            )}
+
+                            <Button type="submit" className="mt-8 w-full">
+                                {processing && <Spinner />}
+                                ثبت کنید
+                            </Button>
+                        </form>
                     </div>
                 </section>
             </div>
         </AppLayout>
-    )
-}
+    );
+};
 
-export default Create
+export default Create;
