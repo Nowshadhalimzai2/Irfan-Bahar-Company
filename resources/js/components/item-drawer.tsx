@@ -39,7 +39,7 @@ type Item = {
     sku: string;
     unit: string;
     default_sale_price: number;
-    product?: { barcode: string, weight: number, per_pack: number };
+    product?: { barcode?: string, weight?: number, per_pack?: number };
     inventory_balances?: Balance[];
 };
 interface Props {

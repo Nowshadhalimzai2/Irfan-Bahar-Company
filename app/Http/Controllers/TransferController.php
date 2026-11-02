@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Custome\InvMovement;
 use App\Custome\Log;
 use App\Models\Item;
+use App\Models\ItemUnit;
 use App\Models\Location;
 use App\Models\Transfer;
 use Carbon\Carbon;
@@ -15,7 +16,6 @@ use App\Models\InventoryBalance;
 use App\Models\TransferLine;
 use App\Models\User;
 use App\Notifications\TransferCreated;
-use Error;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Throwable;
@@ -40,7 +40,14 @@ class TransferController extends Controller
         // dd($sourceLocations);
         if ($location instanceof Location) {
             if ($request->expectsJson()) {
-                $items = Item::with('inventoryBalances:id,location_id,item_id,quantity_on_hand,reserved')
+                $items = Item::with([
+                    'units' => fn ($query) => $query
+                        ->select('id', 'item_id', 'name', 'symbol', 'conversion_to_base', 'code', 'selling_price', 'is_active')
+                        ->where('is_active', true)
+                        ->orderBy('id'),
+                    'baseUnit:id,item_id,name,symbol,conversion_to_base,code,selling_price,is_active',
+                    'inventoryBalances:id,location_id,item_id,quantity_on_hand,reserved',
+                ])
                     ->whereHas(
                         'inventoryBalances',
                         fn($query) =>
@@ -50,11 +57,19 @@ class TransferController extends Controller
             }
         }
 
-        $items = Item::with(['product', 'inventoryBalances' => function ($query) {
-            $query->select('id', 'item_id', 'quantity_on_hand')->where('quantity_on_hand', '>', 0);
-        }])->whereHas('inventoryBalances', function ($query) {
-            $query->where('quantity_on_hand', '>', 0);
-        })->select('id', 'name', 'unit', 'default_sale_price')->get();
+        $items = Item::query()
+            ->with([
+                'units' => fn ($query) => $query
+                    ->select('id', 'item_id', 'name', 'symbol', 'conversion_to_base', 'code', 'selling_price', 'is_active')
+                    ->where('is_active', true)
+                    ->orderBy('id'),
+                'baseUnit:id,item_id,name,symbol,conversion_to_base,code,selling_price,is_active',
+                'inventoryBalances:id,item_id,location_id,quantity_on_hand,reserved',
+            ])
+            ->whereHas('inventoryBalances', fn ($query) => $query->where('quantity_on_hand', '>', 0))
+            ->select('id', 'name', 'unit', 'default_sale_price', 'item_type', 'code', 'sku', 'base_unit_id')
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render('transfer/create', compact('locations', 'items', 'sourceLocations'));
     }
@@ -74,8 +89,9 @@ class TransferController extends Controller
             'transferLines' => 'required|array|min:1',
 
             // each line validation
-            'transferLines.*.item_id' => 'required|integer|exists:items,id|distinct',
-            'transferLines.*.quantity' => 'required|integer|gt:0',
+            'transferLines.*.item_id' => 'required|integer|exists:items,id',
+            'transferLines.*.item_unit_id' => 'required|integer|exists:item_units,id|distinct',
+            'transferLines.*.quantity' => 'required|numeric|gt:0',
         ]);
 
         $log = new Log();
@@ -84,6 +100,23 @@ class TransferController extends Controller
             Inertia::flash('toast', ['type' => 'error', 'message' => 'موقیعت ها ممکن نیست که بک جای باشد.']);
             return redirect()->back()->withInput();
         }
+
+        $units = ItemUnit::query()
+            ->whereIn('id', collect($data['transferLines'])->pluck('item_unit_id'))
+            ->where('is_active', true)
+            ->get(['id', 'item_id', 'conversion_to_base', 'selling_price'])
+            ->keyBy('id');
+
+        foreach ($data['transferLines'] as $index => $line) {
+            $unit = $units->get((int) $line['item_unit_id']);
+
+            if (! $unit || (int) $unit->item_id !== (int) $line['item_id']) {
+                throw ValidationException::withMessages([
+                    "transferLines.{$index}.item_unit_id" => 'واحد انتخاب‌شده به این جنس مربوط نیست.',
+                ]);
+            }
+        }
+
         DB::beginTransaction();
         try {
             // create the goods receipt 
@@ -98,22 +131,43 @@ class TransferController extends Controller
 
             $transfer->reference_no = sprintf('TR-%s-%s', Carbon::now(config('app.timezone'))->year, str_pad($transfer->id, 4, '0', STR_PAD_LEFT));
             $transfer->save();
-            // ===== CREATE THE TRANSFER LINES =====
-            foreach ($data['transferLines'] as $line) {
 
+            $requiredBaseQuantities = collect($data['transferLines'])
+                ->groupBy('item_id')
+                ->map(function ($lines) use ($units): float {
+                    return round($lines->sum(function (array $line) use ($units): float {
+                        $unit = $units->get((int) $line['item_unit_id']);
+
+                        return (float) $line['quantity'] * (float) $unit->conversion_to_base;
+                    }), 3);
+                });
+
+            foreach ($requiredBaseQuantities as $itemId => $requiredBaseQuantity) {
                 $balance = InventoryBalance::where('location_id', $data['source_id'])
-                    ->where('item_id', $line['item_id'])
+                    ->where('item_id', $itemId)
                     ->lockForUpdate()
                     ->first();
                 $available = ($balance?->quantity_on_hand ?? 0) - ($balance?->reserved ?? 0);
-                if ($available < $line['quantity']) {
-                    throw new Error('مقدار قابل انتقال برای این جنس کافی نیست.');
+
+                if ($available < $requiredBaseQuantity) {
+                    throw new \RuntimeException('مقدار قابل انتقال برای این جنس کافی نیست.');
                 }
+            }
+
+            // ===== CREATE THE TRANSFER LINES =====
+            foreach ($data['transferLines'] as $line) {
+
+                $unit = $units->get((int) $line['item_unit_id']);
+                $conversionFactor = (float) $unit->conversion_to_base;
+                $baseQuantity = round((float) $line['quantity'] * $conversionFactor, 3);
 
                 $transfer->transferLines()->create([
                     'item_id' => $line['item_id'],
+                    'item_unit_id' => $line['item_unit_id'],
                     'quantity' => $line['quantity'],
-                    'unit_price' => Item::findOrFail($line['item_id'])->default_sale_price,
+                    'conversion_factor' => $conversionFactor,
+                    'base_quantity' => $baseQuantity,
+                    'unit_price' => $unit->selling_price,
                 ]);
             }
             $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' پیشنهاد شد';
@@ -147,10 +201,14 @@ class TransferController extends Controller
      */
     public function show(Transfer $transfer)
     {
-        // TransferData = {id:number,source:string,destination:string,reference_no:string,transfered_at:Date,lines:TransferLine[]}
-        // TransferLine = {id:number,itemName:string,quantity:number;unit_price:number};
-        $transfer->load('source:id,name', 'destination:id,name', 'transferLines:id,transfer_id,quantity,item_id', 'transferLines.item:id,name,unit,default_sale_price,code,sku');
-        $transfer->load('transferLines.item.product:item_id,weight,per_pack,barcode');
+        $transfer->load(
+            'source:id,name',
+            'destination:id,name',
+            'transferLines:id,transfer_id,item_id,item_unit_id,quantity,conversion_factor,base_quantity,unit_price',
+            'transferLines.item:id,name,unit,default_sale_price,code,sku',
+            'transferLines.item.baseUnit:id,name,symbol',
+            'transferLines.itemUnit:id,item_id,name,symbol,conversion_to_base,code,selling_price',
+        );
         return Inertia::render('transfer/show', [
             'transfer' => [
                 'id' => $transfer->id,
@@ -163,11 +221,11 @@ class TransferController extends Controller
                 'lines' => $transfer->transferLines->map(fn(TransferLine $line) => [
                     'id' => $line->id,
                     'itemName' => $line->item->name,
-                    'itemUnit' => $line->item->unit,
-                    'itemWeight' => $line->item?->product->weight ?? '_',
-                    'itemPerPack' => $line->item?->product->per_pack ?? '_',
+                    'itemCode' => $line->item->code,
+                    'itemUnit' => $line->itemUnit?->name ?? $line->item->baseUnit?->name ?? $line->item->unit,
                     'quantity' => $line->quantity,
-                    'unit_price' => $line->item->default_sale_price,
+                    'baseQuantity' => $line->base_quantity ?? $line->quantity,
+                    'unitPrice' => $line->unit_price,
 
                 ])->values(),
             ]
@@ -184,8 +242,18 @@ class TransferController extends Controller
     {
         Gate::authorize('allow-factory_clerk');
 
+        if (! in_array($status, ['completed', 'cancelled'], true)) {
+            throw ValidationException::withMessages(['status' => 'وضعیت انتقال معتبر نیست.']);
+        }
+
         DB::beginTransaction();
         try {
+
+            $transfer = Transfer::query()->lockForUpdate()->findOrFail($transfer->id);
+
+            if ($transfer->status !== 'suggested') {
+                throw new \RuntimeException('این انتقال قبلاً نهایی یا لغو شده است.');
+            }
 
             $transfer->status = $status;
             $transfer->save();
@@ -194,12 +262,15 @@ class TransferController extends Controller
                 //  ======== UPDATE INVENTORY ==========
                 foreach ($transfer->transferLines as $line) {
                     $inventory = new InvMovement();
+                    $baseQuantity = (float) ($line->base_quantity ?? $line->quantity);
                     // // -------- if the quantity while being reduced not enough in location that will throw an error
-                    if (!$inventory->move($transfer->source_id, $line->item_id, $line->quantity, 'transferred_out', '', '-')) {
-                        throw new Error("در مرجع" . ' کافی مقدار نداریم');
+                    if (! $inventory->move($transfer->source_id, $line->item_id, $baseQuantity, 'transferred_out', '', '-')) {
+                        throw new \RuntimeException('در مرجع مقدار کافی نداریم.');
                     }
 
-                    $inventory->move($transfer->destination_id, $line->item_id, $line->quantity, 'transferred_in');
+                    if (! $inventory->move($transfer->destination_id, $line->item_id, $baseQuantity, 'transferred_in')) {
+                        throw new \RuntimeException('ثبت موجودی مقصد ناموفق بود.');
+                    }
                 }
                 $users = User::query()->with('role')->whereHas('role', function ($q) {
                     $q->whereIn('name', ['admin', 'super_admin', 'shop_clerk']);

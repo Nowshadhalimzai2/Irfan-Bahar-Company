@@ -1,8 +1,14 @@
-import React, { Dispatch, SetStateAction, useMemo } from 'react'
-import SaleItem from '../sale-item';
 import { ShoppingCart } from 'lucide-react';
+import type { Dispatch, SetStateAction } from 'react';
+import React, { useMemo } from 'react';
+import SaleItem from '../sale-item';
 
-type SaleLine = { item_id: number; quantity: number; unit_price: number };
+type SaleLine = {
+    item_id: number;
+    item_unit_id: number;
+    quantity: number;
+    unit_price: number;
+};
 type Balance = {
     location_id: number;
     quantity_on_hand: number;
@@ -15,21 +21,44 @@ type Item = {
     sku: string;
     unit: string;
     default_sale_price: number;
-    product?: { barcode: string, weight: number, per_pack: number };
+    product?: { weight?: number };
     inventory_balances?: Balance[];
+    units?: {
+        id: number;
+        name: string;
+        symbol?: string | null;
+        conversion_to_base: number;
+        selling_price: number;
+        is_active: boolean;
+    }[];
+    base_unit?: {
+        id: number;
+        name: string;
+        conversion_to_base: number;
+        selling_price: number;
+    } | null;
 };
 interface Props {
     lines: SaleLine[];
     items: Item[];
-    setLines: Dispatch<SetStateAction<SaleLine[]>>
-    updateLine: (itemId: number, change: number) => void
-    getStock: (item: Item) => number;
+    setLines: Dispatch<SetStateAction<SaleLine[]>>;
+    updateLine: (itemId: number, quantity: number) => boolean;
+    changeUnit: (itemUnitId: number, nextUnitId: number) => void;
+    getStock: (itemId: number) => number;
     removeLine: (itemId: number) => void;
-    currency: { id: number, name: string; }
-
+    currency: { id: number; name: string };
 }
 
-const SaleItemList = ({ lines, items, setLines, updateLine, getStock, removeLine, currency }: Props) => {
+const SaleItemList = ({
+    lines,
+    items,
+    setLines,
+    updateLine,
+    changeUnit,
+    getStock,
+    removeLine,
+    currency,
+}: Props) => {
     const units: Record<string, string> = {
         kg: 'کیلو',
         gr: 'گرام',
@@ -52,23 +81,20 @@ const SaleItemList = ({ lines, items, setLines, updateLine, getStock, removeLine
                 .filter((line) => line.item),
         [items, lines],
     );
+
     return (
         <section className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div className="flex items-center justify-between border-b p-5">
                 <div className="flex items-center gap-3">
                     <ShoppingCart className="size-5 text-amber-600" />
                     <div>
-                        <h2 className="font-bold">
-                            سبد فروش
-                        </h2>
+                        <h2 className="font-bold">سبد فروش</h2>
                         <p className="text-xs text-slate-500">
-                            <span className={`${lines.length == 12 && "text-red-500 font-medium"}`}>{cart.length}/12 قلم ·{' '}</span>
-                            {lines.reduce(
-                                (sum, line) =>
-                                    sum + line.quantity,
-                                0,
-                            )}{' '}
-                            واحد
+                            <span
+                                className={`${lines.length == 12 && 'font-medium text-red-500'}`}
+                            >
+                                {cart.length}/12 قلم
+                            </span>
                         </p>
                     </div>
                 </div>
@@ -94,27 +120,28 @@ const SaleItemList = ({ lines, items, setLines, updateLine, getStock, removeLine
                 </div>
             ) : (
                 <div className="divide-y">
-                    {cart.reverse().map(({ item, quantity, unit_price }) => (
-                        <div key={item.id}>
-                            <SaleItem
-                                currency={currency}
-                                getStock={getStock}
-                                item={item}
-                                quantity={quantity}
-                                unit_price={unit_price}
-                                units={units}
-                                updateLine={updateLine}
-                                removeLine={removeLine}
-                            />
-
-
-                        </div>
-                    ),
-                    )}
+                    {cart
+                        .reverse()
+                        .map(({ item, item_unit_id, quantity, unit_price }) => (
+                            <div key={`${item_unit_id}-${quantity}`}>
+                                <SaleItem
+                                    currency={currency}
+                                    getStock={getStock}
+                                    item={item}
+                                    item_unit_id={item_unit_id}
+                                    quantity={quantity}
+                                    unit_price={unit_price}
+                                    units={units}
+                                    updateLine={updateLine}
+                                    changeUnit={changeUnit}
+                                    removeLine={removeLine}
+                                />
+                            </div>
+                        ))}
                 </div>
             )}
         </section>
-    )
-}
+    );
+};
 
-export default SaleItemList
+export default SaleItemList;

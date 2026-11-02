@@ -99,6 +99,9 @@ export interface TransferLine {
     item: Item;
     quantity: number;
     unit_price: number;
+    base_quantity?: number;
+    conversion_factor?: number;
+    item_unit?: ItemUnit;
 }
 
 export interface Sale {

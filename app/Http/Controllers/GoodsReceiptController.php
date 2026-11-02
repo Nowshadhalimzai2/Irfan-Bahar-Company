@@ -67,7 +67,13 @@ class GoodsReceiptController extends Controller
                     ->withQueryString();
             }
         }
-        $transfers = Transfer::with('source:id,name', 'destination:id,name', 'transferLines:id,item_id,transfer_id,quantity,unit_price', 'transferLines.item:id,name,unit,item_type,default_sale_price')
+        $transfers = Transfer::with(
+            'source:id,name',
+            'destination:id,name',
+            'transferLines:id,item_id,item_unit_id,transfer_id,quantity,base_quantity,unit_price',
+            'transferLines.item:id,name,unit,item_type,default_sale_price',
+            'transferLines.itemUnit:id,item_id,name,symbol,conversion_to_base,selling_price'
+        )
             ->select('id', 'source_id', 'destination_id', 'reference_no', 'notes', 'transferred_at', 'status')
             ->when($transferDate, fn ($query) => $query->whereDate('transferred_at', $transferDate))
             ->orderBy('id', 'desc')

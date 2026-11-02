@@ -44,6 +44,8 @@ export const getDariItemUnit = (unit: string) => {
             return 'کارتن';
         case 'piece':
             return 'عدد';
+        case 'drum':
+            return 'بیلر'
         default:
             return unit;
     }

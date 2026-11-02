@@ -22,7 +22,7 @@ class SaleReturnController extends Controller
     public function create(Sale $sale): Response
     {
        Gate::allowIf($sale->status!='cancelled','این جنس لغو شده است.');
-        $sale->load(['customer:id,name', 'currency:id,name', 'invoice', 'saleLines.item:id,name,unit', 'invoice.payments:id,invoice_id,amount']);
+        $sale->load(['customer:id,name', 'currency:id,name', 'invoice', 'saleLines.item:id,name,unit', 'saleLines.itemUnit:id,item_id,name,symbol,conversion_to_base', 'invoice.payments:id,invoice_id,amount']);
         $returnedQuantities = $this->returnedQuantities($sale->id);
         $locations = Location::query()->where('type', 'shop')->where('is_active', true)->orderBy('name')->get(['id', 'name']);
         return Inertia::render('sale-return/create', [
@@ -36,7 +36,7 @@ class SaleReturnController extends Controller
                     'id' => $line->id,
                     'item_id' => $line->item_id,
                     'item_name' => $line->item?->name,
-                    'unit' => $line->unit,
+                    'unit' => $line->itemUnit?->name ?? $line->unit,
                     'quantity' => (float) $line->quantity,
                     'returned_quantity' => $returned,
                     'remaining_quantity' => max(0, (float) $line->quantity - $returned),
@@ -67,7 +67,7 @@ class SaleReturnController extends Controller
         ]);
 
         $return = DB::transaction(function () use ($data, $request, $sale): SaleReturn {
-            $lockedSale = Sale::query()->with(['saleLines', 'invoice', 'currency'])->lockForUpdate()->findOrFail($sale->id);
+            $lockedSale = Sale::query()->with(['saleLines', 'saleLines.itemUnit', 'invoice', 'currency'])->lockForUpdate()->findOrFail($sale->id);
             $saleLines = $lockedSale->saleLines->keyBy('id');
             $returnedQuantities = $this->returnedQuantities($lockedSale->id, true);
             $returnTotal = 0.0;
@@ -87,8 +87,10 @@ class SaleReturnController extends Controller
 
                 $unitPrice = $lockedSale->returnValueForUnitPrice((float) $saleLine->unit_price);
                 $lineTotal = round($quantity * $unitPrice, 2);
+                $conversionFactor = (float) ($saleLine->conversion_factor ?? 1);
+                $baseQuantity = round($quantity * $conversionFactor, 3);
                 $returnTotal += $lineTotal;
-                $preparedLines[] = [$saleLine, $lineData, $quantity, $unitPrice, $lineTotal];
+                $preparedLines[] = [$saleLine, $lineData, $quantity, $conversionFactor, $baseQuantity, $unitPrice, $lineTotal];
             }
 
             $refundAmount = (float) ($data['refund_amount'] ?? 0);
@@ -125,12 +127,15 @@ class SaleReturnController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            foreach ($preparedLines as [$saleLine, $lineData, $quantity, $unitPrice, $lineTotal]) {
+            foreach ($preparedLines as [$saleLine, $lineData, $quantity, $conversionFactor, $baseQuantity, $unitPrice, $lineTotal]) {
                 SaleReturnLine::query()->create([
                     'sale_return_id' => $saleReturn->id,
                     'sale_line_id' => $saleLine->id,
                     'item_id' => $saleLine->item_id,
+                    'item_unit_id' => $saleLine->item_unit_id,
                     'quantity' => $quantity,
+                    'conversion_factor' => $conversionFactor,
+                    'base_quantity' => $baseQuantity,
                     'unit_price' => $unitPrice,
                     'line_total' => $lineTotal,
                     'condition' => $lineData['condition'] ?? null,
@@ -146,7 +151,7 @@ class SaleReturnController extends Controller
                     ]);
                 }
                 if ($lineData['restock_action'] === 'restock') {
-                    $moved = (new InvMovement())->move((int) $data['location_id'], (int) $saleLine->item_id, $quantity, 'sale_return', $data['notes'] ?? 'جنس برگشتی دوباره به موجودی اضافه شد', '+');
+                    $moved = (new InvMovement())->move((int) $data['location_id'], (int) $saleLine->item_id, $baseQuantity, 'sale_return', $data['notes'] ?? 'جنس برگشتی دوباره به موجودی اضافه شد', '+');
                     if (! $moved) {
                         throw ValidationException::withMessages(['location_id' => 'ثبت حرکت موجودی برگشتی انجام نشد.']);
                     }

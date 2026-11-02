@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import { getDariCurrency, getDariItemUnit } from '@/components/location-translator';
+import { getDariCurrency } from '@/components/location-translator';
 import SaleDetail from '@/components/sale/sale-detail';
 import SaleItemList from '@/components/sale/sale-item-list';
 import SalePayment from '@/components/sale/sale-payment';
@@ -30,12 +30,30 @@ type Item = {
     sku: string;
     unit: string;
     default_sale_price: number;
-    product?: { barcode: string, weight: number, per_pack: number };
+    product?: { weight?: number };
     inventory_balances?: Balance[];
+    base_unit?: ItemUnit | null;
+    units?: ItemUnit[];
+};
+type ItemUnit = {
+    id: number;
+    item_id: number;
+    name: string;
+    symbol?: string | null;
+    conversion_to_base: number;
+    code: string;
+    barcode?: string | null;
+    selling_price: number;
+    is_active: boolean;
 };
 type Currency = { id: number; name: string };
 type Location = { id: number; name: string; address: string };
-type SaleLine = { item_id: number; quantity: number; unit_price: number };
+type SaleLine = {
+    item_id: number;
+    item_unit_id: number;
+    quantity: number;
+    unit_price: number;
+};
 type Customer = { id: number; name: string; phone?: string };
 
 type Props = {
@@ -45,7 +63,6 @@ type Props = {
     customers: Customer[];
     nextInvoiceID: number;
 };
-
 
 export default function Create({
     items,
@@ -75,31 +92,62 @@ export default function Create({
         notes: '',
         saleLines: [] as SaleLine[],
     });
-    const currency = currencies.find((entry) => entry.id === data.currency_id) ?? defaultCurrency;
+    const currency =
+        currencies.find((entry) => entry.id === data.currency_id) ??
+        defaultCurrency;
+
+    const getUnits = (item?: Item): ItemUnit[] =>
+        item?.units?.filter((unit) => unit.is_active) ??
+        (item?.base_unit ? [item.base_unit] : []);
 
     useEffect(() => setData('saleLines', lines), [lines, setData]);
 
-    const getStock = (item: Item) => {
-        const balance = item.inventory_balances?.find(
+    const getStock = (itemId: number) => {
+        const item = items.find((entry) => entry.id === itemId);
+        const balance = item?.inventory_balances?.find(
             (entry) => entry.location_id === data.location_id,
         );
 
         return Math.max(
             0,
             Number(balance?.quantity_on_hand ?? 0) -
-            Number(balance?.reserved ?? 0),
+                Number(balance?.reserved ?? 0),
         );
     };
+    const getCartBaseQuantity = (itemId: number, excludedUnitId?: number) =>
+        lines
+            .filter(
+                (line) =>
+                    line.item_id === itemId &&
+                    line.item_unit_id !== excludedUnitId,
+            )
+            .reduce((total, line) => {
+                const item = items.find(
+                    (candidate) => candidate.id === line.item_id,
+                );
+                const unit = getUnits(item).find(
+                    (candidate) => candidate.id === line.item_unit_id,
+                );
+
+                return (
+                    total +
+                    line.quantity *
+                        Number(unit?.conversion_to_base ?? 1)
+                );
+            }, 0);
 
     const filteredItems = items
         .filter((item) =>
-            `${item.name} ${item.code} ${item.sku} ${item.product?.barcode ?? ''}`
+            `${item.name} ${item.code} ${item.sku} ${getUnits(item)
+                .map((unit) => `${unit.code} ${unit.barcode ?? ''}`)
+                .join(' ')}`
                 .toLowerCase()
                 .includes(search.toLowerCase()),
         )
         .slice(0, 8);
     const subtotal = lines.reduce(
-        (sum, line) => sum + line.quantity * line.unit_price,
+        (sum, line) =>
+            sum + Math.round(line.quantity * line.unit_price * 100) / 100,
         0,
     );
     const grandTotal = Math.max(0, subtotal - Number(data.discount_total || 0));
@@ -108,11 +156,29 @@ export default function Create({
         setData('amount_paid', grandTotal);
     }, [grandTotal, setData]);
 
-    const addItem = (item: Item) => {
-        const existing = lines.find((line) => line.item_id === item.id);
-        const quantity = (existing?.quantity ?? 0) + 1;
+    const addItem = (item: Item, selectedUnit = getUnits(item)[0]) => {
+        if (!selectedUnit) {
+            return;
+        }
 
-        if (quantity > getStock(item)) {
+        const existing = lines.find(
+            (line) => line.item_unit_id === selectedUnit.id,
+        );
+
+        if (!existing && lines.length >= 12) {
+            setMessage({
+                type: 'error',
+                text: 'حداکثر ۱۲ قلم را می‌توانید به سبد اضافه کنید.',
+            });
+
+            return;
+        }
+
+        const requiredBaseQuantity =
+            getCartBaseQuantity(item.id) +
+            Number(selectedUnit.conversion_to_base);
+
+        if (requiredBaseQuantity > getStock(item.id) + 0.000001) {
             setMessage({
                 type: 'error',
                 text: `موجودی ${item.name} کافی نیست.`,
@@ -122,18 +188,21 @@ export default function Create({
         }
 
         setLines((current) =>
-            existing
+            current.some((line) => line.item_unit_id === selectedUnit.id)
                 ? current.map((line) =>
-                    line.item_id === item.id ? { ...line, quantity } : line,
-                )
+                      line.item_unit_id === selectedUnit.id
+                          ? { ...line, quantity: line.quantity + 1 }
+                          : line,
+                  )
                 : [
-                    ...current,
-                    {
-                        item_id: item.id,
-                        quantity: 1,
-                        unit_price: Number(item.default_sale_price),
-                    },
-                ],
+                      ...current,
+                      {
+                          item_id: item.id,
+                          item_unit_id: selectedUnit.id,
+                          quantity: 1,
+                          unit_price: Number(selectedUnit.selling_price),
+                      },
+                  ],
         );
         setBarcode('');
         setSearch('');
@@ -149,13 +218,25 @@ export default function Create({
         }
 
         const item = items.find((entry) =>
-            [entry.product?.barcode, entry.code, entry.sku].some(
-                (value) => value?.toLowerCase() === code,
-            ),
+            [
+                entry.code,
+                entry.sku,
+                ...getUnits(entry).flatMap((unit) => [
+                    unit.code,
+                    unit.barcode ?? '',
+                ]),
+            ].some((value) => value?.toLowerCase() === code),
         );
+        const selectedUnit = item
+            ? getUnits(item).find((unit) =>
+                  [unit.code, unit.barcode ?? ''].some(
+                      (value) => value?.toLowerCase() === code,
+                  ),
+              )
+            : undefined;
 
         if (item) {
-            addItem(item);
+            addItem(item, selectedUnit ?? getUnits(item)[0]);
         } else {
             setMessage({
                 type: 'error',
@@ -163,26 +244,130 @@ export default function Create({
             });
         }
     };
-    const updateLine = (itemId: number, change: number) =>
+    const updateLine = (itemUnitId: number, nextQuantity: number): boolean => {
+        const line = lines.find(
+            (candidate) => candidate.item_unit_id === itemUnitId,
+        );
+
+        if (!line || !Number.isFinite(nextQuantity)) {
+            return false;
+        }
+
+        if (nextQuantity <= 0) {
+            setLines((current) =>
+                current.filter(
+                    (candidate) => candidate.item_unit_id !== itemUnitId,
+                ),
+            );
+
+            return true;
+        }
+
+        const item = items.find(
+            (candidate) => candidate.id === line.item_id,
+        );
+
+        if (!item) {
+            return false;
+        }
+
+        const unit = getUnits(item).find(
+            (candidate) => candidate.id === itemUnitId,
+        );
+        const requiredBaseQuantity =
+            getCartBaseQuantity(line.item_id, itemUnitId) +
+            nextQuantity * Number(unit?.conversion_to_base ?? 1);
+
+        if (requiredBaseQuantity > getStock(item.id) + 0.000001) {
+            setMessage({
+                type: 'error',
+                text: `موجودی ${item?.name ?? ''} کافی نیست.`,
+            });
+
+            return false;
+        }
+
         setLines((current) =>
-            current.map((line) =>
-                line.item_id === itemId
-                    ? {
-                        ...line,
-                        quantity: Math.min(
-                            getStock(
-                                items.find((item) => item.id === itemId)!,
-                            ),
-                            Math.max(1, line.quantity + change),
-                        ),
-                    }
-                    : line,
+            current.map((candidate) =>
+                candidate.item_unit_id === itemUnitId
+                    ? { ...candidate, quantity: nextQuantity }
+                    : candidate,
             ),
         );
-    const removeLine = (itemId: number) => {
+
+        return true;
+    };
+    const removeLine = (itemUnitId: number) => {
         setLines((current) =>
-            current.filter((line) => line.item_id !== itemId),
+            current.filter((line) => line.item_unit_id !== itemUnitId),
         );
+    };
+
+    const changeUnit = (itemUnitId: number, nextUnitId: number) => {
+        const line = lines.find(
+            (candidate) => candidate.item_unit_id === itemUnitId,
+        );
+        const item = items.find(
+            (candidate) => candidate.id === line?.item_id,
+        );
+        const currentUnit = getUnits(item).find(
+            (candidate) => candidate.id === itemUnitId,
+        );
+        const nextUnit = getUnits(item).find(
+            (candidate) => candidate.id === nextUnitId,
+        );
+
+        if (!line || !item || !currentUnit || !nextUnit) {
+            return;
+        }
+
+        const baseQuantity =
+            line.quantity * Number(currentUnit.conversion_to_base);
+        const nextQuantity =
+            Math.round(
+                (baseQuantity / Number(nextUnit.conversion_to_base)) * 1000,
+            ) / 1000;
+        const requiredBaseQuantity =
+            getCartBaseQuantity(line.item_id, itemUnitId) +
+            nextQuantity * Number(nextUnit.conversion_to_base);
+
+        if (requiredBaseQuantity > getStock(item.id) + 0.000001) {
+            setMessage({
+                type: 'error',
+                text: `موجودی ${item?.name ?? ''} کافی نیست.`,
+            });
+
+            return;
+        }
+
+        setLines((current) => {
+            const withoutCurrentLine = current.filter(
+                (candidate) => candidate.item_unit_id !== itemUnitId,
+            );
+            const existing = withoutCurrentLine.find(
+                (candidate) => candidate.item_unit_id === nextUnitId,
+            );
+
+            return existing
+                ? withoutCurrentLine.map((candidate) =>
+                      candidate.item_unit_id === nextUnitId
+                          ? {
+                                ...candidate,
+                                quantity:
+                                    candidate.quantity + nextQuantity,
+                            }
+                          : candidate,
+                  )
+                : [
+                      ...withoutCurrentLine,
+                      {
+                          ...line,
+                          item_unit_id: nextUnitId,
+                          quantity: nextQuantity,
+                          unit_price: Number(nextUnit.selling_price),
+                      },
+                  ];
+        });
     };
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -199,16 +384,17 @@ export default function Create({
             <Head title="ثبت فروش جدید" />
             <div
                 dir="rtl"
-                className=" bg-[#f6f9fc] px-1 pb-10 dark:bg-transparent"
+                className="bg-[#f6f9fc] px-1 pb-10 dark:bg-transparent"
             >
                 <div className="mx-auto max-w-7xl space-y-5">
                     <section className="relative overflow-hidden rounded-[1.75rem] bg-[#092b4c] px-6 py-7 text-white shadow-[0_20px_50px_rgba(9,43,76,0.2)] sm:px-8">
                         <div className="absolute -top-16 -left-8 h-48 w-48 rounded-full border-24 border-cyan-300/10" />
-                        <div className="absolute -bottom-16 right-80 h-48 w-48 rounded-full border-24 border-cyan-300/10" />
+                        <div className="absolute right-80 -bottom-16 h-48 w-48 rounded-full border-24 border-cyan-300/10" />
                         <div className="relative flex flex-col justify-between gap-5 md:flex-row md:items-center">
                             <div>
                                 <div className="mb-2 flex items-center gap-2 text-sm text-cyan-200">
-                                    <ScanLine className="size-4" />فورم فروشات
+                                    <ScanLine className="size-4" />
+                                    فورم فروشات
                                 </div>
                                 <h1 className="text-2xl font-bold sm:text-3xl">
                                     فروش جدید را سریع ثبت کنید
@@ -228,7 +414,7 @@ export default function Create({
                     <form
                         onSubmit={submit}
                         className="grid gap-5 xl:grid-cols-[1fr_380px]"
-                        name='sale'
+                        name="sale"
                     >
                         <div className="space-y-5">
                             <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6 dark:border-slate-700 dark:bg-slate-900">
@@ -246,27 +432,34 @@ export default function Create({
                                         <ScanLine className="size-5" />
                                     </div>
                                 </div>
-                                <div className="flex gap-2" aria-disabled={lines.length > 12}>
+                                <div
+                                    className="flex gap-2"
+                                    aria-disabled={lines.length >= 12}
+                                >
                                     <div className="relative flex-1">
                                         <Barcode className="absolute top-1/2 right-3 size-5 -translate-y-1/2 text-primary" />
-                                        {barcode && <X className="absolute top-1/2 left-2 size-4 hover:text-destructive -translate-y-1/2 text-primary" onClick={() => {
-                                            setBarcode('');
-                                            barcodeRef.current?.focus();
-                                        }} />}
+                                        {barcode && (
+                                            <X
+                                                className="absolute top-1/2 left-2 size-4 -translate-y-1/2 text-primary hover:text-destructive"
+                                                onClick={() => {
+                                                    setBarcode('');
+                                                    barcodeRef.current?.focus();
+                                                }}
+                                            />
+                                        )}
                                         <Input
                                             ref={barcodeRef}
                                             autoFocus
                                             value={barcode}
                                             onChange={(event) =>
                                                 setBarcode(event.target.value)
-
                                             }
                                             onKeyDown={(event) => {
                                                 if (event.key === 'Enter') {
                                                     scan(event);
                                                 }
                                             }}
-                                            disabled={lines.length > 12}
+                                            disabled={lines.length >= 12}
                                             placeholder="بارکد را اسکن کنید و Enter بزنید..."
                                             className="h-12 border-blue-200 bg-blue-50/40 pr-11 text-base"
                                         />
@@ -307,7 +500,7 @@ export default function Create({
                                         }
                                         placeholder="جستجوی نام، کد یا SKU..."
                                         className="pr-10"
-                                        disabled={lines.length > 12}
+                                        disabled={lines.length >= 12}
                                     />
                                 </div>
                                 {search && (
@@ -316,8 +509,8 @@ export default function Create({
                                         currency={currency}
                                         filteredItems={filteredItems}
                                         getStock={getStock}
+                                        getUnits={getUnits}
                                     />
-
                                 )}
                             </section>
                             {/* ============== SALE ITEM LIST  */}
@@ -329,9 +522,8 @@ export default function Create({
                                 setLines={setLines}
                                 removeLine={removeLine}
                                 updateLine={updateLine}
-
+                                changeUnit={changeUnit}
                             />
-
                         </div>
                         <aside className="space-y-5">
                             {/* =========== DETAIL OF SALE (CUSTOMER, CURRENCY, SHOP ,...) */}
@@ -353,7 +545,9 @@ export default function Create({
                                 setData={setData}
                                 subtotal={subtotal}
                                 createInvoice={data.create_invoice}
-                                onCreateInvoiceChange={(value) => setData('create_invoice', value)}
+                                onCreateInvoiceChange={(value) =>
+                                    setData('create_invoice', value)
+                                }
                                 nextInvoiceID={nextInvoiceID}
                             />
                         </aside>
@@ -367,10 +561,17 @@ export default function Create({
 interface SuggestProps {
     filteredItems: Item[];
     addItem: (item: Item) => void;
-    getStock: (item: Item) => number;
-    currency: { id: number; name: string; }
+    getStock: (itemId: number) => number;
+    getUnits: (item: Item) => ItemUnit[];
+    currency: { id: number; name: string };
 }
-function SearchSuggesstion({ filteredItems, addItem, getStock, currency }: SuggestProps) {
+function SearchSuggesstion({
+    filteredItems,
+    addItem,
+    getStock,
+    getUnits,
+    currency,
+}: SuggestProps) {
     return (
         <div className="mt-2 divide-y rounded-xl border bg-white shadow-lg dark:bg-slate-900">
             {filteredItems.map((item) => (
@@ -383,27 +584,29 @@ function SearchSuggesstion({ filteredItems, addItem, getStock, currency }: Sugge
                     <Package className="size-4 text-primary" />
                     <span className="min-w-0 flex-1">
                         <b className="block truncate text-sm">
-                            {item.name}  <small className='text-gray-500 text-xs'>
-                                :
-                                ({getStock(item)} {getDariItemUnit(item.unit)})
+                            {item.name}{' '}
+                            <small className="text-xs text-gray-500">
+                                        : (
+                                        {(
+                                            getStock(item.id) /
+                                            Number(
+                                                getUnits(item)[0]
+                                                    ?.conversion_to_base ?? 1,
+                                            )
+                                        ).toFixed(3)}{' '}
+                                        {getUnits(item)[0]?.name ?? item.unit})
                             </small>
                         </b>
                         <small className="text-xs text-slate-400">
-                            {item.product
-                                ?.barcode ??
-                                item.sku}{' '}
-
+                            {getUnits(item)[0]?.code ?? item.sku}{' '}
                         </small>
                     </span>
-                    <div className='flex flex-col'>
+                    <div className="flex flex-col">
                         <span className="text-sm font-bold">
-                            {item.default_sale_price}
-                            {' '} {getDariCurrency(currency?.name ?? 'AFG')}
+                            {getUnits(item)[0]?.selling_price ??
+                                item.default_sale_price}{' '}
+                            {getDariCurrency(currency?.name ?? 'AFG')}
                         </span>
-                        {item.product &&
-                            <small className='text-xs text-gray-400'>
-                                {((item?.product?.weight ?? 1) / (item.product?.per_pack ?? 1)) * 1000} وزن
-                            </small>}
                     </div>
                 </button>
             ))}
@@ -413,5 +616,5 @@ function SearchSuggesstion({ filteredItems, addItem, getStock, currency }: Sugge
                 </p>
             )}
         </div>
-    )
+    );
 }

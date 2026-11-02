@@ -50,7 +50,7 @@ const TransferList = ({ transfers, transferDate, receivedDate }: Props) => {
 
 
 
-    const totalValue = filteredTransfers.reduce((total, transfer) => total + transfer.transfer_lines.reduce((lineTotal, line) => lineTotal += line.quantity*line.item.default_sale_price, 0), 0);
+    const totalValue = filteredTransfers.reduce((total, transfer) => total + transfer.transfer_lines.reduce((lineTotal, line) => lineTotal + line.quantity * Number(line.unit_price ?? line.item.default_sale_price), 0), 0);
     const clearFilters = () => {
         setSearch('');
         setSource('all');
