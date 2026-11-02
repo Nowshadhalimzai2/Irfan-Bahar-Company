@@ -13,13 +13,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('products', function (Blueprint $table) {
-            $table->foreignIdFor(Item::class)->primary(true)->constrained()->cascadeOnDelete()->cascadeOnUpdate();
-            $table->decimal('weight', 3, 3);
-            $table->integer('per_pack')->default(1);
+            $table->foreignId('item_id')
+                ->primary()
+                ->constrained('items')
+                ->cascadeOnDelete()
+                ->cascadeOnUpdate();
+
+            $table->decimal('weight', 15, 3)->nullable();
             $table->text('description')->nullable();
-            $table->string('barcode', 50)->unique()->nullable();
+
             $table->timestamps();
-            $table->unique(['item_id', 'weight', 'per_pack']);
         });
     }
 

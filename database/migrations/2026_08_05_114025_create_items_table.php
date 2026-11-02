@@ -21,13 +21,23 @@ return new class extends Migration
 
         Schema::create('items', function (Blueprint $table) {
             $table->id();
-            $table->string('name', 255);
-            $table->string('code', 12);
+            $table->string('name');
             $table->enum('item_type', ['raw_material', 'product', 'packing']);
-            $table->enum('unit', ['kg', 'gr', 'ltr','packet','carton','bundle','pair','unit','bag']);
+
+            // Base inventory unit: unit, kg, ltr, etc.
+            $table->string('unit', 30);
+
+            // Human-readable stable item identifier, for example SP-0001.
+            $table->string('code', 20)->nullable()->unique();
             $table->string('sku', 12)->unique();
-            $table->decimal('default_sale_price', 6, 2);
-            $table->foreignIdFor(Category::class)->constrained('categories')->cascadeOnUpdate();
+
+            // Keep temporarily for backward compatibility.
+            $table->decimal('default_sale_price', 15, 2)->default(0);
+
+            $table->foreignId('category_id')
+                ->constrained('categories')
+                ->cascadeOnUpdate();
+
             $table->timestamps();
         });
 

@@ -78,7 +78,7 @@ Route::post('/register', function (Request $request, CreateNewUser $creator) {
 
         $log = new Log();
         $log->create('insert', ' یوزر  جدید', $user->name);
-        Inertia::flash('toast', ['type' => 'success', 'message' => ' موفقانه ایجاد شد {$request->name} اکونت یوزر']);
+        Inertia::flash('toast', ['type' => 'success', 'message' => " موفقانه ایجاد شد {$request->name} اکونت یوزر"]);
         DB::commit();
     } catch (\Throwable $th) {
         DB::rollBack();

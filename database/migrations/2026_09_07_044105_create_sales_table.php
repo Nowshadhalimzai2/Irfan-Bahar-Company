@@ -44,7 +44,7 @@ return new class extends Migration
             // Optional reference to products; the snapshot fields below are
             // intentional so historical sales remain correct if a product changes.
             $table->foreignIdFor(Item::class)->index()->constrained()->noActionOnDelete();
-            $table->enum('unit', ['kg', 'gr', 'ltr', 'packet', 'carton', 'bundle', 'pair', 'unit', 'bag'])->nullable();
+            $table->enum('unit', ['kg', 'gr', 'ltr', 'packet', 'carton', 'bundle', 'pair', 'unit', 'bag','drum'])->nullable();
             $table->decimal('quantity', 15, 3);
 
             // the amount it recieves

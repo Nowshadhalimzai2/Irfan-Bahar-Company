@@ -13,7 +13,15 @@ class Product extends Model
 
     protected $keyType = 'int';
 
-    protected $fillable = ['item_id', 'weight', 'per_pack', 'description', 'barcode'];
+    protected $fillable = [
+        'item_id',
+        'weight',
+        'description',
+    ];
+
+    protected $casts = [
+        'weight' => 'decimal:3',
+    ];
 
     public function item(): BelongsTo
     {
