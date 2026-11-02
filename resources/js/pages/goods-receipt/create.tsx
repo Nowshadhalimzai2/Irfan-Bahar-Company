@@ -1,19 +1,33 @@
 import { Link, useForm } from '@inertiajs/react';
-import { CalendarDays, CheckCircle2, ClipboardList, CurlyBraces, PackagePlus, Trash2, Warehouse } from 'lucide-react';
+import {
+    CheckCircle2,
+    ClipboardList,
+    PackagePlus,
+    Trash2,
+    Warehouse,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import InputError from '@/components/input-error';
-import LocationTranslator, { getDariCurrency, getDariItemUnit } from '@/components/location-translator';
-import { PersianDatePicker } from '@/components/persian-date-picker';
+import LocationTranslator, {
+    getDariCurrency,
+} from '@/components/location-translator';
+import PersionDatePicker from '@/components/persion-date-picker';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import type { Currency, Location, Supplier } from '@/types';
-import type { Item } from '@/types/item';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import PersionDatePicker from '@/components/persion-date-picker';
+import type { Item, ItemUnit } from '@/types/item';
 
 interface Props {
     suppliers: Supplier[];
@@ -24,369 +38,619 @@ interface Props {
 
 type ReceiptLine = {
     item_id: number;
+    item_unit_id: number;
     quantity: number;
     unit_cost: number;
-}
+};
 
-type GoodReceiptType = {
+type GoodsReceiptForm = {
     supplier_id: number;
     destination_location_id: number;
     received_at: string;
     notes: string;
     currency_id: number;
     receiptLines: ReceiptLine[];
-}
+};
+
+const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+};
+
+const getUnits = (item?: Item): ItemUnit[] => {
+    if (!item) {
+        return [];
+    }
+
+    if (item.units?.length) {
+        return item.units.filter((unit) => unit.is_active);
+    }
+
+    return item.base_unit ? [item.base_unit] : [];
+};
 
 const Create = ({ suppliers, locations, currencies, items }: Props) => {
+    const firstItem = items[0];
+    const firstUnit = getUnits(firstItem)[0];
     const [receiptLines, setReceiptLines] = useState<ReceiptLine[]>([]);
-    const [currentLine, setCurrentLine] = useState<ReceiptLine>(() => ({
-        item_id: items[0]?.id ?? 0,
+    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+    const [currentLine, setCurrentLine] = useState<ReceiptLine>({
+        item_id: firstItem?.id ?? 0,
+        item_unit_id: firstUnit?.id ?? 0,
         quantity: 1,
-        unit_cost: 10,
-    }));
-    const [selectedDate,setSelectedDate] = useState<Date | null> (new Date());
-    const [persionDate,setPersionDate] = useState<string | null> ('');
-    const { data, setData, errors, post, processing } = useForm<GoodReceiptType>({
-        supplier_id: suppliers[0]?.id ?? 0,
-        destination_location_id: locations[0]?.id ?? 0,
-        received_at: selectedDate?.toString() ?? new Date().toString(),
-        notes: '',
-        receiptLines,
-        currency_id: currencies[0].id ?? 0,
-
+        unit_cost: Number(firstUnit?.purchase_price ?? 0),
     });
+    const { data, setData, errors, post, processing } =
+        useForm<GoodsReceiptForm>({
+            supplier_id: suppliers[0]?.id ?? 0,
+            destination_location_id: locations[0]?.id ?? 0,
+            received_at: formatDate(new Date()),
+            notes: '',
+            receiptLines: [],
+            currency_id: currencies[0]?.id ?? 0,
+        });
 
-    useEffect(() => {
-        setData('receiptLines', receiptLines);
-    }, [receiptLines, setData]);
-    
-    const handleReceipt = (e: FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    useEffect(
+        () => setData('receiptLines', receiptLines),
+        [receiptLines, setData],
+    );
 
+    const selectedItem = useMemo(
+        () => items.find((item) => item.id === currentLine.item_id),
+        [currentLine.item_id, items],
+    );
+    const selectedUnit = useMemo(
+        () =>
+            getUnits(selectedItem).find(
+                (unit) => unit.id === currentLine.item_unit_id,
+            ),
+        [currentLine.item_unit_id, selectedItem],
+    );
+    const totalValue = receiptLines.reduce(
+        (total, line) => total + line.quantity * line.unit_cost,
+        0,
+    );
+    const totalBaseQuantity = receiptLines.reduce((total, line) => {
+        const unit = items
+            .find((item) => item.id === line.item_id)
+            ?.units?.find((candidate) => candidate.id === line.item_unit_id);
+
+        return total + line.quantity * Number(unit?.conversion_to_base ?? 1);
+    }, 0);
+
+    const resetLine = (itemId = items[0]?.id ?? 0) => {
+        const item = items.find((candidate) => candidate.id === itemId);
+        const unit = getUnits(item)[0];
+        setCurrentLine({
+            item_id: itemId,
+            item_unit_id: unit?.id ?? 0,
+            quantity: 1,
+            unit_cost: Number(unit?.purchase_price ?? 0),
+        });
+    };
+
+    const handleReceipt = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
         post('/receipts', {
-            onFinish: () => {
+            onSuccess: () => {
                 setReceiptLines([]);
-                setCurrentLine({
-                    item_id: items[0]?.id ?? 0,
-                    quantity: 1,
-                    unit_cost: 0,
-                });
+                resetLine();
             },
         });
     };
 
-    const handleAddLine = () => {
-
-        if (!currentLine.item_id || currentLine.quantity <= 0) {
-            return;
-        }
-
-        if (receiptLines.some((line) => line.item_id === currentLine.item_id)) {
-            return;
-        }
-
-        setReceiptLines((prev) => [...prev, currentLine]);
-        setCurrentLine((prev) => ({
-            ...prev,
+    const handleItemChange = (itemId: number) => {
+        const item = items.find((candidate) => candidate.id === itemId);
+        const unit = getUnits(item)[0];
+        setCurrentLine({
+            item_id: itemId,
+            item_unit_id: unit?.id ?? 0,
             quantity: 1,
-            unit_cost: 0,
+            unit_cost: Number(unit?.purchase_price ?? 0),
+        });
+    };
+
+    const handleUnitChange = (unitId: number) => {
+        const unit = getUnits(selectedItem).find(
+            (candidate) => candidate.id === unitId,
+        );
+        setCurrentLine((line) => ({
+            ...line,
+            item_unit_id: unitId,
+            unit_cost: Number(unit?.purchase_price ?? line.unit_cost),
         }));
     };
 
-    const handleRemoveLine = (index: number) => {
-        setReceiptLines((prev) => prev.filter((_, i) => i !== index));
+    const handleAddLine = () => {
+        if (
+            !currentLine.item_id ||
+            !currentLine.item_unit_id ||
+            currentLine.quantity <= 0 ||
+            currentLine.unit_cost <= 0
+        ) {
+            return;
+        }
+
+        if (
+            receiptLines.some(
+                (line) => line.item_unit_id === currentLine.item_unit_id,
+            )
+        ) {
+            return;
+        }
+
+        setReceiptLines((lines) => [...lines, currentLine]);
+        resetLine(currentLine.item_id);
     };
-
-    const itemUnit = useMemo(() => {
-        return items.find((item) => item.id === currentLine.item_id)?.unit ?? 'unit';
-
-    }, [currentLine.item_id, items]);
-
-    const totalQuantity = receiptLines.reduce((total, line) => total + line.quantity, 0);
-    const totalValue = receiptLines.reduce((total, line) => total + line.quantity * line.unit_cost, 0);
 
     return (
         <AppLayout
             breadcrumbs={[
-                { title: 'اموال امده', href: '/receipts' },
-                { title: 'جنس نو را ثبت کنید', href: '/receipts/create' },
+                { title: 'اموال خرید شد نو', href: '/receipts' },
+                { title: 'خرید جنس نو', href: '/receipts/create' },
             ]}
         >
             <div className="min-h-screen space-y-6 bg-linear-to-b from-slate-50 via-background to-background p-3 md:p-6 dark:from-slate-950">
-                <section>
-                    <div className="mx-auto max-w-5xl">
-                        <div className="relative mb-6 overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl shadow-slate-900/10 md:px-10">
-                            <div className="absolute -left-12 -top-16 h-48 w-48 rounded-full bg-amber-400/20 blur-3xl" />
-                            <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between"><div className="space-y-3"><div className="flex items-center gap-2 text-sm font-medium text-amber-300"><Warehouse className="size-4" /> مدیریت موجودی ورودی</div><h1 className="text-3xl font-bold tracking-tight md:text-4xl">ثبت رسید جدید</h1><p className="text-sm text-slate-300">اطلاعات تأمین‌کننده و اجناس آمده را دقیق ثبت کنید.</p></div><ClipboardList className="size-8 text-amber-300" /></div>
+                <section className="mx-auto max-w-5xl">
+                    <div className="relative mb-6 overflow-hidden rounded-2xl bg-slate-950 px-6 py-8 text-white shadow-xl md:px-10">
+                        <div className="relative flex items-center justify-between gap-4">
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2 text-sm font-medium text-amber-300">
+                                    <Warehouse className="size-4" /> مدیریت
+                                    موجودی ورودی
+                                </div>
+                                <h1 className="text-3xl font-bold tracking-tight">
+                                    ثبت رسید جدید
+                                </h1>
+                                <p className="text-sm text-slate-300">
+                                    مقدار را با واحد واقعی دریافت و قیمت همان
+                                    واحد را ثبت کنید.
+                                </p>
+                            </div>
+                            <ClipboardList className="size-8 text-amber-300" />
                         </div>
-                        <form onSubmit={handleReceipt} name="receipt" id="receipt" className="space-y-6" dir='rtl'>
-                            <div className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
-                                <div className="mb-6 flex items-center gap-3 border-b border-border/60 pb-4">
-                                    <div className="rounded-xl bg-primary/10 p-2 text-primary"><ClipboardList className="size-5" /></div>
-                                    <div>
-                                        <h2 className="font-semibold">جزئیات رسید</h2>
-                                        <p className="text-xs text-muted-foreground">منبع خرید و محل ذخیره‌سازی را مشخص کنید.</p>
-                                    </div>
+                    </div>
+
+                    <form
+                        onSubmit={handleReceipt}
+                        className="space-y-6"
+                        dir="rtl"
+                    >
+                        <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
+                            <div className="grid gap-6 md:grid-cols-2">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="supplier_id">
+                                        نام تأمین کننده{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </Label>
+                                    <select
+                                        id="supplier_id"
+                                        className="rounded-md border p-2"
+                                        value={data.supplier_id}
+                                        onChange={(event) =>
+                                            setData(
+                                                'supplier_id',
+                                                Number(event.target.value),
+                                            )
+                                        }
+                                    >
+                                        <option value={0}>
+                                            تأمین کننده را انتخاب کنید
+                                        </option>
+                                        {suppliers.map((supplier) => (
+                                            <option
+                                                value={supplier.id}
+                                                key={supplier.id}
+                                            >
+                                                {supplier.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <InputError message={errors.supplier_id} />
                                 </div>
-                                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 ">
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="supplier_id">نام تأمین کننده <span className="text-destructive">*</span></Label>
-                                        <select
-                                            className="border p-1.5 rounded-md"
-                                            name="supplier_id"
-                                            tabIndex={1}
-                                            value={data.supplier_id}
-                                            onChange={(e) => setData('supplier_id', Number(e.target.value))}
-                                        >
-                                            <option value={0} className=" dark:text-accent-foreground dark:bg-secondary-foreground">تأمین کننده را انتخاب کنید</option>
-                                            {suppliers.map((supplier) => (
-                                                <option value={supplier.id} key={supplier.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
-                                                    {supplier.name}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError message={errors.supplier_id} className="mt-2" />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="destination_location_id">موقعیت دریافت <span className="text-destructive">*</span></Label>
-                                        <select
-                                            className="border p-1.5 rounded-md"
-                                            tabIndex={2}
-                                            name="destination_location_id"
-                                            value={data.destination_location_id}
-                                            onChange={(e) =>
-                                                setData('destination_location_id', Number(e.target.value))
-                                            }
-                                        >
-                                            <option value={0} className='dark:text-accent-foreground'>موقعیت را انتخاب کنید</option>
-                                            {locations.map((location) => (
-                                                <option value={location.id} key={location.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
-                                                    {LocationTranslator(location.name)}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError message={errors.destination_location_id} className="mt-2" />
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        <Label htmlFor="currency_id">واحد پول <span className="text-destructive">*</span></Label>
-                                        <select
-                                            className="border p-1.5 rounded-md"
-                                            name="currency_id"
-                                            tabIndex={4}
-                                            value={data.currency_id}
-                                            onChange={(e) =>
-                                                setData('currency_id', Number(e.target.value))
-                                            }
-                                        >
-                                            <option value={0} className=" dark:text-accent-foreground dark:bg-secondary-foreground">پولی واحد را انتخاب نماید</option>
-                                            {currencies.map((currency) => (
-                                                <option value={currency.id} key={currency.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
-                                                    {getDariCurrency(currency.name)}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <InputError message={errors.currency_id} className="mt-2" />
-
-                                    </div>
-
-                                    <div className="grid gap-2">
-                                        {/* <Label htmlFor="received_at">تاریخ دریافت <span className="text-destructive">*</span></Label> */}
-                                        <div className="relative">
-                                            {/* <CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /> */}
-                                            {/* <Input id="received_at" type="date" value={data.received_at} onChange={(e) => setData('received_at', e.target.value)} className="" /> */}
-                                            <PersionDatePicker 
-                                                id={'id'}
-                                                initialDate={selectedDate ?? new Date()}
-                                                type='date'
-                                                label='تاریخ دریافت'
-                                                value={selectedDate}
-                                                onChange={(date,persion)=>{
-                                                    setSelectedDate(date);
-                                                    setPersionDate(persion)
-                                                }}
-                                            />
-                                        </div>
-                                        <InputError message={errors.received_at} />
-                                    </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="destination_location_id">
+                                        موقعیت دریافت{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </Label>
+                                    <select
+                                        id="destination_location_id"
+                                        className="rounded-md border p-2"
+                                        value={data.destination_location_id}
+                                        onChange={(event) =>
+                                            setData(
+                                                'destination_location_id',
+                                                Number(event.target.value),
+                                            )
+                                        }
+                                    >
+                                        <option value={0}>
+                                            موقعیت را انتخاب کنید
+                                        </option>
+                                        {locations.map((location) => (
+                                            <option
+                                                value={location.id}
+                                                key={location.id}
+                                            >
+                                                {LocationTranslator(
+                                                    location.name,
+                                                )}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <InputError
+                                        message={errors.destination_location_id}
+                                    />
                                 </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="currency_id">
+                                        واحد پول{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </Label>
+                                    <select
+                                        id="currency_id"
+                                        className="rounded-md border p-2"
+                                        value={data.currency_id}
+                                        onChange={(event) =>
+                                            setData(
+                                                'currency_id',
+                                                Number(event.target.value),
+                                            )
+                                        }
+                                    >
+                                        <option value={0}>
+                                            واحد پول را انتخاب کنید
+                                        </option>
+                                        {currencies.map((currency) => (
+                                            <option
+                                                value={currency.id}
+                                                key={currency.id}
+                                            >
+                                                {getDariCurrency(currency.name)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <InputError message={errors.currency_id} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <PersionDatePicker
+                                        id="goods-receipt-date"
+                                        initialDate={selectedDate ?? new Date()}
+                                        type="date"
+                                        label="تاریخ دریافت"
+                                        value={selectedDate}
+                                        onChange={(date) => {
+                                            setSelectedDate(date);
 
-                                <div className="mt-5 grid gap-4 md:grid-cols-1">
-                                    <div className="grid gap-2"><Label htmlFor="notes">یادداشت</Label>
-                                        <textarea
-                                            className="min-h-11 rounded-md border bg-transparent p-3 text-sm outline-none transition focus-visible:ring-2 focus-visible:ring-ring"
-                                            tabIndex={2}
-                                            name="notes"
-                                            value={data.notes}
-                                            onChange={(e) =>
-                                                setData('notes', e.target.value)
+                                            if (date) {
+                                                setData(
+                                                    'received_at',
+                                                    formatDate(date),
+                                                );
                                             }
-                                            placeholder="نوت اختیاری است"
-                                        />
-
-                                        <InputError message={errors.notes} className="mt-2" />
-                                    </div>
+                                        }}
+                                    />
+                                    <InputError message={errors.received_at} />
                                 </div>
                             </div>
+                            <div className="mt-5 grid gap-2">
+                                <Label htmlFor="notes">یادداشت</Label>
+                                <textarea
+                                    id="notes"
+                                    className="min-h-11 rounded-md border bg-transparent p-3 text-sm"
+                                    value={data.notes}
+                                    onChange={(event) =>
+                                        setData('notes', event.target.value)
+                                    }
+                                    placeholder="نوت اختیاری است"
+                                />
+                                <InputError message={errors.notes} />
+                            </div>
+                        </section>
 
-                            <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
-                                <div>
-                                    <div className="mb-6 flex items-center justify-between gap-3 border-b border-border/60 pb-4">
-                                        <div className="flex items-center gap-2"><PackagePlus className="size-5 text-primary" />
-                                            <div>
-                                                <h2 className="font-semibold">اقلام دریافتی</h2>
-                                                <p className="text-xs text-muted-foreground">قیمت و مقدار هر جنس را اضافه کنید.</p>
-                                            </div>
-                                        </div>
-                                        <span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">{receiptLines.length} قلم</span>
+                        <section className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm md:p-7">
+                            <div className="mb-6 flex items-center justify-between border-b border-border/60 pb-4">
+                                <div className="flex items-center gap-2">
+                                    <PackagePlus className="size-5 text-primary" />
+                                    <div>
+                                        <h2 className="font-semibold">
+                                            اقلام دریافتی
+                                        </h2>
+                                        <p className="text-xs text-muted-foreground">
+                                            واحد دریافت و قیمت همان واحد را
+                                            انتخاب کنید.
+                                        </p>
                                     </div>
-
-                                    <div className="grid gap-6   grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
-                                        
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="item_id">جنس <span className="text-destructive">*</span></Label>
-                                            <select
-                                                className="border p-1.5 rounded-md"
-                                                name="item_id"
-                                                tabIndex={5}
-                                                value={currentLine.item_id}
-                                                onChange={(e) =>
-                                                    setCurrentLine((prev) => ({
-                                                        ...prev,
-                                                        item_id: Number(e.target.value),
-                                                    }))
-                                                }
+                                </div>
+                                <span className="rounded-full bg-primary/10 px-3 py-1 text-xs text-primary">
+                                    {receiptLines.length} قلم
+                                </span>
+                            </div>
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                <div className="grid gap-2">
+                                    <Label htmlFor="item_id">
+                                        جنس{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </Label>
+                                    <select
+                                        id="item_id"
+                                        className="rounded-md border p-2"
+                                        value={currentLine.item_id}
+                                        onChange={(event) =>
+                                            handleItemChange(
+                                                Number(event.target.value),
+                                            )
+                                        }
+                                    >
+                                        {items.map((item) => (
+                                            <option
+                                                value={item.id}
+                                                key={item.id}
                                             >
-                                                {items.map((item) => (
-                                                    <option value={item.id} key={item.id} className=" dark:text-accent-foreground dark:bg-secondary-foreground">
-                                                        {item.name} {item.code}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <InputError message={errors.receiptLines} className="mt-2" />
-
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="quantity" className="flex justify-between"><span>مقدار <span className="text-destructive">*</span></span>
-                                                <span className="text-sm text-muted-foreground">
-                                                    {currentLine.quantity}   {getDariItemUnit(itemUnit)}
-                                                </span>
-                                            </Label>
-                                            <Input
-                                                id="quantity"
-                                                type="number"
-                                                min={1}
-                                                value={currentLine.quantity}
-                                                dir='ltr'
-                                                onChange={(e) =>
-
-                                                    setCurrentLine((prev) => ({
-                                                        ...prev,
-                                                        quantity: Number(e.target.value),
-                                                    }))
-                                                }
-                                                placeholder="مقدار"
-                                                className="border p-1.5 rounded-md"
-                                            />
-                                            <InputError message={errors.receiptLines} className="mt-2" />
-
-                                        </div>
-
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="unit_cost">قیمت <span className="text-destructive">*</span></Label>
-                                            <Input
-                                                id="unit_cost"
-                                                type="number"
-                                                min={0}
-                                                dir='ltr'
-                                                step="0.01"
-                                                value={currentLine.unit_cost}
-                                                onChange={(e) =>
-                                                    setCurrentLine((prev) => ({
-                                                        ...prev,
-                                                        unit_cost: Number(e.target.value),
-                                                    }))
-                                                }
-                                                placeholder="قیمت واحد"
-                                                className="border p-1.5 rounded-md"
-                                            />
-                                            <InputError message={errors.receiptLines} className="mt-2" />
-
-                                        </div>
-
-                                        </div>
-                                        <div className="mt-4">
-                                            <Button
-                                                type="button"
-                                                className="w-full"
-                                                variant={'secondary'}
-                                                tabIndex={6}
-                                                onClick={handleAddLine}
+                                                {item.name} ({item.code})
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="item_unit_id">
+                                        واحد دریافت{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </Label>
+                                    <select
+                                        id="item_unit_id"
+                                        className="rounded-md border p-2"
+                                        value={currentLine.item_unit_id}
+                                        onChange={(event) =>
+                                            handleUnitChange(
+                                                Number(event.target.value),
+                                            )
+                                        }
+                                    >
+                                        {getUnits(selectedItem).map((unit) => (
+                                            <option
+                                                value={unit.id}
+                                                key={unit.id}
                                             >
-                                                <PackagePlus className="size-4" /> اضافه کردن جنس
-                                            </Button>
-                                        </div>
+                                                {unit.name}
+                                                {unit.symbol
+                                                    ? ` (${unit.symbol})`
+                                                    : ''}{' '}
+                                                — ×{unit.conversion_to_base}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="quantity">
+                                        مقدار{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </Label>
+                                    <Input
+                                        id="quantity"
+                                        type="number"
+                                        min={0.001}
+                                        step="0.001"
+                                        dir="ltr"
+                                        value={currentLine.quantity}
+                                        onChange={(event) =>
+                                            setCurrentLine((line) => ({
+                                                ...line,
+                                                quantity: Number(
+                                                    event.target.value,
+                                                ),
+                                            }))
+                                        }
+                                    />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="unit_cost">
+                                        قیمت فی واحد{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </Label>
+                                    <Input
+                                        id="unit_cost"
+                                        type="number"
+                                        min={0.01}
+                                        step="0.01"
+                                        dir="ltr"
+                                        value={currentLine.unit_cost}
+                                        onChange={(event) =>
+                                            setCurrentLine((line) => ({
+                                                ...line,
+                                                unit_cost: Number(
+                                                    event.target.value,
+                                                ),
+                                            }))
+                                        }
+                                    />
+                                    <span className="text-xs text-muted-foreground">
+                                        قیمت پایه تقریبی:{' '}
+                                        {selectedUnit
+                                            ? (
+                                                  currentLine.unit_cost /
+                                                  Number(
+                                                      selectedUnit.conversion_to_base ||
+                                                          1,
+                                                  )
+                                              ).toFixed(2)
+                                            : '—'}
+                                    </span>
+                                </div>
+                            </div>
+                            <InputError
+                                message={errors.receiptLines}
+                                className="mt-3"
+                            />
+                            <Button
+                                type="button"
+                                className="mt-5 w-full"
+                                variant="secondary"
+                                onClick={handleAddLine}
+                            >
+                                <PackagePlus className="size-4" /> اضافه کردن
+                                جنس
+                            </Button>
+                        </section>
+
+                        {receiptLines.length > 0 && (
+                            <section
+                                className="space-y-4 rounded-2xl border border-border/70 bg-card p-5 shadow-sm"
+                                dir="rtl"
+                            >
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead className="text-center">
+                                                شماره
+                                            </TableHead>
+                                            <TableHead className="text-center">
+                                                کود
+                                            </TableHead>
+                                            <TableHead className="text-center">
+                                                جنس / واحد
+                                            </TableHead>
+                                            <TableHead className="text-center">
+                                                مقدار
+                                            </TableHead>
+                                            <TableHead className="text-center">
+                                                مقدار پایه
+                                            </TableHead>
+                                            <TableHead className="text-center">
+                                                قیمت
+                                            </TableHead>
+                                            <TableHead className="text-center">
+                                                جمله
+                                            </TableHead>
+                                            <TableHead className="text-center">
+                                                حذف
+                                            </TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {receiptLines.map((line, index) => {
+                                            const item = items.find(
+                                                (candidate) =>
+                                                    candidate.id ===
+                                                    line.item_id,
+                                            );
+                                            const unit = getUnits(item).find(
+                                                (candidate) =>
+                                                    candidate.id ===
+                                                    line.item_unit_id,
+                                            );
+
+                                            return (
+                                                <TableRow
+                                                    key={`${line.item_unit_id}-${index}`}
+                                                >
+                                                    <TableCell className="text-center">
+                                                        {index + 1}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {unit?.code ??
+                                                            item?.code}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {item?.name} /{' '}
+                                                        {unit?.name}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {line.quantity}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {(
+                                                            line.quantity *
+                                                            Number(
+                                                                unit?.conversion_to_base ??
+                                                                    1,
+                                                            )
+                                                        ).toLocaleString()}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {line.unit_cost.toLocaleString()}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {(
+                                                            line.quantity *
+                                                            line.unit_cost
+                                                        ).toLocaleString()}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        <button
+                                                            type="button"
+                                                            aria-label="حذف جنس"
+                                                            onClick={() =>
+                                                                setReceiptLines(
+                                                                    (lines) =>
+                                                                        lines.filter(
+                                                                            (
+                                                                                _,
+                                                                                lineIndex,
+                                                                            ) =>
+                                                                                lineIndex !==
+                                                                                index,
+                                                                        ),
+                                                                )
+                                                            }
+                                                        >
+                                                            <Trash2 className="mx-auto size-4 text-destructive" />
+                                                        </button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                                <div className="flex flex-col gap-2 border-t border-border/60 pt-4 text-sm sm:flex-row sm:justify-between">
+                                    <span>
+                                        مقدار پایه مجموع:{' '}
+                                        {totalBaseQuantity.toLocaleString()}
+                                    </span>
+                                    <strong>
+                                        جمله قیمت: {totalValue.toLocaleString()}
+                                    </strong>
+                                </div>
+                                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                                    <Link
+                                        href="/receipts"
+                                        className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm hover:bg-muted"
+                                    >
+                                        انصراف
+                                    </Link>
+                                    <Button
+                                        type="submit"
+                                        className="gap-2 bg-slate-950 hover:bg-slate-800"
+                                    >
+                                        <Spinner
+                                            className={
+                                                processing ? '' : 'hidden'
+                                            }
+                                        />
+                                        <CheckCircle2 className="size-4" /> ثبت
+                                        رسید
+                                    </Button>
                                 </div>
                             </section>
-
-
-
-                            {/* ================================  RESULTS  =============================================== */}
-                            {receiptLines.length > 0 && (
-                                <>
-                                    <div dir='rtl' className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">خلاصه انتقال</h3><span className="text-sm text-muted-foreground">{receiptLines.length} قلم</span></div>
-                                        <Table>
-                                            <TableHeader>
-                                                <TableRow>
-                                                    <TableHead className='text-center'>شماره</TableHead>
-                                                    <TableHead className='text-center'>کود جنس</TableHead>
-                                                    <TableHead className='text-center'>جنس</TableHead>
-                                                    <TableHead className='text-center'>مقدار</TableHead>
-                                                    <TableHead className='text-center'>قیمت</TableHead>
-                                                    <TableHead className='text-center'>جمله</TableHead>
-                                                    <TableHead className='text-center'>حذف</TableHead>
-                                                </TableRow>
-                                            </TableHeader>
-                                            <TableBody>
-                                                {receiptLines.length > 0 && (
-                                                    receiptLines.map((line, ind) =>
-                                                        <TableRow key={ind}>
-                                                            <TableCell className='text-center'>{ind + 1}</TableCell>
-                                                            <TableCell className='text-center'>{items.filter(item => item.id == line.item_id)[0].code}</TableCell>
-                                                            <TableCell className='text-center'>{items.filter(item => item.id == line.item_id)[0].name}</TableCell>
-                                                            <TableCell className='text-center'>{line.quantity}</TableCell>
-                                                            <TableCell className='text-center'>{line.unit_cost}</TableCell>
-                                                            <TableCell className='text-center'>{line.quantity * line.unit_cost}</TableCell>
-                                                            <TableCell className='flex justify-center items-center'>
-                                                                <button type="button" aria-label="حذف جنس" onClick={() => handleRemoveLine(ind)}><Trash2 className='size-4 text-destructive' /></button>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    )
-                                                )}
-                                            </TableBody>
-                                        </Table>
-                                        <div className="mt-4 flex flex-col gap-2 border-t border-border/60 pt-4 text-sm sm:flex-row sm:justify-between"><span>{totalQuantity} جمله مقدار</span><strong>{totalValue.toLocaleString()} جمله قیمت</strong></div>
-                                    </div>
-                                    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                                        <Link href="/receipts" className="inline-flex h-10 items-center justify-center rounded-md border px-4 text-sm hover:bg-muted">انصراف</Link>
-                                        <Button
-                                            type="submit"
-                                            className="w-full gap-2 bg-slate-950 hover:bg-slate-800 sm:w-auto"
-                                            tabIndex={7}
-                                            data-test="register-employee-button"
-                                        >
-                                            {processing && <Spinner />}
-                                            <CheckCircle2 className="size-4" /> ثبت رسید
-                                        </Button>
-                                    </div></>
-                            )}
-
-
-                        </form>
-                    </div>
+                        )}
+                    </form>
                 </section>
             </div>
         </AppLayout>

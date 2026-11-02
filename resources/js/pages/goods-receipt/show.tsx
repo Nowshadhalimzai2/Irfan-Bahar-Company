@@ -1,8 +1,15 @@
-import React from 'react';
 import LocationTranslator from '@/components/location-translator';
-import { formatPersianDate } from '@/components/persian-date-picker';
 import { SectionTitle } from '@/components/section-title';
-import { Table, TableBody, TableCaption, TableCell, TableFooter, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import {
+    Table,
+    TableBody,
+    TableCaption,
+    TableCell,
+    TableFooter,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import type { GoodsReceipt } from '@/types/item';
 
@@ -10,31 +17,54 @@ interface Props {
     receipt: GoodsReceipt;
 }
 const Show = ({ receipt }: Props) => {
-    console.log(receipt);
-
     return (
-        <AppLayout breadcrumbs={[
-            { title: 'انتقال اجناس', href: '/receipts' },
-            { title: receipt.reference_no, href: '/receipts/' + receipt.id },
-        ]}>
+        <AppLayout
+            breadcrumbs={[
+                { title: 'انتقال اجناس', href: '/receipts' },
+                {
+                    title: receipt.reference_no,
+                    href: '/receipts/' + receipt.id,
+                },
+            ]}
+        >
             <div>
                 <section className="section">
-                    <div className="max-w-4xl mx-auto">
+                    <div className="mx-auto max-w-4xl">
                         <SectionTitle title={'جنس ' + receipt.reference_no} />
 
                         <div className="mt-5">
                             <div className="p-5">
-                                <div dir='rtl' className="flex justify-end items-end bg-white dark:bg-accent-foreground rounded-md p-5 shadow py-3">
-                                    <ul className="flex gap-5 justify-between w-full flex-wrap">
-                                        <li className="font-medium">تامیین کننده : {receipt.supplier.name}</li>
-                                        <li className="font-medium">رسید به :  {LocationTranslator(receipt.location.name)}</li>
-                                        <li className="font-medium">تاریخ : {new Date(receipt.received_at).toLocaleDateString('fa-AF')}</li>
+                                <div
+                                    dir="rtl"
+                                    className="flex items-end justify-end rounded-md bg-white p-5 py-3 shadow dark:bg-accent-foreground"
+                                >
+                                    <ul className="flex w-full flex-wrap justify-between gap-5">
+                                        <li className="font-medium">
+                                            تامیین کننده :{' '}
+                                            {receipt.supplier.name}
+                                        </li>
+                                        <li className="font-medium">
+                                            رسید به :{' '}
+                                            {LocationTranslator(
+                                                receipt.location.name,
+                                            )}
+                                        </li>
+                                        <li className="font-medium">
+                                            تاریخ :{' '}
+                                            {new Date(
+                                                receipt.received_at,
+                                            ).toLocaleDateString('fa-AF')}
+                                        </li>
                                     </ul>
                                 </div>
                             </div>
-                            <div dir='rtl'>
+                            <div dir="rtl">
                                 <Table>
-                                    {receipt.notes && <TableCaption>نوت : {receipt.notes}</TableCaption>}
+                                    {receipt.notes && (
+                                        <TableCaption>
+                                            نوت : {receipt.notes}
+                                        </TableCaption>
+                                    )}
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="text-center">
@@ -44,13 +74,13 @@ const Show = ({ receipt }: Props) => {
                                                 جنس
                                             </TableHead>
                                             <TableHead className="text-center">
-                                                مقدار
-                                            </TableHead>
-                                            <TableHead className="text-center">
-                                                وزن
+                                                مقدار دریافتی
                                             </TableHead>
                                             <TableHead className="text-center">
                                                 واحد جنس
+                                            </TableHead>
+                                            <TableHead className="text-center">
+                                                مقدار پایه
                                             </TableHead>
                                             <TableHead className="text-center">
                                                 قیمت فی عدد
@@ -61,22 +91,55 @@ const Show = ({ receipt }: Props) => {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {receipt.receipt_lines.map((line, ind) =>
-                                            <TableRow key={ind}>
-                                                <TableCell className="text-center">{ind+1}</TableCell>
-                                                <TableCell className="text-center">{line.item.name ?? '_'}</TableCell>
-                                                <TableCell className="text-center">{line.quantity}</TableCell>
-                                                <TableCell className="text-center">{line.item.product?.weight ?? 'N/A'}</TableCell>
-                                                <TableCell className="text-center">{line.item.unit}</TableCell>
-                                                <TableCell className="text-center">{line.unit_cost}</TableCell>
-                                                <TableCell className="text-center">{line.item.default_sale_price}</TableCell>
-                                            </TableRow>
+                                        {receipt.receipt_lines.map(
+                                            (line, ind) => (
+                                                <TableRow key={ind}>
+                                                    <TableCell className="text-center">
+                                                        {ind + 1}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {line.item.name ?? '_'}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {line.quantity}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {line.item_unit?.name ??
+                                                            line.item.base_unit
+                                                                ?.name ??
+                                                            line.item.unit}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {line.base_quantity ??
+                                                            line.quantity}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {line.unit_cost}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {line.item_unit
+                                                            ?.selling_price ??
+                                                            line.item
+                                                                .default_sale_price}
+                                                    </TableCell>
+                                                </TableRow>
+                                            ),
                                         )}
                                     </TableBody>
                                     <TableFooter>
                                         <TableRow>
-                                            <TableHead colSpan={2} className='text-start'>
-                                                جمله : {receipt.receipt_lines.reduce((acc,line)=>acc+=line.unit_cost*line.quantity,0)}
+                                            <TableHead
+                                                colSpan={7}
+                                                className="text-start"
+                                            >
+                                                جمله :{' '}
+                                                {receipt.receipt_lines.reduce(
+                                                    (acc, line) =>
+                                                        acc +
+                                                        line.unit_cost *
+                                                            line.quantity,
+                                                    0,
+                                                )}
                                             </TableHead>
                                         </TableRow>
                                     </TableFooter>
@@ -87,7 +150,7 @@ const Show = ({ receipt }: Props) => {
                 </section>
             </div>
         </AppLayout>
-    )
-}
+    );
+};
 
-export default Show
+export default Show;

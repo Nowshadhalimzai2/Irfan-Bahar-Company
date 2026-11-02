@@ -25,13 +25,13 @@ export default function Register({ passwordRules,roles }: Props) {
                 resetOnSuccess={['password', 'password_confirmation']}
                 disableWhileProcessing
                 className="flex flex-col gap-6"
-                dir='rtl'
+                // dir='rtl'
             >
                 {({ processing, errors }) => (
                     <>
                         <div className="grid gap-6" >
                             <div className="grid gap-2">
-                                <Label htmlFor="name">اسم یوزر</Label>
+                                <Label htmlFor="name">User Name</Label>
                                 <Input
                                     id="name"
                                     type="text"
@@ -49,7 +49,7 @@ export default function Register({ passwordRules,roles }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">ایمیل</Label>
+                                <Label htmlFor="email">Email</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -63,7 +63,7 @@ export default function Register({ passwordRules,roles }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="role">نقش یوزر</Label>
+                                <Label htmlFor="role">User Role</Label>
                                 <select
                                     id="role"
                                     name="role_id"
@@ -71,7 +71,7 @@ export default function Register({ passwordRules,roles }: Props) {
                                     tabIndex={3}
                                     className="border rounded px-3 py-2"
                                 >
-                                    <option value="">انتخاب نقش</option>
+                                    <option value="">Select role...</option>
                                     {roles.map((role) => (
                                         <option key={role.id} value={role.id}>
                                             {role.name.replace(/_/g, ' ')}
@@ -82,14 +82,14 @@ export default function Register({ passwordRules,roles }: Props) {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">رمز عبور</Label>
+                                <Label htmlFor="password">Password</Label>
                                 <PasswordInput
                                     id="password"
                                     required
                                     tabIndex={4}
                                     autoComplete="new-password"
                                     name="password"
-                                    placeholder="رمز عبور در سیستم"
+                                    placeholder="Password"
                                     passwordrules={passwordRules}
                                 />
                                 <InputError message={errors.password} />
@@ -98,7 +98,7 @@ export default function Register({ passwordRules,roles }: Props) {
 
                             <div className="grid gap-2">
                                 <Label htmlFor="password_confirmation">
-                                    تاییدی رمز
+                                    Confirm
                                 </Label>
                                 <PasswordInput
                                     id="password_confirmation"
@@ -106,7 +106,7 @@ export default function Register({ passwordRules,roles }: Props) {
                                     tabIndex={5}
                                     autoComplete="new-password"
                                     name="password_confirmation"
-                                    placeholder="رمز تان اینجا تایید کنید"
+                                    placeholder="confirm your password"
                                     passwordrules={passwordRules}
                                 />
                                 <InputError

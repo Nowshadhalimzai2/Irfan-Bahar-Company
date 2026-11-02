@@ -70,40 +70,40 @@ return new class extends Migration
     {
         if (Schema::hasTable('sales')) {
             Schema::table('sales', function (Blueprint $table) {
-                $table->dropIndexIfExists('sales_sold_at_index');
-                $table->dropIndexIfExists('sales_status_sold_at_index');
+                $table->dropIndex('sales_sold_at_index');
+                $table->dropIndex('sales_status_sold_at_index');
             });
         }
 
         if (Schema::hasTable('expenses')) {
             Schema::table('expenses', function (Blueprint $table) {
-                $table->dropIndexIfExists('expenses_date_index');
+                $table->dropIndex('expenses_date_index');
             });
         }
 
         if (Schema::hasTable('payments')) {
             Schema::table('payments', function (Blueprint $table) {
-                $table->dropIndexIfExists('payments_paid_at_index');
+                $table->dropIndex('payments_paid_at_index');
             });
         }
 
         if (Schema::hasTable('transfers')) {
             Schema::table('transfers', function (Blueprint $table) {
-                $table->dropIndexIfExists('transfers_transferred_at_index');
-                $table->dropIndexIfExists('transfers_source_destination_index');
+                $table->dropIndex('transfers_transferred_at_index');
+                $table->dropIndex('transfers_source_destination_index');
             });
         }
 
         if (Schema::hasTable('inventory_movements')) {
             Schema::table('inventory_movements', function (Blueprint $table) {
-                $table->dropIndexIfExists('inventory_movements_occured_at_index');
-                $table->dropIndexIfExists('inventory_movements_type_occured_at_index');
+                $table->dropIndex('inventory_movements_occured_at_index');
+                $table->dropIndex('inventory_movements_type_occured_at_index');
             });
         }
 
         if (Schema::hasTable('goods_receipts')) {
             Schema::table('goods_receipts', function (Blueprint $table) {
-                $table->dropIndexIfExists('goods_receipts_received_at_index');
+                $table->dropIndex('goods_receipts_received_at_index');
             });
         }
     }

@@ -42,12 +42,14 @@ export const getDariItemUnit = (unit: string) => {
             return 'جوره';
         case 'carton':
             return 'کارتن';
+        case 'piece':
+            return 'عدد';
         default:
             return unit;
     }
 }
 export const getDariCurrency = (currency: string) => currency === 'AFG' ? 'افغانی' : currency === 'PKR' ? 'کلداری' : currency === 'USD' ? 'دالر' : currency;
-export const getUnitOfMeasurements = () => [{ value: 'kg', label: 'کیلو' }, { value: 'gr', label: 'ګرام' }, { value: 'ltr', label: 'لیتر' }, { value: 'packet', label: 'پاکت' }, { value: 'carton', label: 'کارتن' }, { value: 'bundle', label: 'بسته' }, { value: 'pair', label: 'جوره' }, { value: 'unit', label: 'دانه' }, { value: 'bag', label: 'بوجی' }];
+export const getUnitOfMeasurements = () => [{ value: 'kg', label: 'کیلو' }, { value: 'gr', label: 'ګرام' }, { value: 'ltr', label: 'لیتر' }, { value: 'packet', label: 'پاکت' }, { value: 'carton', label: 'کارتن' }, { value: 'bundle', label: 'بسته' }, { value: 'pair', label: 'جوره' }, { value: 'unit', label: 'دانه' }, { value: 'bag', label: 'بوجی' },{ value: 'drum', label: 'بیلر' }];
 
 
 export const getSingleUnitWeight = (weight: number, per_pack: number = 1) => (weight / per_pack).toFixed(3);

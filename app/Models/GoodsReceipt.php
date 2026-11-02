@@ -10,6 +10,12 @@ class GoodsReceipt extends Model
 {
     protected $fillable = ['supplier_id', 'destination_location_id', 'reference_no', 'received_at', 'notes', 'total_amount', 'amount_paid', 'currency_id'];
 
+    protected $casts = [
+        'received_at' => 'date:Y-m-d',
+        'total_amount' => 'decimal:2',
+        'amount_paid' => 'decimal:2',
+    ];
+
     public function supplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class);

@@ -8,6 +8,7 @@ use App\Models\Currency;
 use App\Models\GoodsReceipt;
 use App\Models\GoodsReceiptLine;
 use App\Models\Item;
+use App\Models\ItemUnit;
 use App\Models\Location;
 use App\Models\Supplier;
 use App\Models\Transfer;
@@ -93,7 +94,18 @@ class GoodsReceiptController extends Controller
         }
 
         $currencies = Currency::select('id', 'name')->get();
-        $items = Item::with('product')->select('id', 'name', 'unit', 'default_sale_price', 'item_type','code')->get();
+        $items = Item::query()
+            ->with([
+                'product:item_id,weight',
+                'units' => fn ($query) => $query
+                    ->select('id', 'item_id', 'name', 'symbol', 'conversion_to_base', 'code', 'barcode', 'selling_price', 'purchase_price', 'is_active')
+                    ->where('is_active', true)
+                    ->orderBy('id'),
+                'baseUnit:id,item_id,name,symbol,conversion_to_base,code,barcode,selling_price,purchase_price,is_active',
+            ])
+            ->select('id', 'name', 'unit', 'default_sale_price', 'item_type', 'code', 'sku', 'base_unit_id')
+            ->orderBy('name')
+            ->get();
 
         return Inertia::render('goods-receipt/create', compact('suppliers', 'locations', 'currencies', 'items'));
     }
@@ -116,17 +128,31 @@ class GoodsReceiptController extends Controller
             'received_at' => 'required|date',
             'notes' => 'nullable|string|max:255',
             'receiptLines' => 'required|array|min:1',
-            'distination_id' => '',
-            // each line validation
-            'receiptLines.*.item_id' => 'required|integer|exists:items,id|distinct',
-            'receiptLines.*.quantity' => 'required|integer|gt:0',
+            'receiptLines.*.item_id' => 'required|integer|exists:items,id',
+            'receiptLines.*.item_unit_id' => 'required|integer|exists:item_units,id|distinct',
+            'receiptLines.*.quantity' => 'required|numeric|gt:0',
             'receiptLines.*.unit_cost' => 'required|numeric|gt:0',
         ]);
 
-        $currencyIds = collect($data['receiptLines'])->pluck('currency_id')->unique();
-        if ($currencyIds->count() !== 1) {
+        $units = ItemUnit::query()
+            ->whereIn('id', collect($data['receiptLines'])->pluck('item_unit_id'))
+            ->where('is_active', true)
+            ->get(['id', 'item_id', 'conversion_to_base'])
+            ->keyBy('id');
+
+        foreach ($data['receiptLines'] as $index => $line) {
+            $unit = $units->get((int) $line['item_unit_id']);
+
+            if (! $unit || (int) $unit->item_id !== (int) $line['item_id']) {
+                throw ValidationException::withMessages([
+                    "receiptLines.{$index}.item_unit_id" => 'واحد انتخاب‌شده به این جنس مربوط نیست.',
+                ]);
+            }
+        }
+
+        if (! $data['currency_id']) {
             throw ValidationException::withMessages([
-                'receiptLines' => 'تمام اقلام یک رسید باید واحد پول یکسان داشته باشند.',
+                'currency_id' => 'واحد پول رسید را انتخاب کنید.',
             ]);
         }
 
@@ -145,7 +171,6 @@ class GoodsReceiptController extends Controller
                 'notes' => $data['notes'] ?? '',
                 'received_at' => $data['received_at'],
                 'reference_no' => '',
-                'currency_id' => $currencyIds->first(),
                 'total_amount' => $totalAmount,
                 'amount_paid' => 0,
             ]);
@@ -155,11 +180,23 @@ class GoodsReceiptController extends Controller
 
             // ===== CREATE THE GOODS RECEIPE LINES =====
             foreach ($data['receiptLines'] as $line) {
-                GoodsReceiptLine::create(array_merge($line, ['receipt_id' => $receipt->id]));
+                $unit = $units->get((int) $line['item_unit_id']);
+                $conversionFactor = (float) $unit->conversion_to_base;
+                $baseQuantity = round((float) $line['quantity'] * $conversionFactor, 3);
+
+                GoodsReceiptLine::create([
+                    'receipt_id' => $receipt->id,
+                    'item_id' => $line['item_id'],
+                    'item_unit_id' => $line['item_unit_id'],
+                    'quantity' => $line['quantity'],
+                    'conversion_factor' => $conversionFactor,
+                    'base_quantity' => $baseQuantity,
+                    'unit_cost' => $line['unit_cost'],
+                ]);
 
                 //  ======== RECORD THE INVENTORY MOVEMENT ===
                 $inventory = new InvMovement();
-                $inventory->move($data['destination_location_id'], $line['item_id'], $line['quantity'], 'receipt', $data['notes']);
+                $inventory->move($data['destination_location_id'], $line['item_id'], $baseQuantity, 'receipt', $data['notes']);
             }
 
             $log->create('insert', ' جنس نو وارد شد در ' . $receipt->location->name);
@@ -177,8 +214,18 @@ class GoodsReceiptController extends Controller
 
     public function show(GoodsReceipt $receipt)
     {
-        $receipt->load('location:id,name','currency:id,name', 'receiptLines:id,item_id,quantity,receipt_id,unit_cost', 'supplier:id,name');
-        $receipt->load('receiptLines.item:id,name,unit,default_sale_price', 'receiptLines.item.product:item_id,weight');
+        $receipt->load(
+            'location:id,name',
+            'currency:id,name',
+            'receiptLines:id,item_id,item_unit_id,quantity,conversion_factor,base_quantity,receipt_id,unit_cost',
+            'supplier:id,name'
+        );
+        $receipt->load(
+            'receiptLines.item:id,name,unit,default_sale_price,code',
+            'receiptLines.item.baseUnit:id,name,symbol',
+            'receiptLines.itemUnit:id,item_id,name,symbol,conversion_to_base,code,barcode,selling_price',
+            'receiptLines.item.product:item_id,weight'
+        );
         return Inertia::render('goods-receipt/show', compact('receipt'));
     }
 }
