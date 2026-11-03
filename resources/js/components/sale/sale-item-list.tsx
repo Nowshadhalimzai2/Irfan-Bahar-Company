@@ -81,14 +81,14 @@ const SaleItemList = ({
                 .filter((line) => line.item),
         [items, lines],
     );
-
+        
     return (
         <section className="rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
             <div className="flex items-center justify-between border-b p-5">
                 <div className="flex items-center gap-3">
                     <ShoppingCart className="size-5 text-amber-600" />
                     <div>
-                        <h2 className="font-bold">سبد فروش</h2>
+                        <h2 className="font-bold">ثبت فروش</h2>
                         <p className="text-xs text-slate-500">
                             <span
                                 className={`${lines.length == 12 && 'font-medium text-red-500'}`}
@@ -112,7 +112,7 @@ const SaleItemList = ({
                 <div className="flex min-h-56 flex-col items-center justify-center gap-3 p-6 text-center">
                     <ShoppingCart className="size-9 text-slate-300" />
                     <p className="font-medium text-slate-600">
-                        سبد فروش خالی است
+                        ثبت فروش خالی است
                     </p>
                     <p className="text-xs text-slate-400">
                         برای شروع، یک بارکد را اسکن کنید.

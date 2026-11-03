@@ -145,7 +145,7 @@ export default function PaymentReceipt({
                             <td>{invoice.total}</td>
                             <td>{(invoice.remaining).toFixed(2)}</td>
                         </tr>
-                        <img src={logo as string} className="absolute top-0 z-0 -rotate-45 opacity-15 left-20 w-30 h-38" />
+                        {/* <img src={logo as string} className="absolute top-0 z-0 -rotate-45 opacity-15 left-20 w-30 h-38" /> */}
 
                     </tbody>
                 </table>

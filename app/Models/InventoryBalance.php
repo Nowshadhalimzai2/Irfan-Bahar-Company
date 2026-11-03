@@ -9,6 +9,11 @@ class InventoryBalance extends Model
 {
     protected $fillable = ['item_id','location_id','quantity_on_hand','reserved'];
 
+    protected $casts = [
+        'quantity_on_hand' => 'float',
+        'reserved' => 'float',
+    ];
+
     public function item() : BelongsTo {
         
         return $this->belongsTo(Item::class);

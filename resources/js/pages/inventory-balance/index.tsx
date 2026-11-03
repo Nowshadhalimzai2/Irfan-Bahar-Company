@@ -1,20 +1,23 @@
 import { router } from '@inertiajs/react';
 import { AlertTriangle, Boxes, CheckCircle2, Filter, PackageOpen, Search, SearchX, SlidersHorizontal, Sparkles, Store, Warehouse } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import ItemDrawer from '@/components/item-drawer';
 import LocationTranslator, { getDariCategory, getDariItemType, getDariItemUnit, locationColor } from '@/components/location-translator';
+import PageHead from '@/components/page-head';
 import PageLinks from '@/components/page-links';
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
-import type { InventoryBalance } from '@/types';
-import type { Item } from '@/types/item';
-import PageHead from '@/components/page-head';
-import ItemDrawer from '@/components/item-drawer';
+import type { InventoryBalance, Location } from '@/types';
+import type { Item, ItemUnit } from '@/types/item';
 
 
 
 type ItemWithInventory = Item & {
-    inventory_balances: InventoryBalance[];
-}
+    inventory_balances: (Omit<InventoryBalance, 'location'> & {
+        location: Pick<Location, 'id' | 'name'>;
+    })[];
+    units?: ItemUnit[];
+};
 
 interface Props {
     items: {
@@ -22,6 +25,7 @@ interface Props {
         current_page: number;
         from: number;
         last_page: number;
+        total: number;
         links: {
             url: string | null;
             label: string;
@@ -69,6 +73,11 @@ const Index = ({ items, locations }: Props) => {
                 normalizedSearch === '' ||
                 [item.name, item.sku, item.code, item.product?.barcode ?? ''].some((value) =>
                     value.toLowerCase().includes(normalizedSearch),
+                ) ||
+                (item.units ?? []).some((unit) =>
+                    [unit.name, unit.code, unit.barcode ?? ''].some((value) =>
+                        value.toLowerCase().includes(normalizedSearch),
+                    ),
                 );
 
             return matchesItemType && matchesCategory && matchesLocation && matchesSearch;
@@ -124,6 +133,10 @@ const Index = ({ items, locations }: Props) => {
     const totalStock = (item: ItemWithInventory) => {
         return item.inventory_balances.reduce((acc, balance) => acc + (balance.quantity_on_hand - balance.reserved), 0);
     };
+    const activeUnits = (item: ItemWithInventory) =>
+        item.units?.filter((unit) => unit.is_active) ?? [];
+    const baseUnit = (item: ItemWithInventory) =>
+        item.base_unit ?? activeUnits(item).find((unit) => Number(unit.conversion_to_base) === 1);
 
     return (
         <AppLayout breadcrumbs={[
@@ -134,7 +147,7 @@ const Index = ({ items, locations }: Props) => {
                 <PageHead
                     HeadIcon={Store}
                     title="ذخیره اجناس"
-                    description={" تمام اجناس که در شرکت فروخته می شود " + items.data.filter(item => item.inventory_balances.reduce((acc, balance) => acc += balance.quantity_on_hand, 0) > 0).length + " اقلام است."}
+                    description={`نمایش ${items.data.length} از ${items.total} قلم دارای موجودی`}
                     subtitle="اجناس شرکت"
                     tone='cyan'
                 />
@@ -262,15 +275,18 @@ const Index = ({ items, locations }: Props) => {
 
 
 
-                        <div className={`grid grid-cols-1 ${filteredItems.length > 0 ? 'lg:grid-cols-3' : ' lg:grid-cols-1'} gap-5 md:gap-3 mt-5`}>
-                            {filteredItems.length > 0 ? filteredItems.map((item, ind) =>
-                                <div className="group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(15,23,42,0.12)] dark:border-slate-700 dark:bg-slate-900" key={ind}>
-                                    <div className="relative overflow-hidden bg-linear-to-r from-primary/20 via-secondary/20 to-slate-200">
-                                        <img src={"https://picsum.photos/275/60"} alt="" className="h-24 w-full object-cover opacity-90" />
-                                        <div className="absolute inset-0 bg-linear-to-t from-slate-950/50 to-transparent" />
-                                        <h2 className="absolute inset-x-4 bottom-3 text-center text-lg font-bold text-white drop-shadow-md">
-                                            <ItemDrawer item={item as Item} trigger={<div ><span className='text-sm font-normal text-white'>{item.code}</span><span>{item.name}</span></div>} />
-                                        </h2>
+                        <div className={`grid grid-cols-1 ${filteredItems.length > 0 ? 'lg:grid-cols-3' : 'lg:grid-cols-1'} mt-5 gap-5 md:gap-3`}>
+                            {filteredItems.length > 0 ? filteredItems.map((item) =>
+                                <div className="group flex flex-col overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_12px_36px_rgba(15,23,42,0.07)] transition-all duration-300 hover:-translate-y-1 hover:border-primary/30 hover:shadow-[0_24px_50px_rgba(15,23,42,0.13)] dark:border-slate-700/80 dark:bg-slate-900" key={item.id}>
+                                    <div className="relative flex min-h-28 items-end justify-between gap-3 overflow-hidden bg-linear-to-br from-primary via-primary/85 to-slate-800 p-4">
+                                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.22),transparent_48%)]" />
+                                        <Boxes className="absolute -bottom-5 -left-3 size-28 rotate-12 text-white/10 transition-transform duration-500 group-hover:rotate-6 group-hover:scale-110" />
+                                        <div className="relative min-w-0 text-white">
+                                            <span className="mb-1 inline-flex rounded-full border border-white/20 bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white/80">{item.code || item.sku || 'بدون کود'}</span>
+                                            <h2 className="truncate text-lg font-bold drop-shadow-md">
+                                                <ItemDrawer item={item} trigger={<span>{item.name}</span>} />
+                                            </h2>
+                                        </div>
                                         <div className={`absolute right-3 top-3 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold shadow-sm ${totalStock(item) <= 10
                                             ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
                                             : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
@@ -280,32 +296,40 @@ const Index = ({ items, locations }: Props) => {
                                         </div>
                                     </div>
                                     <div className="flex flex-1 flex-col p-4">
-                                        <div className="space-y-3">
+                                        <div className="space-y-4">
                                             <div className="grid grid-cols-2 gap-2">
-                                                <p className='rounded-xl border border-primary/20 bg-primary/5 px-2 py-1.5 text-center text-xs font-medium text-primary'>{getDariItemType(item.item_type)}</p>
-                                                <p className='rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'>{item.sku}</p>
-                                                {item.item_type === 'product' && <p className='rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'>{item.product?.weight}</p>}
-                                                {item.item_type === 'product' && <p className='rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'>{item.product?.per_pack}</p>}
-                                                <p className='rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'>{item.default_sale_price}</p>
-                                                <p className='rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-center text-xs font-medium text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'>{getDariCategory(item.category.name)}</p>
+                                                <p className="rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-center text-xs font-semibold text-primary">{getDariItemType(item.item_type)}</p>
+                                                <p className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">SKU: {item.sku || '—'}</p>
+                                                <p className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">کتگوری: {item.category?.name ? getDariCategory(item.category.name) : '—'}</p>
+                                                <p className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">واحد پایه: {baseUnit(item)?.name ?? getDariItemUnit(item.unit)}</p>
+                                                {item.product?.weight != null && <p className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">وزن: {item.product.weight}</p>}
+                                                {item.product?.per_pack != null && <p className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">تعداد در بسته: {item.product.per_pack}</p>}
                                             </div>
-                                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 shadow-inner dark:border-slate-700 dark:bg-slate-800/80">
+                                            <div className="rounded-2xl border border-slate-200/80 bg-linear-to-br from-slate-50 to-white p-3 shadow-sm dark:border-slate-700 dark:from-slate-800/80 dark:to-slate-900">
                                                 <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                                                     <Warehouse className="h-3.5 w-3.5" />
                                                     موجودی مکان‌ها
                                                 </div>
                                                 <div className="space-y-2" dir='rtl'>
-                                                    {item.inventory_balances.map((balance, ind) => <ul key={ind} className={`flex items-center justify-between gap-3 rounded-xl bg-white px-2 py-1.5 text-xs shadow-sm dark:bg-slate-900 ${balance.quantity_on_hand < 10 && ' bg-red-100!'}`}>
-                                                        <li className={`${locationColor(balance.location.name)} font-medium`}>{LocationTranslator(balance.location.name)}</li>
-                                                        <li className="text-slate-700 dark:text-slate-200">{balance.quantity_on_hand} {getDariItemUnit(item.unit)}</li>
-                                                        <li className="text-slate-500">رزرو: {balance.reserved}</li>
+                                                    {item.inventory_balances.map((balance) => <ul key={balance.id} className="rounded-xl bg-white px-2 py-2 text-xs shadow-sm dark:bg-slate-900">
+                                                        <li className={`mb-1 font-semibold ${locationColor(balance.location.name)}`}>{LocationTranslator(balance.location.name)}</li>
+                                                        <li className="flex flex-wrap justify-between gap-x-3 gap-y-1 text-slate-700 dark:text-slate-200">
+                                                            <span>موجودی: {Number(balance.quantity_on_hand).toLocaleString()} {baseUnit(item)?.name ?? getDariItemUnit(item.unit)}</span>
+                                                            <span>رزرو: {Number(balance.reserved).toLocaleString()}</span>
+                                                            <span className="font-semibold">قابل استفاده: {Math.max(0, Number(balance.quantity_on_hand) - Number(balance.reserved)).toLocaleString()}</span>
+                                                        </li>
+                                                        {activeUnits(item).length > 1 && <li className="mt-2 flex flex-wrap gap-2 border-t pt-2 text-slate-500">
+                                                            {activeUnits(item).map((unit) => (
+                                                                <span key={unit.id}>{unit.name}: {(Math.max(0, Number(balance.quantity_on_hand) - Number(balance.reserved)) / Number(unit.conversion_to_base || 1)).toLocaleString(undefined, { maximumFractionDigits: 3 })}</span>
+                                                            ))}
+                                                        </li>}
                                                     </ul>)}
                                                 </div>
                                             </div>
                                         </div>
                                         <div className='mt-4 flex items-center justify-between rounded-2xl bg-linear-to-r from-slate-100 to-slate-50 px-3 py-2 text-xs font-medium text-slate-700 dark:from-slate-800 dark:to-slate-900 dark:text-slate-200'>
-                                            <p>{(item.default_sale_price * totalStock(item)).toFixed(2)} جمله پول</p>
-                                            <p>{totalStock(item)} جمله {getDariItemUnit(item.unit)}</p>
+                                            <p>{Math.max(0, totalStock(item)).toLocaleString()} موجودی قابل استفاده</p>
+                                            <p>واحد پایه: {baseUnit(item)?.name ?? getDariItemUnit(item.unit)}</p>
                                         </div>
                                     </div>
                                 </div>) : <div className='flex w-full items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'> <div className="flex flex-col items-center gap-3"><SearchX className="h-8 w-8" /><p className='text-sm'>ریکورد موجود نیست!</p></div> </div>}

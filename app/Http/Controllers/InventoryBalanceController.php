@@ -15,11 +15,25 @@ class InventoryBalanceController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Item::with('inventoryBalances', 'inventoryBalances.location:id,name', 'product:item_id,per_pack,weight,barcode', 'category:id,name')
+        $query = Item::query()
+            ->with([
+                'inventoryBalances.location:id,name',
+                'units' => fn ($unitQuery) => $unitQuery
+                    ->select('id', 'item_id', 'name', 'symbol', 'conversion_to_base', 'code', 'barcode', 'selling_price', 'purchase_price', 'is_active')
+                    ->where('is_active', true)
+                    ->orderBy('conversion_to_base'),
+                'baseUnit:id,item_id,name,symbol,conversion_to_base,code,barcode,selling_price,purchase_price,is_active',
+                'product:item_id,per_pack,weight,barcode,description',
+                'category:id,name',
+            ])
             ->whereHas('inventoryBalances', function ($balanceQuery) {
-                $balanceQuery->whereNot('quantity_on_hand', 0)
+                $balanceQuery
+                    ->where(function ($quantityQuery) {
+                        $quantityQuery->whereNot('quantity_on_hand', 0)
+                            ->orWhereNot('reserved', 0);
+                    })
                     ->whereHas('location', function ($locationQuery) {
-                        $locationQuery->whereIn('name', ['factory', 'warehouse', 'shop']);
+                        $locationQuery->whereIn('type', ['factory', 'warehouse', 'shop']);
                     });
             });
 
@@ -50,8 +64,9 @@ class InventoryBalanceController extends Controller
         }
 
         $items = $query->paginate(10)->withQueryString();
-        $locations = Location::select('id', 'name')
-            ->whereIn('name', ['factory', 'warehouse', 'shop'])
+        $locations = Location::query()
+            ->select('id', 'name')
+            ->whereIn('type', ['factory', 'warehouse', 'shop'])
             ->orderBy('name')->get();
 
         return Inertia::render('inventory-balance/index', compact('items', 'locations'));

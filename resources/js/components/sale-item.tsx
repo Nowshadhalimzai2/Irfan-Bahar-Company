@@ -2,6 +2,7 @@ import { Eye, Minus, Package, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import ItemDrawer from './item-drawer';
 import { Input } from './ui/input';
+import { getDariItemUnit } from './location-translator';
 
 type Balance = {
     location_id: number;
@@ -32,6 +33,7 @@ type Item = {
         conversion_to_base: number;
         selling_price: number;
     } | null;
+    // item:string;
 };
 interface Props {
     item: Item;
@@ -128,7 +130,7 @@ const SaleItem = ({
             </div>
             <b className="ml-auto w-auto text-left text-sm sm:w-28">
                 {(quantity * unit_price).toFixed(2)}
-                {currency?.name ?? currency.name ?? ''}
+                {currency?.name  ?? ''}
             </b>
             <button
                 type="button"
@@ -150,7 +152,7 @@ const SaleItem = ({
             >
                 {itemUnits.map((unit) => (
                     <option key={unit.id} value={unit.id}>
-                        {unit.name} — ×{unit.conversion_to_base}
+                        {getDariItemUnit(unit.name)} — ×{Number(unit.conversion_to_base).toFixed(3)}
                     </option>
                 ))}
             </select>
