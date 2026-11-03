@@ -24,8 +24,9 @@ class ProductionInputController extends Controller
 
         $production_order->load([
             'bom:id,formula_name,min_exp_qty,max_exp_qty',
-            'bom.bomLines:id,item_id,bom_id,required_quantity',
+            'bom.bomLines:id,item_id,item_unit_id,bom_id,required_quantity',
             'bom.bomLines.item:id,name,unit',
+            'bom.bomLines.itemUnit:id,name,symbol,conversion_to_base',
             'productionInputs:id,production_order_id,item_id,quantity_used',
             'productionInputs.item:id,name,unit,code',
         ]);
@@ -99,7 +100,7 @@ class ProductionInputController extends Controller
 
                 $submittedProductIds = collect($data['outputs'])
                     ->pluck('item_id')
-                    ->map(fn($id) => (int) $id)
+                    ->map(fn ($id) => (int) $id)
                     ->all();
 
                 // Remove products deleted from the confirmation form.
@@ -119,7 +120,7 @@ class ProductionInputController extends Controller
                     $order->reference_no
                 );
 
-                (new Log())->create(
+                (new Log)->create(
                     'update',
                     $description,
                     null,
@@ -191,15 +192,16 @@ class ProductionInputController extends Controller
                 $oldStatus = $order->status;
                 $order->update(['status' => 'completed']);
 
-                $description = 'حالت سفارش ' . $order->reference_no
-                    . ' از ' . $oldStatus . ' به completed تغییر کرد';
-                
-                    //  ALERT USERS FOR ORDER COMPLETTION
-                $users = User::query()->with('role:id,name')->whereHas('role',fn($p0) => $p0->whereIn('name',['admin','super_admin','shop_clerk']))->get();
-                foreach($users as $user)
-                    $user->notify(new OrderProcessed($order));
+                $description = 'حالت سفارش '.$order->reference_no
+                    .' از '.$oldStatus.' به completed تغییر کرد';
 
-                (new Log())->create(
+                //  ALERT USERS FOR ORDER COMPLETTION
+                $users = User::query()->with('role:id,name')->whereHas('role', fn ($p0) => $p0->whereIn('name', ['admin', 'super_admin', 'shop_clerk']))->get();
+                foreach ($users as $user) {
+                    $user->notify(new OrderProcessed($order));
+                }
+
+                (new Log)->create(
                     'update',
                     $description,
                     null,
@@ -228,7 +230,7 @@ class ProductionInputController extends Controller
 
         $submittedItemIds = collect($data['orderInputs'])
             ->pluck('item_id')
-            ->map(fn($id) => (int) $id)
+            ->map(fn ($id) => (int) $id)
             ->all();
 
         $order->productionInputs()
@@ -244,16 +246,16 @@ class ProductionInputController extends Controller
                 ['quantity_used' => $input['quantity_used']],
             );
 
-            $moved = (new InvMovement())->move(
+            $moved = (new InvMovement)->move(
                 $location->id,
                 $input['item_id'],
                 (float) $input['quantity_used'],
                 'production_consumption',
-                'Production order ' . $order->reference_no,
+                'Production order '.$order->reference_no,
                 '-',
             );
 
-            if (!$moved) {
+            if (! $moved) {
                 throw new \RuntimeException('در کارخانه مواد کافی نداریم.');
             }
         }
@@ -265,15 +267,15 @@ class ProductionInputController extends Controller
         // dd($order->productionOutputs);
 
         foreach ($order->productionOutputs as $output) {
-            $moved = (new InvMovement())->move(
+            $moved = (new InvMovement)->move(
                 $location->id,
                 $output->product_id,
                 (float) $output->quantity_produced,
                 'production_output',
-                'Production order ' . $order->reference_no,
+                'Production order '.$order->reference_no,
             );
 
-            if (!$moved) {
+            if (! $moved) {
                 throw new \RuntimeException('موجودی محصول تولیدشده به‌روزرسانی نشد.');
             }
         }
@@ -291,7 +293,7 @@ class ProductionInputController extends Controller
                 'integer',
                 'distinct',
                 Rule::exists('items', 'id')->where(
-                    fn($query) => $query->where('item_type', '!=', 'product')
+                    fn ($query) => $query->where('item_type', '!=', 'product')
                 ),
             ],
             'orderInputs.*.quantity_used' => ['required', 'numeric', 'gte:0'],
@@ -315,7 +317,7 @@ class ProductionInputController extends Controller
     {
         Inertia::flash('toast', [
             'type' => 'error',
-            'message' => 'درخواست پذیرفته نشد. ' . $exception->getMessage(),
+            'message' => 'درخواست پذیرفته نشد. '.$exception->getMessage(),
         ]);
 
         return redirect()->back()->withErrors([

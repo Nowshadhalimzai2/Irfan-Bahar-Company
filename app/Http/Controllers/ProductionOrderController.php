@@ -15,7 +15,6 @@ use App\Models\User;
 use App\Notifications\NewOrderCreated;
 use App\Notifications\OrderProcessed;
 use Carbon\Carbon;
-use Error;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -26,10 +25,11 @@ use Inertia\Response;
 
 class ProductionOrderController extends Controller
 {
-
-    private function getAuthUser():User{
+    private function getAuthUser(): User
+    {
         return Auth::user();
     }
+
     public function index(): Response
     {
         $production_orders = ProductionOrder::with([
@@ -45,9 +45,10 @@ class ProductionOrderController extends Controller
 
         return Inertia::render('factory/order/index', compact('production_orders'));
     }
+
     public function junks(): Response
     {
-        Gate::authorize(!$this->getAuthUser()->hasRole('shop_clerk'));
+        Gate::authorize(! $this->getAuthUser()->hasRole('shop_clerk'));
         $junkOrders = ProductionOrder::with([
             'bom:id,category_id',
             'bom.category:id,name',
@@ -62,6 +63,7 @@ class ProductionOrderController extends Controller
 
         return Inertia::render('factory/order/junks', compact('junkOrders'));
     }
+
     public function create()
     {
 
@@ -69,6 +71,7 @@ class ProductionOrderController extends Controller
         if ($boms->count() == 0) {
             $des = 'هیج فورمول وجود ندارد . لطفا اول فورمول را اضافه و بعدا سفارش بدهید.';
             Inertia::flash('toast', ['type' => 'error', 'message' => $des]);
+
             return redirect()->to(route('boms.create'));
         }
 
@@ -78,11 +81,11 @@ class ProductionOrderController extends Controller
     public function store(Request $request)
     {
         $data = $this->validateOrder($request);
-        $log = new Log();
+        $log = new Log;
         DB::beginTransaction();
 
         try {
-            // create the Production Order 
+            // create the Production Order
             $order = $this->createProductionOrder($data);
 
             $order->reference_no = sprintf('ORD-%s-%s', Carbon::now(config('app.timezone'))->year, str_pad($order->id, 5, '0', STR_PAD_LEFT));
@@ -97,28 +100,30 @@ class ProductionOrderController extends Controller
             // ============= CREATE PRODUCTION INPUTS ============
             $this->createProductionInputs($order);
 
-            $des = 'سفارش ' . $data['ordered_by'] . ' در سیستم ثبت شد ';
-            $log->create('insert', $des, null, '/factory/production-orders/' . $order->id);
+            $des = 'سفارش '.$data['ordered_by'].' در سیستم ثبت شد ';
+            $log->create('insert', $des, null, '/factory/production-orders/'.$order->id);
             $notifiableUsers = User::query()
                 ->with('role:id,name')
-                ->whereHas('role', fn($q) => $q->whereIn('name', ['admin', 'super_admin', 'factory_clerk']))
+                ->whereHas('role', fn ($q) => $q->whereIn('name', ['admin', 'super_admin', 'factory_clerk']))
                 ->get();
             foreach ($notifiableUsers as $user) {
                 $user->notify(new NewOrderCreated($order));
             }
             DB::commit();
             Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
+
             return redirect()->to(route('orders.index'));
         } catch (\Throwable $th) {
             // Let validation exceptions bubble so Inertia/Laravel can return proper validation responses
             if ($th instanceof ValidationException) {
                 throw $th;
             }
-            $des = ' متاسفانه سفارش' . ($data['ordered_by'] ?? '') . 'در ثبت سیستم ثبت نشد ';
+            $des = ' متاسفانه سفارش'.($data['ordered_by'] ?? '').'در ثبت سیستم ثبت نشد ';
             $log->create('insert', $des);
 
             DB::rollBack();
-            Inertia::flash('toast', ['type' => 'error', 'message' => $des . $th->getMessage()]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => $des.$th->getMessage()]);
+
             return redirect()->back();
         }
     }
@@ -129,6 +134,7 @@ class ProductionOrderController extends Controller
         $productionOrder->load('bom:id,category_id', 'bom.category:id,name');
         $productionOrder->load('productionOutputs:id,product_id,quantity_produced,production_order_id', 'productionOutputs.product:item_id,per_pack,weight', 'productionOutputs.product.item:id,name,unit,code');
         $productionOrder->load('wastes:id,production_order_id');
+
         return Inertia::render('factory/order/show', compact('productionOrder', 'logo'));
     }
 
@@ -138,10 +144,11 @@ class ProductionOrderController extends Controller
         $currentStatus = $production_order->status;
         DB::beginTransaction();
         try {
-            if ($currentStatus === "pending") {
-                if ($status === "completed") {
+            if ($currentStatus === 'pending') {
+                if ($status === 'completed') {
                     Inertia::flash('toast', ['type' => 'error', 'message' => 'شما نمی توانین که از حالت منتظر به حالت تکیمل شده یک سفارش را ببرید. لطفا اول سفارش را به حالت جریان ارسال کنید!']);
                     DB::rollBack();
+
                     return redirect()->back();
                 }
             }
@@ -158,29 +165,30 @@ class ProductionOrderController extends Controller
                 }
                 $production_order->status = $status;
                 $production_order->save();
-                $log = new Log();
-                $des = 'حالت سفارش ' . $production_order->reference_no . ' تغیر از ' . $currentStatus . ' به' . $status . 'شد';
+                $log = new Log;
+                $des = 'حالت سفارش '.$production_order->reference_no.' تغیر از '.$currentStatus.' به'.$status.'شد';
                 $log->create('update', $des, null, route('orders.show', $production_order->id));
                 $notifiableUsers = User::query()
                     ->with('role:id,name')
-                    ->whereHas('role', fn($q) => $q->whereIn('name', ['admin', 'super_admin', 'shop_clerk']))
+                    ->whereHas('role', fn ($q) => $q->whereIn('name', ['admin', 'super_admin', 'shop_clerk']))
                     ->get();
                 foreach ($notifiableUsers as $user) {
                     $user->notify(new OrderProcessed($production_order));
                 }
                 DB::commit();
-                Inertia::flash('toast', ['type' => "success", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به شد' . $status]);
+                Inertia::flash('toast', ['type' => 'success', 'message' => 'حالت سفارش تغیر از '.$currentStatus.'  به شد'.$status]);
+
                 return redirect()->to(route('orders.show', $production_order->id));
             }
 
             return redirect()->to(route('orders.confirm-outputs', [$production_order, $status]));
         } catch (\Throwable $th) {
             DB::rollBack();
-            Inertia::flash('toast', ['type' => "error", 'message' => 'حالت سفارش تغیر از ' . $currentStatus . '  به نشد' . $status . ': مشکل: ' . $th->getMessage()]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'حالت سفارش تغیر از '.$currentStatus.'  به نشد'.$status.': مشکل: '.$th->getMessage()]);
+
             return redirect()->back();
         }
     }
-
 
     public function getCategoryBasedProducts(Category $category)
     {
@@ -190,27 +198,35 @@ class ProductionOrderController extends Controller
                 $query->where('name', $category->name);
             })
             ->get();
+
         return response()->json($products);
     }
 
     private function ensureTheresEnoughQuantityInFactory(Item $item, float $req_qty): void
     {
         $location = Location::firstWhere('name', 'factory');
-        if ($location === null)
+        if ($location === null) {
             abort(404, 'the factory is not found for processing the order');
+        }
         $balance = InventoryBalance::where('location_id', $location->id)->where('item_id', $item->id)->first();
-        if ($balance === null)
-            abort(404, 'the balance is not found for the item : ' . $item->name . ' check the balance and retry!');
+        if ($balance === null) {
+            abort(404, 'the balance is not found for the item : '.$item->name.' check the balance and retry!');
+        }
         $quantity_in_stock = $balance->quantity_on_hand - $balance->reserved;
         // dd($req_qty);
-        if ($quantity_in_stock < $req_qty)
-            abort(422, 'there is not enough quantity in factory for the item : ' . $item->name);
+        if ($quantity_in_stock < $req_qty) {
+            abort(422, 'there is not enough quantity in factory for the item : '.$item->name);
+        }
     }
 
     private function createProductionInputs(ProductionOrder $production_order)
     {
-        // load bomLine 
-        $production_order->load('bom:id,formula_name,min_exp_qty,max_exp_qty', 'bom.bomLines:id,item_id,bom_id,required_quantity', 'bom.bomLines.item:id,name,unit');
+        // load bomLine
+        $production_order->load(
+            'bom:id,formula_name,min_exp_qty,max_exp_qty',
+            'bom.bomLines:id,item_id,item_unit_id,bom_id,required_quantity',
+            'bom.bomLines.itemUnit:id,conversion_to_base',
+        );
 
         // Get At least and at most expected quantity;
         // $min_exp_qty = $production_order->bom->min_exp_qty;
@@ -225,15 +241,16 @@ class ProductionOrderController extends Controller
             $ordered_qty += ($output->quantity_produced * $output->product->weight);
         }
 
-
         if ($max_exp_qty <= 0) {
             abort(422, 'مقدار تخمینی فورمول کمتر از صفر است. مقدار تخمینی را چک و دوباره کوشش کنید');
         }
 
         foreach ($production_order->bom->bomLines as $bom_line) {
             $quantity_used = round(
-                ($bom_line->required_quantity * $ordered_qty) / $max_exp_qty,
-                4
+                ($bom_line->required_quantity
+                    * (float) ($bom_line->itemUnit?->conversion_to_base ?? 1)
+                    * $ordered_qty) / $max_exp_qty,
+                3
             );
 
             ProductionInput::updateOrCreate(
