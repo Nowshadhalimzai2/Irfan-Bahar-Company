@@ -2,7 +2,7 @@ import type { Currency, Customer, Location, Supplier } from '.';
 
 export interface GoodsReceipt {
     id: number;
-    supplier: Supplier;
+    supplier: Supplier | null;
     location: Location;
     receipt_lines: GoodsReceiptLine[];
     reference_no: string;

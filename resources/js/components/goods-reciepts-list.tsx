@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { ArrowRight, ChevronDown, PackagePlus, Search, SlidersHorizontal, Warehouse, X } from 'lucide-react';
+import { ChevronDown, PackagePlus, Search, SlidersHorizontal, Warehouse, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import LocationTranslator from '@/components/location-translator';
 import { formatGregorianDate, formatPersianDate } from '@/components/persian-date-picker';
@@ -32,15 +32,16 @@ const GoodsReceiptList = ({ goodsReceipts, receivedDate, transferDate }: Props) 
     const [search, setSearch] = useState('');
     const [supplier, setSupplier] = useState('all');
     const [location, setLocation] = useState('all');
-    const suppliers = useMemo(() => Array.from(new Set(goodsReceipts.data.map((receipt) => receipt.supplier.name))), [goodsReceipts.data]);
+    const suppliers = useMemo(() => Array.from(new Set(goodsReceipts.data.map((receipt) => receipt.supplier?.name ?? 'تأمین‌کننده حذف‌شده'))), [goodsReceipts.data]);
     const locations = useMemo(() => Array.from(new Set(goodsReceipts.data.map((receipt) => LocationTranslator(receipt.location.name)))), [goodsReceipts.data]);
 
     const filteredReceipts = useMemo(() => goodsReceipts.data.filter((receipt) => {
         const receiptLocation = LocationTranslator(receipt.location.name);
-        const searchable = `${receipt.reference_no} ${receipt.supplier.name} ${receiptLocation}`.toLowerCase();
+        const supplierName = receipt.supplier?.name ?? 'تأمین‌کننده حذف‌شده';
+        const searchable = `${receipt.reference_no} ${supplierName} ${receiptLocation}`.toLowerCase();
 
         return searchable.includes(search.toLowerCase())
-            && (supplier === 'all' || receipt.supplier.name === supplier)
+            && (supplier === 'all' || supplierName === supplier)
             && (location === 'all' || receiptLocation === location);
     }), [goodsReceipts.data, location, search, supplier]);
 
@@ -116,7 +117,7 @@ const GoodsReceiptList = ({ goodsReceipts, receivedDate, transferDate }: Props) 
                                     <TableRow key={receipt.id} className="cursor-pointer transition-colors hover:bg-amber-50/60 dark:hover:bg-amber-950/20" onClick={() => router.get('/receipts/' + receipt.id)}>
                                         <TableCell className="text-center">{ind + 1}</TableCell>
                                         <TableCell className="text-center">{receipt.reference_no}</TableCell>
-                                        <TableCell className="text-center">{receipt.supplier.name}</TableCell>
+                                        <TableCell className="text-center">{receipt.supplier?.name ?? 'تأمین‌کننده حذف‌شده'}</TableCell>
                                         <TableCell className="text-center">{LocationTranslator(receipt.location.name)}</TableCell>
                                         <TableCell className="text-center text-sm text-muted-foreground">{formatPersianDate(String(receipt.received_at))}</TableCell>
                                         <TableCell className="text-center font-semibold">{receipt.receipt_lines.reduce((total, line) => total + Number(line.quantity) * Number(line.unit_cost), 0).toLocaleString()}</TableCell>

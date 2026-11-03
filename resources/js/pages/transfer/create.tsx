@@ -2,7 +2,6 @@ import { useForm, Link } from '@inertiajs/react';
 import axios from 'axios';
 import {
     ArrowLeft,
-    CalendarDays,
     CheckCircle2,
     ClipboardList,
     PackageCheck,
@@ -14,6 +13,11 @@ import type { FormEvent } from 'react';
 import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
 import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
+import {
+    formatGregorianDate,
+    parseGregorianDate,
+} from '@/components/persian-date-picker';
+import PersionDatePicker from '@/components/persion-date-picker';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -74,7 +78,7 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
     const { data, setData, errors, post, processing } = useForm<TransferType>({
         source_id: sourceLocations[0]?.id ?? 1,
         destination_id: locations[1]?.id ?? 1,
-        transferred_at: new Date().toISOString().slice(0, 10),
+        transferred_at: formatGregorianDate(new Date()),
         notes: '',
         transferLines: [],
     });
@@ -388,27 +392,17 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                                 </div>
                                 <div className="mt-5 grid gap-2 md:grid-cols-2">
                                     <div className="grid gap-2">
-                                        <Label htmlFor="transferred_at">
-                                            تاریخ انتقال{' '}
-                                            <span className="text-destructive">
-                                                *
-                                            </span>
-                                        </Label>
-                                        <div className="relative">
-                                            <CalendarDays className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                                            <Input
-                                                id="transferred_at"
-                                                type="date"
-                                                value={data.transferred_at}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'transferred_at',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                className="h-11 pr-10"
-                                            />
-                                        </div>
+                                        <PersionDatePicker
+                                            id="transferred_at"
+                                            label="تاریخ انتقال"
+                                            value={parseGregorianDate(data.transferred_at) ?? null}
+                                            onChange={(date) =>
+                                                setData(
+                                                    'transferred_at',
+                                                    date ? formatGregorianDate(date) : '',
+                                                )
+                                            }
+                                        />
                                         <InputError
                                             message={errors.transferred_at}
                                         />
@@ -557,8 +551,8 @@ const Create = ({ locations, items, sourceLocations }: Props) => {
                                                     </span>
                                                     <span className="text-sm text-muted-foreground">
                                                         {currentLine.quantity}{' '}
-                                                        {selectedUnit?.name ??
-                                                            'واحد'}
+                                                        {getDariItemUnit(selectedUnit?.name ??
+                                                            'واحد')}
                                                     </span>
                                                 </Label>
                                                 <Input

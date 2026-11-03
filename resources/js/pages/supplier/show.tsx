@@ -259,6 +259,7 @@ export default function Show({
                         allocation.goods_receipt_id !== receipt.id,
                 ),
             );
+
             return;
         }
 
@@ -345,6 +346,7 @@ export default function Show({
                         allocation.goods_receipt_id !== receipt.id,
                 ),
             );
+
             return;
         }
 
@@ -502,28 +504,38 @@ export default function Show({
                                 ویرایش اطلاعات
                             </Link>
 
-                            <Button
-                                onClick={() => setPaymentOpen(true)}
-                                className="rounded-xl bg-emerald-500 text-white hover:bg-emerald-600"
-                            >
-                                <HandCoins className="ml-2 size-4" />
-                                ثبت پرداخت
-                            </Button>
-
                             <button
                                 type="button"
-                                onClick={() => console.log('leter plan')
-
-                                    // router.put(
-                                    //     `/suppliers/status/${supplier.id}`,
-                                    // )
-                                }
+                                onClick={() => {
+                                    if (
+                                        confirm(
+                                            supplier.status
+                                                ? 'تأمین‌کننده غیرفعال شود؟ رسیدها و پرداخت‌های قبلی محفوظ می‌ماند.'
+                                                : 'تأمین‌کننده دوباره فعال شود؟',
+                                        )
+                                    ) {
+                                        router.put(
+                                            `/suppliers/status/${supplier.id}`,
+                                        );
+                                    }
+                                }}
                                 className="rounded-xl border border-white/30 px-4 py-2 text-sm hover:bg-white/10"
                             >
                                 {supplier.status
-                                    ? 'غیرفعال‌سازی'
-                                    : 'فعال‌سازی'}
+                                    ? 'غیرفعال کردن تأمین‌کننده'
+                                    : 'فعال کردن تأمین‌کننده'}
                             </button>
+
+                            {supplier.status && (
+                                <Button
+                                    type="button"
+                                    onClick={() => setPaymentOpen(true)}
+                                    className="rounded-xl bg-emerald-500 text-white hover:bg-emerald-600"
+                                >
+                                    <HandCoins className="ml-2 size-4" />
+                                    ثبت پرداخت
+                                </Button>
+                            )}
                         </div>
                     </div>
 
@@ -870,7 +882,6 @@ export default function Show({
                     receipts={allocationReceipts}
                     currencyName={currencyName}
                     data={allocationData}
-                    setData={setAllocationData}
                     errors={allocationErrors}
                     processing={allocationProcessing}
                     remainingCredit={allocationCreditRemaining}
@@ -1101,7 +1112,6 @@ function AllocationDialog({
     receipts,
     currencyName,
     data,
-    setData,
     errors,
     processing,
     remainingCredit,

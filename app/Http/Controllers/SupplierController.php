@@ -169,20 +169,17 @@ class SupplierController extends Controller
 
     public function destroy(Supplier $supplier): RedirectResponse
     {
+        return DB::transaction(function () use ($supplier): RedirectResponse {
+            $supplier->update(['status' => false]);
+            (new Log())->create('update', 'تأمین کننده ' . $supplier->name . ' غیرفعال شد');
 
-        DB::beginTransaction();
-        try {
-            $supplier->delete();
-            $log = new Log();
-            $log->create('delete', 'تأمین کننده ' . $supplier->name);
-            DB::commit();
-            Inertia::flash('toast', ['type' => 'success', 'message' => 'تأمین کننده با موفقیت حذف شد.']);
+            Inertia::flash('toast', [
+                'type' => 'success',
+                'message' => 'تأمین‌کننده غیرفعال شد؛ سابقه رسیدها و پرداخت‌ها محفوظ است.',
+            ]);
+
             return redirect()->to('/stackholders');
-        } catch (\Throwable $th) {
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'تأمین کننده حذف نشد.' . $th->getMessage()]);
-            DB::rollBack();
-            return redirect()->back()->withErrors(['error' => 'یک مشکل را در وجود امد. لطفا دوباره امتحان کنین']);
-        }
+        }, 3);
     }
 
 

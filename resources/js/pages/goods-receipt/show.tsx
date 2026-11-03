@@ -41,7 +41,8 @@ const Show = ({ receipt }: Props) => {
                                     <ul className="flex w-full flex-wrap justify-between gap-5">
                                         <li className="font-medium">
                                             تامیین کننده :{' '}
-                                            {receipt.supplier.name}
+                                            {receipt.supplier?.name ??
+                                                'تأمین‌کننده حذف‌شده'}
                                         </li>
                                         <li className="font-medium">
                                             رسید به :{' '}

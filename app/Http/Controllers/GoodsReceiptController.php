@@ -86,7 +86,11 @@ class GoodsReceiptController extends Controller
         Gate::authorize('reject-admins');
 
 
-        $suppliers = Supplier::select('id', 'name')->get();
+        $suppliers = Supplier::query()
+            ->where('status', true)
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
 
         $user = Auth::user();
         if ($user instanceof User && $user->hasRole('factory_clerk')) {
@@ -122,7 +126,11 @@ class GoodsReceiptController extends Controller
 
         // ========== VALIDATE DATA ===========
         $data = $request->validate([
-            'supplier_id' => 'required|integer|exists:suppliers,id',
+            'supplier_id' => [
+                'required',
+                'integer',
+                Rule::exists('suppliers', 'id')->where(fn ($query) => $query->where('status', true)),
+            ],
             'currency_id' => 'required|integer|exists:currencies,id',
             'destination_location_id' => [
                 'required',

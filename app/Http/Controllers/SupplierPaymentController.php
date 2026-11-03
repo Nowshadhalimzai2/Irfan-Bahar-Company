@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 
@@ -24,7 +25,13 @@ class SupplierPaymentController extends Controller
     {
         $data = $request->validate([
             'amount' => ['required', 'numeric', 'gt:0', 'max:9999999999999.99'],
-            'supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
+            'supplier_id' => [
+                'required',
+                'integer',
+                Rule::exists('suppliers', 'id')->where(
+                    fn ($query) => $query->where('status', true)
+                ),
+            ],
             'currency_id' => ['required', 'integer', 'exists:currencies,id'],
             'payment_method' => ['required', 'in:cash,bank_transfer,card,other'],
             'reference_no' => ['nullable', 'string', 'max:64'],
@@ -46,6 +53,11 @@ class SupplierPaymentController extends Controller
 
         return DB::transaction(function () use ($data, $allocations) {
             $supplier = Supplier::query()->lockForUpdate()->findOrFail($data['supplier_id']);
+            if (! $supplier->status) {
+                throw ValidationException::withMessages([
+                    'supplier_id' => 'برای تأمین‌کننده غیرفعال نمی‌توان پرداخت جدید ثبت کرد.',
+                ]);
+            }
             $lockedReceipts = [];
 
             foreach ($allocations as $allocation) {
