@@ -1,15 +1,15 @@
-import AppLayout from '@/layouts/app-layout';
 import { useForm } from '@inertiajs/react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { DeleteIcon, LockKeyholeOpen } from 'lucide-react';
+import type { FormEvent } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import InputError from '@/components/input-error';
+import { getDariItemUnit } from '@/components/location-translator';
+import PageHead from '@/components/page-head';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import InputError from '@/components/input-error';
 
-import { getDariItemUnit } from '@/components/location-translator';
-import { Item } from '@/types/item';
-import { ProductionOrder } from '@/types';
 import {
     Table,
     TableBody,
@@ -18,13 +18,14 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { DeleteIcon, LockKeyholeOpen } from 'lucide-react';
-import PageHead from '@/components/page-head';
+import AppLayout from '@/layouts/app-layout';
+import type { ProductionOrder } from '@/types';
+import type { Item } from '@/types/item';
 
 interface Props {
     items: Item[];
     production_order: ProductionOrder;
-    status: 'complete';
+    status: 'completed';
 }
 
 type OrderInput = {
@@ -65,15 +66,7 @@ const Create = ({ items, status, production_order }: Props) => {
 
     const handleProductionInput = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        put(`/factory/production-inputs/${production_order.id}`, {
-            onFinish: () => {
-                setOrderInput([]);
-                setCurrentLine({
-                    item_id: items[0]?.id ?? 1,
-                    quantity_used: 1,
-                });
-            },
-        });
+        put(`/factory/production-inputs/${production_order.id}`);
     };
 
     const handleAddLine = () => {
@@ -84,6 +77,7 @@ const Create = ({ items, status, production_order }: Props) => {
         // prevent adding the same item twice
         if (OrderInput.some((l) => l.item_id === currentLine.item_id)) {
             setLineError('این جنس قبلا اضافه شده است');
+
             return;
         }
 
@@ -100,9 +94,18 @@ const Create = ({ items, status, production_order }: Props) => {
     };
 
     const itemUnit = useMemo(() => {
-        if (items.length === 0) return 'unit';
-        return items.filter((item) => item.id === currentLine.item_id)[0].unit;
-    }, [currentLine]);
+        const selectedItem = items.find(
+            (item) => item.id === currentLine.item_id,
+        );
+
+        return (
+            selectedItem?.base_unit?.symbol ??
+            selectedItem?.base_unit?.name ??
+            selectedItem?.unit ??
+            'unit'
+        );
+    }, [currentLine.item_id, items]);
+
     return (
         <AppLayout
             breadcrumbs={[
@@ -262,6 +265,9 @@ const Create = ({ items, status, production_order }: Props) => {
                                                 مقدار
                                             </TableHead>
                                             <TableHead className="text-center">
+                                                واحد پایه
+                                            </TableHead>
+                                            <TableHead className="text-center">
                                                 حذف
                                             </TableHead>
                                         </TableRow>
@@ -293,6 +299,28 @@ const Create = ({ items, status, production_order }: Props) => {
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         {input.quantity_used}
+                                                    </TableCell>
+                                                    <TableCell className="text-center">
+                                                        {getDariItemUnit(
+                                                            items.find(
+                                                                (item) =>
+                                                                    item.id ===
+                                                                    input.item_id,
+                                                            )?.base_unit
+                                                                ?.symbol ??
+                                                                items.find(
+                                                                    (item) =>
+                                                                        item.id ===
+                                                                        input.item_id,
+                                                                )?.base_unit
+                                                                    ?.name ??
+                                                                items.find(
+                                                                    (item) =>
+                                                                        item.id ===
+                                                                        input.item_id,
+                                                                )?.unit ??
+                                                                'unit',
+                                                        )}
                                                     </TableCell>
                                                     <TableCell className="flex items-center justify-center">
                                                         <DeleteIcon

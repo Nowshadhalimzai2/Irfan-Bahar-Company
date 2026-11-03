@@ -1,19 +1,19 @@
-import { SectionTitle } from '@/components/section-title';
-import AppLayout from '@/layouts/app-layout';
 import { useForm } from '@inertiajs/react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import {  DeleteIcon, LockKeyholeOpen } from 'lucide-react';
+import type { FormEvent} from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import InputError from '@/components/input-error';
+import {  getDariItemUnit } from '@/components/location-translator';
+import PageHead from '@/components/page-head';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import InputError from '@/components/input-error';
 
-import {  getDariItemUnit } from '@/components/location-translator';
-import {  Item } from '@/types/item';
-import { ProductionOrder } from '@/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import {  DeleteIcon, LockKeyholeOpen } from 'lucide-react';
-import PageHead from '@/components/page-head';
+import AppLayout from '@/layouts/app-layout';
+import type { ProductionOrder } from '@/types';
+import type {  Item } from '@/types/item';
 
 interface Props {
     items: Item[];
@@ -48,7 +48,7 @@ const Create = ({ items, status, production_order }: Props) => {
         quantity_produced: 1,
     }));
 
-    const { data, setData, errors, put, processing } = useForm<Order>({
+    const { setData, errors, put, processing } = useForm<Order>({
         'production_order_id': production_order.id,
         'status': status,
         'outputs': [],
@@ -61,21 +61,8 @@ const Create = ({ items, status, production_order }: Props) => {
 
     const handleProductionInput = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        //   /factory/production-orders/{production_order}/{status}/confirm-order-outputs
-        if(status!=='completed'){
-            console.log('could not proceed with status: ',status);
-            
-            return ;
-        }
-        put(`/factory/production-orders/${production_order.id}/${status}/confirm-order-outputs`, {
-            onFinish: () => {
-                setOutput([]);
-                setCurrentLine({
-                    item_id: items[0]?.id ?? 1,
-                    quantity_produced: 1,
-                });
-            },
-        });
+
+        put(`/factory/production-orders/${production_order.id}/${status}/confirm-order-outputs`);
     };
 
     const handleAddLine = () => {
@@ -87,6 +74,7 @@ const Create = ({ items, status, production_order }: Props) => {
         // prevent adding the same item twice
         if (output.some((l) => l.item_id === currentLine.item_id)) {
             setLineError('این جنس قبلا اضافه شده است');
+
             return;
         }
 
@@ -103,11 +91,14 @@ const Create = ({ items, status, production_order }: Props) => {
     };
 
     const itemUnit = useMemo(() => {
-        if (items.length === 0)
-            return 'unit';
-        return items.filter(item => item.id === currentLine.item_id)[0].unit;
+        if (items.length === 0) {
+return 'unit';
+}
 
-    }, [currentLine]);
+        return items.find(item => item.id === currentLine.item_id)?.unit ?? items[0].unit;
+
+    }, [currentLine.item_id, items]);
+
     return (
         <AppLayout
             breadcrumbs={[
@@ -168,7 +159,8 @@ const Create = ({ items, status, production_order }: Props) => {
                                                 <Input
                                                     id="quantity"
                                                     type="number"
-                                                    min={1}
+                                                    min={0.001}
+                                                    step={0.001}
                                                     dir='ltr'
                                                     // max={items[currentLine.item_id]}
                                                     value={currentLine.quantity_produced}

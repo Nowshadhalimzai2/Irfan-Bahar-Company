@@ -167,7 +167,7 @@ export interface ProductionOutput {
 
 export interface ProductionInput {
     id: number;
-    item: Product;
+    item: Item;
     quantity_used: number;
 }
 

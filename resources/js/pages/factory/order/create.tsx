@@ -1,25 +1,33 @@
 import { Link, useForm } from '@inertiajs/react';
 import axios from 'axios';
-import { ArrowLeft, CalendarDays, ClipboardList, Factory, PackagePlus, Sparkles, Trash2 } from 'lucide-react';
+import { ArrowLeft, ClipboardList, Factory, PackagePlus, Sparkles, Trash2 } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import InputError from '@/components/input-error';
 import { getDariItemUnit } from '@/components/location-translator';
+import { formatGregorianDate, parseGregorianDate } from '@/components/persian-date-picker';
+import PersionDatePicker from '@/components/persion-date-picker';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 
 import type { BOM } from '@/types';
-import type { Product } from '@/types/item';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import type { ItemUnit, Product } from '@/types/item';
 
 interface Props {
   boms: BOM[];
 }
 
 type ProductionOutput = {
+  product_id: number | undefined;
+  item_unit_id: number;
+  quantity_produced: number;
+}
+
+type ProductionOutputPayload = {
   product_id: number | undefined;
   quantity_produced: number;
 }
@@ -29,28 +37,41 @@ type ProductionOrder = {
   bom_id: number;
   order_date: string;
   notes?: string;
-  productionOutputs: ProductionOutput[];
+  productionOutputs: ProductionOutputPayload[];
 }
 
 
 const Create = ({ boms }: Props) => {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [productionOutput, setProductionOutput] = useState<ProductionOutput[]>([]);
+  const [currentLine, setCurrentLine] = useState<ProductionOutput>({
+    product_id: undefined,
+    item_unit_id: 0,
+    quantity_produced: 1,
+  });
   const [lineError, setLineError] = useState<string | null>(null);
-  
-
-
+  const getUnits = (product?: Product): ItemUnit[] =>
+    product?.item.units?.filter((unit) => unit.is_active) ??
+    (product?.item.base_unit?.is_active ? [product.item.base_unit] : []);
 
   const { data, setData, errors, post, processing } = useForm<ProductionOrder>({
     'ordered_by': '',
     'bom_id': boms[0].id,
-    'order_date': new Date().toISOString().slice(0, 10),
+    'order_date': formatGregorianDate(new Date()),
     'notes': '',
     'productionOutputs': [],
   });
   useEffect(() => {
-    setData('productionOutputs', productionOutput);
-  }, [productionOutput, setData]);
+    setData('productionOutputs', productionOutput.map((output) => {
+      const product = relatedProducts.find((candidate) => candidate.item_id === output.product_id);
+      const unit = getUnits(product).find((candidate) => candidate.id === output.item_unit_id);
+
+      return {
+        product_id: output.product_id,
+        quantity_produced: Number((output.quantity_produced * Number(unit?.conversion_to_base ?? 1)).toFixed(3)),
+      };
+    }));
+  }, [productionOutput, relatedProducts, setData]);
 
   useEffect(() => {
     async function getRelatedProducts() {
@@ -65,7 +86,21 @@ const Create = ({ boms }: Props) => {
       const pds = await axios.get('/factory/production-orders/get-related-products/' + selectedBom.category.id);
 
       if (pds.status == 200) {
-        setRelatedProducts(pds.data);
+        const products = pds.data as Product[];
+        setRelatedProducts(products);
+        setCurrentLine((previous) => {
+          if (previous.product_id && products.some((product) => product.item_id === previous.product_id)) {
+            return previous;
+          }
+
+          const firstProduct = products[0];
+
+          return {
+            product_id: firstProduct?.item_id,
+            item_unit_id: getUnits(firstProduct)[0]?.id ?? 0,
+            quantity_produced: 1,
+          };
+        });
       } else {
         console.log('error fetching data' + pds.statusText);
 
@@ -73,11 +108,6 @@ const Create = ({ boms }: Props) => {
     }
     getRelatedProducts();
   }, [boms, data.bom_id]);
-
-  const [currentLine, setCurrentLine] = useState<ProductionOutput>(() => ({
-    product_id: relatedProducts[0]?.item_id,
-    quantity_produced: 1,
-  }));
 
   const handleOrders = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -87,6 +117,7 @@ const Create = ({ boms }: Props) => {
         setProductionOutput([]);
         setCurrentLine({
           product_id: relatedProducts[0]?.item_id,
+          item_unit_id: getUnits(relatedProducts[0])[0]?.id ?? 0,
           quantity_produced: 1,
         });
       },
@@ -96,8 +127,12 @@ const Create = ({ boms }: Props) => {
 
   const handleAddLine = () => {
     const productId = currentLine.product_id ?? relatedProducts[0]?.item_id;
+    const product = relatedProducts.find((candidate) => candidate.item_id === productId);
+    const itemUnitId = currentLine.item_unit_id || getUnits(product)[0]?.id;
 
-    if (!productId || currentLine.quantity_produced <= 0) {
+    if (!productId || !itemUnitId || currentLine.quantity_produced <= 0) {
+      setLineError('جنس، واحد و مقدار معتبر را انتخاب کنید.');
+
       return;
     }
 
@@ -108,7 +143,7 @@ const Create = ({ boms }: Props) => {
       return;
     }
 
-    setProductionOutput((prev) => [...prev, { ...currentLine, product_id: productId }]);
+    setProductionOutput((prev) => [...prev, { ...currentLine, product_id: productId, item_unit_id: itemUnitId }]);
     setCurrentLine((prev) => ({
       ...prev,
       quantity_produced: 1,
@@ -119,18 +154,12 @@ const Create = ({ boms }: Props) => {
   const handleRemoveLine = (index: number) => {
     setProductionOutput((prev) => prev.filter((_, i) => i !== index));
   };
-  const [changeBomError, setChangeBomError] = useState<string>('');
-  const itemUnit = useMemo(() => {
-    const selectedProduct = relatedProducts.find((product) => product.item_id === (currentLine.product_id ?? relatedProducts[0]?.item_id));
-
-    return selectedProduct?.item.unit ?? 'unit';
-
-  }, [currentLine, relatedProducts]);
+  const selectedProduct = relatedProducts.find((product) => product.item_id === currentLine.product_id);
+  const selectedUnit = getUnits(selectedProduct).find((unit) => unit.id === currentLine.item_unit_id);
+  const itemUnit = selectedUnit?.symbol ?? selectedUnit?.name ?? selectedProduct?.item.unit ?? 'unit';
 
   const selectedBom = boms.find((bom) => bom.id === data.bom_id);
 
-  console.log(boms);
-  
   return (
     <AppLayout breadcrumbs={[
       { title: 'کارخانه', href: '/factory/home' },
@@ -187,17 +216,25 @@ const Create = ({ boms }: Props) => {
                         </option>
                       ))}
                     </select>
-                    {changeBomError && <p className="text-red-500 text-xs">{changeBomError}</p>}
                     <InputError message={errors.bom_id} className="mt-2" />
                     {selectedBom && <p className="rounded-md bg-primary/5 px-3 py-2 text-xs text-muted-foreground">ظرفیت مورد انتظار فورمول: {selectedBom.min_exp_qty} تا {selectedBom.max_exp_qty}</p>}
                   </div>
 
 
-                  <div className="grid gap-2">
-                    <Label htmlFor="order_date">تاریخ سفارش <span className="text-destructive">*</span></Label>
-                    <div className="relative"><CalendarDays className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" /><Input id="order_date" type="date" value={data.order_date} onChange={(e) => setData('order_date', e.target.value)} className="pr-10" /></div>
-                    <InputError message={errors.order_date} className="mt-2" />
-                  </div>
+                            <div className="grid gap-2">
+                              <PersionDatePicker
+                                id="order_date"
+                                label="تاریخ سفارش"
+                                value={parseGregorianDate(data.order_date) ?? null}
+                                onChange={(date) =>
+                                  setData(
+                                    'order_date',
+                                    date ? formatGregorianDate(date) : '',
+                                  )
+                                }
+                              />
+                              <InputError message={errors.order_date} />
+                            </div>
 
                   <div className="grid gap-2 md:col-span-2">
                     <Label htmlFor="notes">نوت</Label>
@@ -230,16 +267,24 @@ const Create = ({ boms }: Props) => {
                         name="product_id"
                         tabIndex={5}
                         value={currentLine.product_id ?? ''}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const productId = Number(e.target.value);
+                          const product = relatedProducts.find(
+                            (candidate) => candidate.item_id === productId,
+                          );
                           setCurrentLine((prev) => ({
                             ...prev,
-                            product_id: Number(e.target.value),
-                          }))
-                        }
+                            product_id: productId,
+                            item_unit_id: getUnits(product)[0]?.id ?? 0,
+                          }));
+                        }}
                       >
+                        {!relatedProducts.length && (
+                          <option value="">محصولی برای این فورمول موجود نیست</option>
+                        )}
                         {relatedProducts.map((product) => (
                           <option value={product.item_id} key={product.item_id}>
-                            {product.item.name} {(product.weight / product.per_pack) * 1000}
+                            {product.item.name} — {product.item.code}
                           </option>
                         ))}
                       </select>
@@ -248,17 +293,44 @@ const Create = ({ boms }: Props) => {
                     </div>
 
                     <div className="grid gap-2">
+                      <Label htmlFor="item_unit_id">واحد تولید</Label>
+                      <select
+                        id="item_unit_id"
+                        className="h-11 rounded-md border bg-background px-3 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={currentLine.item_unit_id}
+                        onChange={(e) =>
+                          setCurrentLine((prev) => ({
+                            ...prev,
+                            item_unit_id: Number(e.target.value),
+                          }))
+                        }
+                        disabled={!getUnits(selectedProduct).length}
+                      >
+                        {!getUnits(selectedProduct).length && (
+                          <option value={0}>واحد فعالی موجود نیست</option>
+                        )}
+                        {getUnits(selectedProduct).map((unit) => (
+                          <option key={unit.id} value={unit.id}>
+                            {getDariItemUnit(unit.name)}
+                            {unit.symbol ? ` (${unit.symbol})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="grid gap-2">
                       <Label htmlFor="quantity" className="flex justify-between">
                         <span>  مقدار  </span>
                         <span className="text-sm text-muted-foreground">
-                          {currentLine.quantity_produced} {getDariItemUnit(itemUnit)}
+                          {getDariItemUnit(itemUnit)}
                         </span>
                       </Label>
                       <Input
                         id="quantity"
                         type="number"
-                        min={1}
-                        dir='ltr'                          // max={items[currentLine.product_id]}
+                        min={0.001}
+                        step="0.001"
+                        dir='ltr'
                         value={currentLine.quantity_produced}
                         onChange={(e) =>
                           setCurrentLine((prev) => ({
@@ -295,15 +367,14 @@ const Create = ({ boms }: Props) => {
 
               {/* ================================  RESULTS  =============================================== */}
               {productionOutput.length > 0 && (
-                <div dir='rtl' className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">خلاصه انتقال</h3><span className="text-sm text-muted-foreground">{productionOutput.length} قلم</span></div>
+                <div dir='rtl' className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm"><div className="mb-4 flex items-center justify-between"><h3 className="font-semibold">خلاصه تولید</h3><span className="text-sm text-muted-foreground">{productionOutput.length} قلم</span></div>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead className='text-center'>شماره</TableHead>
-                        <TableHead className='text-center'>جنس</TableHead>
+                        <TableHead className='text-center'>محصول</TableHead>
                         <TableHead className='text-center'>مقدار</TableHead>
-                        <TableHead className='text-center'>قیمت</TableHead>
-                         <TableHead className='text-center'>جمله</TableHead>
+                        <TableHead className='text-center'>واحد</TableHead>
                         <TableHead className='text-center'>حذف</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -315,9 +386,14 @@ const Create = ({ boms }: Props) => {
                             <TableCell className='text-center'>{relatedProducts.find(item => item.item_id === output.product_id)?.item.name}</TableCell>
                             <TableCell className='text-center'>{output.quantity_produced}</TableCell>
                             <TableCell className='text-center'>
-                              {relatedProducts.filter(item => item.item_id == output.product_id)[0]?.item.default_sale_price}
+                              {getDariItemUnit(
+                                getUnits(relatedProducts.find((item) => item.item_id === output.product_id))
+                                  .find((unit) => unit.id === output.item_unit_id)?.symbol ??
+                                getUnits(relatedProducts.find((item) => item.item_id === output.product_id))
+                                  .find((unit) => unit.id === output.item_unit_id)?.name ??
+                                'unit',
+                              )}
                             </TableCell>
-                            <TableCell className='text-center'>{relatedProducts.filter(item => item.item_id == output.product_id)[0]?.item.default_sale_price * output.quantity_produced}</TableCell>
                             <TableCell className='flex justify-center items-center'>
                               <button type="button" aria-label="حذف جنس" onClick={() => handleRemoveLine(ind)}><Trash2 className='size-4 text-destructive' /></button>
                             </TableCell>

@@ -9,19 +9,23 @@ use App\Models\InventoryBalance;
 use App\Models\Item;
 use App\Models\Location;
 use App\Models\Product;
-use App\Models\ProductionInput;
 use App\Models\ProductionOrder;
 use App\Models\User;
 use App\Notifications\NewOrderCreated;
 use App\Notifications\OrderProcessed;
+use App\Services\ProductionOrderService;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 class ProductionOrderController extends Controller
 {
@@ -98,7 +102,7 @@ class ProductionOrderController extends Controller
             }
 
             // ============= CREATE PRODUCTION INPUTS ============
-            $this->createProductionInputs($order);
+            app(ProductionOrderService::class)->syncExpectedInputs($order);
 
             $des = 'سفارش '.$data['ordered_by'].' در سیستم ثبت شد ';
             $log->create('insert', $des, null, '/factory/production-orders/'.$order->id);
@@ -116,6 +120,7 @@ class ProductionOrderController extends Controller
         } catch (\Throwable $th) {
             // Let validation exceptions bubble so Inertia/Laravel can return proper validation responses
             if ($th instanceof ValidationException) {
+                DB::rollBack();
                 throw $th;
             }
             $des = ' متاسفانه سفارش'.($data['ordered_by'] ?? '').'در ثبت سیستم ثبت نشد ';
@@ -141,50 +146,66 @@ class ProductionOrderController extends Controller
     public function changeOrderStatus(ProductionOrder $production_order, string $status)
     {
         Gate::allowIf($this->getAuthUser()->hasRole('factory_clerk'));
-        $currentStatus = $production_order->status;
-        DB::beginTransaction();
+
         try {
-            if ($currentStatus === 'pending') {
+            return DB::transaction(function () use ($production_order, $status): RedirectResponse {
+                $order = ProductionOrder::query()
+                    ->whereKey($production_order->id)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+                $currentStatus = $order->status;
+
+                $allowedTransitions = [
+                    'pending' => ['progress', 'cancelled'],
+                    'progress' => ['completed', 'drafted'],
+                    'drafted' => ['pending', 'progress'],
+                    'cancelled' => [],
+                    'completed' => [],
+                ];
+                abort_unless(
+                    in_array($status, $allowedTransitions[$currentStatus] ?? [], true),
+                    422,
+                    'تغییر وضعیت سفارش مجاز نیست.',
+                );
+
                 if ($status === 'completed') {
-                    Inertia::flash('toast', ['type' => 'error', 'message' => 'شما نمی توانین که از حالت منتظر به حالت تکیمل شده یک سفارش را ببرید. لطفا اول سفارش را به حالت جریان ارسال کنید!']);
-                    DB::rollBack();
+                    abort_if($order->productionOutputs()->doesntExist(), 422, 'ابتدا محصولات تولیدشده را ثبت کنید.');
+                    abort_if($order->productionInputs()->doesntExist(), 422, 'مواد مصرفی فورمول در دسترس نیست.');
 
-                    return redirect()->back();
+                    return redirect()->route('orders.confirm-outputs', [$order, $status]);
                 }
-            }
-            if ($status !== 'completed') {
 
-                // check the inventory if there's enough items in factory
-                // for status 'progress'
                 if ($status === 'progress') {
+                    $order->load('productionInputs.item');
+                    abort_if($order->productionInputs->isEmpty(), 422, 'مواد مصرفی فورمول در دسترس نیست.');
 
-                    //  check evenry row_materials if we have in factory
-                    foreach ($production_order->productionInputs as $input) {
-                        $this->ensureTheresEnoughQuantityInFactory($input->item, $input->quantity_used);
+                    foreach ($order->productionInputs as $input) {
+                        $this->ensureTheresEnoughQuantityInFactory($input->item, (float) $input->quantity_used);
                     }
                 }
-                $production_order->status = $status;
-                $production_order->save();
+
+                $order->status = $status;
+                $order->save();
                 $log = new Log;
-                $des = 'حالت سفارش '.$production_order->reference_no.' تغیر از '.$currentStatus.' به'.$status.'شد';
-                $log->create('update', $des, null, route('orders.show', $production_order->id));
+                $des = 'حالت سفارش '.$order->reference_no.' تغیر از '.$currentStatus.' به'.$status.'شد';
+                $log->create('update', $des, null, route('orders.show', $order->id));
                 $notifiableUsers = User::query()
                     ->with('role:id,name')
                     ->whereHas('role', fn ($q) => $q->whereIn('name', ['admin', 'super_admin', 'shop_clerk']))
                     ->get();
                 foreach ($notifiableUsers as $user) {
-                    $user->notify(new OrderProcessed($production_order));
+                    $user->notify(new OrderProcessed($order));
                 }
-                DB::commit();
                 Inertia::flash('toast', ['type' => 'success', 'message' => 'حالت سفارش تغیر از '.$currentStatus.'  به شد'.$status]);
 
-                return redirect()->to(route('orders.show', $production_order->id));
+                return redirect()->to(route('orders.show', $order->id));
+            }, 3);
+        } catch (\Throwable $th) {
+            if ($th instanceof HttpExceptionInterface || $th instanceof ValidationException) {
+                throw $th;
             }
 
-            return redirect()->to(route('orders.confirm-outputs', [$production_order, $status]));
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'حالت سفارش تغیر از '.$currentStatus.'  به نشد'.$status.': مشکل: '.$th->getMessage()]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'تغییر وضعیت سفارش انجام نشد: '.$th->getMessage()]);
 
             return redirect()->back();
         }
@@ -193,7 +214,13 @@ class ProductionOrderController extends Controller
     public function getCategoryBasedProducts(Category $category)
     {
 
-        $products = Product::with(['item:id,name,unit,category_id,default_sale_price', 'item.category:id,name'])
+        $products = Product::with([
+            'item:id,name,unit,category_id,default_sale_price,base_unit_id,code',
+            'item.units:id,item_id,name,symbol,conversion_to_base,code,barcode,selling_price,purchase_price,is_active',
+            'item.baseUnit:id,item_id,name,symbol,conversion_to_base,code,barcode,selling_price,purchase_price,is_active',
+            'item.category:id,name',
+        ])
+            ->whereHas('item.units', fn ($query) => $query->where('is_active', true))
             ->whereHas('item.category', function ($query) use ($category) {
                 $query->where('name', $category->name);
             })
@@ -209,63 +236,15 @@ class ProductionOrderController extends Controller
             abort(404, 'the factory is not found for processing the order');
         }
         $balance = InventoryBalance::where('location_id', $location->id)->where('item_id', $item->id)->first();
-        if ($balance === null) {
-            abort(404, 'the balance is not found for the item : '.$item->name.' check the balance and retry!');
-        }
-        $quantity_in_stock = $balance->quantity_on_hand - $balance->reserved;
-        // dd($req_qty);
+        $quantity_in_stock = ($balance?->quantity_on_hand ?? 0) - ($balance?->reserved ?? 0);
         if ($quantity_in_stock < $req_qty) {
             abort(422, 'there is not enough quantity in factory for the item : '.$item->name);
         }
     }
 
-    private function createProductionInputs(ProductionOrder $production_order)
-    {
-        // load bomLine
-        $production_order->load(
-            'bom:id,formula_name,min_exp_qty,max_exp_qty',
-            'bom.bomLines:id,item_id,item_unit_id,bom_id,required_quantity',
-            'bom.bomLines.itemUnit:id,conversion_to_base',
-        );
-
-        // Get At least and at most expected quantity;
-        // $min_exp_qty = $production_order->bom->min_exp_qty;
-        $max_exp_qty = $production_order->bom->max_exp_qty;
-
-        // Load Production OutPuts;
-        $production_order->load('productionOutputs:id,production_order_id,product_id,quantity_produced', 'productionOutputs.product:item_id,weight');
-
-        // get the ordered quantity of all products ordered
-        $ordered_qty = 0;
-        foreach ($production_order->productionOutputs as $output) {
-            $ordered_qty += ($output->quantity_produced * $output->product->weight);
-        }
-
-        if ($max_exp_qty <= 0) {
-            abort(422, 'مقدار تخمینی فورمول کمتر از صفر است. مقدار تخمینی را چک و دوباره کوشش کنید');
-        }
-
-        foreach ($production_order->bom->bomLines as $bom_line) {
-            $quantity_used = round(
-                ($bom_line->required_quantity
-                    * (float) ($bom_line->itemUnit?->conversion_to_base ?? 1)
-                    * $ordered_qty) / $max_exp_qty,
-                3
-            );
-
-            ProductionInput::updateOrCreate(
-                [
-                    'production_order_id' => $production_order->id,
-                    'item_id' => $bom_line->item_id,
-                ],
-                ['quantity_used' => $quantity_used]
-            );
-        }
-    }
-
     private function validateOrder(Request $request): array
     {
-        return $request->validate([
+        $validator = Validator::make($request->all(), [
             'ordered_by' => 'required|string|max:55',
             'bom_id' => 'required|integer|exists:boms,id',
             'order_date' => 'required|date',
@@ -273,9 +252,52 @@ class ProductionOrderController extends Controller
             'productionOutputs' => 'required|array|min:1',
 
             // each line validation
-            'productionOutputs.*.product_id' => 'required|integer|exists:items,id|distinct',
-            'productionOutputs.*.quantity_produced' => 'required|numeric|gt:0',
+            'productionOutputs.*.product_id' => [
+                'required',
+                'integer',
+                'distinct',
+                Rule::exists('products', 'item_id'),
+            ],
+            'productionOutputs.*.quantity_produced' => ['required', 'numeric', 'gt:0', 'decimal:0,3'],
         ]);
+
+        $validator->after(function ($validator) use ($request): void {
+            $bom = BOM::query()->find($request->input('bom_id'));
+            $outputs = $request->input('productionOutputs', []);
+
+            if (! $bom || ! is_array($outputs)) {
+                return;
+            }
+
+            $productIds = collect($outputs)
+                ->filter(fn ($output) => is_array($output) && isset($output['product_id']))
+                ->pluck('product_id')
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values();
+
+            $validProductIds = Product::query()
+                ->whereIn('item_id', $productIds)
+                ->whereHas('item', fn ($query) => $query->where('category_id', $bom->category_id))
+                ->pluck('item_id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+
+            foreach ($outputs as $index => $output) {
+                if (
+                    is_array($output)
+                    && isset($output['product_id'])
+                    && ! in_array((int) $output['product_id'], $validProductIds, true)
+                ) {
+                    $validator->errors()->add(
+                        "productionOutputs.{$index}.product_id",
+                        'محصول انتخاب‌شده با دسته‌بندی فورمول مطابقت ندارد.',
+                    );
+                }
+            }
+        });
+
+        return $validator->validate();
     }
 
     private function createProductionOrder(array $data): ProductionOrder

@@ -10,6 +10,7 @@ use App\Models\ProductionInput;
 use App\Models\ProductionOrder;
 use App\Models\User;
 use App\Notifications\OrderProcessed;
+use App\Services\ProductionOrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
@@ -28,7 +29,8 @@ class ProductionInputController extends Controller
             'bom.bomLines.item:id,name,unit',
             'bom.bomLines.itemUnit:id,name,symbol,conversion_to_base',
             'productionInputs:id,production_order_id,item_id,quantity_used',
-            'productionInputs.item:id,name,unit,code',
+            'productionInputs.item:id,name,unit,item_type,code,base_unit_id',
+            'productionInputs.item.baseUnit:id,item_id,name,symbol,conversion_to_base',
         ]);
 
         $logo = asset('nobg.png');
@@ -40,13 +42,15 @@ class ProductionInputController extends Controller
     {
         Gate::authorize('allow-factory_clerk');
 
-        if ($status !== 'completed') {
-            return redirect()->route('orders.index');
-        }
+        abort_unless(
+            $status === 'completed' && $production_order->status === 'progress',
+            422,
+            'سفارش در مرحله تولید نیست.',
+        );
 
-        // Outputs must be actual products, not merely any non-raw-material item.
         $items = Item::query()
             ->whereHas('product')
+            ->where('category_id', $production_order->bom->category_id)
             ->select('id', 'name', 'unit', 'item_type', 'code')
             ->orderBy('name')
             ->get();
@@ -63,6 +67,12 @@ class ProductionInputController extends Controller
     public function updateOutputs(Request $request, ProductionOrder $production_order, string $status)
     {
         Gate::authorize('allow-factory_clerk');
+        abort_unless(
+            $status === 'completed' && $production_order->status === 'progress',
+            422,
+            'سفارش در مرحله تولید نیست.',
+        );
+
         $data = $request->validate([
             'production_order_id' => [
                 'required',
@@ -77,15 +87,28 @@ class ProductionInputController extends Controller
                 'distinct',
                 Rule::exists('items', 'id'),
             ],
-            'outputs.*.quantity_produced' => ['required', 'numeric', 'gt:0'],
+            'outputs.*.quantity_produced' => ['required', 'numeric', 'gt:0', 'decimal:0,3'],
         ]);
-        // dd($data);
 
         $this->assertOrderMatchesRequest($data['production_order_id'], $production_order);
 
-        if ($status !== $data['status']) {
-            abort(422, 'وضعیت سفارش معتبر نیست.');
-        }
+        abort_unless($status === $data['status'], 422, 'وضعیت سفارش معتبر نیست.');
+
+        $categoryId = $production_order->bom()->value('category_id');
+        $submittedProductIds = collect($data['outputs'])->pluck('item_id')->map(fn ($id) => (int) $id);
+        $validProductIds = Item::query()
+            ->whereIn('id', $submittedProductIds)
+            ->where('category_id', $categoryId)
+            ->whereHas('product')
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        abort_unless(
+            $submittedProductIds->every(fn ($id) => in_array((int) $id, $validProductIds, true)),
+            422,
+            'محصول انتخاب‌شده با دسته‌بندی فورمول مطابقت ندارد.',
+        );
 
         try {
             DB::transaction(function () use ($data, $production_order): void {
@@ -94,8 +117,8 @@ class ProductionInputController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if ($order->status === 'completed') {
-                    throw new \RuntimeException('این سفارش قبلاً تکمیل شده است.');
+                if ($order->status !== 'progress') {
+                    throw new \RuntimeException('سفارش در مرحله تولید نیست یا قبلاً تکمیل شده است.');
                 }
 
                 $submittedProductIds = collect($data['outputs'])
@@ -114,6 +137,10 @@ class ProductionInputController extends Controller
                         ['quantity_produced' => $output['quantity_produced']],
                     );
                 }
+
+                app(ProductionOrderService::class)->syncExpectedInputs($order);
+                $order->outputs_confirmed_at = now();
+                $order->save();
 
                 $description = sprintf(
                     'سفارش %s تولیدات اش به‌روزرسانی شد',
@@ -143,19 +170,25 @@ class ProductionInputController extends Controller
     {
         Gate::authorize('allow-factory_clerk');
 
-        if ($status !== 'completed') {
-            return redirect()->route('orders.index');
-        }
+        abort_unless(
+            $status === 'completed'
+                && $production_order->status === 'progress'
+                && $production_order->outputs_confirmed_at !== null,
+            422,
+            'ابتدا محصولات تولیدشده را تائید کنید.',
+        );
 
         $items = Item::query()
-            ->where('item_type', '!=', 'product')
-            ->select('id', 'name', 'unit', 'item_type', 'code')
+            ->whereIn('id', $production_order->productionInputs()->pluck('item_id'))
+            ->with('baseUnit:id,item_id,name,symbol,conversion_to_base')
+            ->select('id', 'name', 'unit', 'item_type', 'code', 'base_unit_id')
             ->orderBy('name')
             ->get();
 
         $production_order->load([
             'productionInputs:id,production_order_id,item_id,quantity_used',
-            'productionInputs.item:id,name,unit,code',
+            'productionInputs.item:id,name,unit,item_type,code,base_unit_id',
+            'productionInputs.item.baseUnit:id,item_id,name,symbol,conversion_to_base',
             // 'productionOutputs:id,production_order_id,product_id,quantity_produced',
             // 'productionOutputs.product.item:id,name,unit,code',
         ]);
@@ -167,6 +200,8 @@ class ProductionInputController extends Controller
     {
         Gate::authorize('allow-factory_clerk');
 
+        abort_unless($production_order->status === 'progress', 422, 'سفارش در مرحله تولید نیست.');
+        abort_unless($production_order->outputs_confirmed_at !== null, 422, 'ابتدا محصولات تولیدشده را تائید کنید.');
         $data = $this->validateInputData($request);
         $this->assertOrderMatchesRequest($data['production_order_id'], $production_order);
         try {
@@ -176,8 +211,11 @@ class ProductionInputController extends Controller
                     ->lockForUpdate()
                     ->firstOrFail();
 
-                if ($order->status === 'completed') {
-                    throw new \RuntimeException('این سفارش قبلاً تکمیل شده است.');
+                if ($order->status !== 'progress') {
+                    throw new \RuntimeException('سفارش در مرحله تولید نیست یا قبلاً تکمیل شده است.');
+                }
+                if ($order->outputs_confirmed_at === null) {
+                    throw new \RuntimeException('ابتدا محصولات تولیدشده را تائید کنید.');
                 }
 
                 $order->load('productionOutputs:id,production_order_id,product_id,quantity_produced');
@@ -227,11 +265,16 @@ class ProductionInputController extends Controller
     private function consumeInputs(array $data, ProductionOrder $order): void
     {
         $location = $this->factoryLocation();
+        $allowedItemIds = $order->productionInputs()->pluck('item_id')->map(fn ($id) => (int) $id)->all();
 
         $submittedItemIds = collect($data['orderInputs'])
             ->pluck('item_id')
             ->map(fn ($id) => (int) $id)
             ->all();
+
+        if (array_diff($submittedItemIds, $allowedItemIds) !== []) {
+            throw new \RuntimeException('مواد مصرفی باید از مواد فورمول همین سفارش انتخاب شوند.');
+        }
 
         $order->productionInputs()
             ->whereNotIn('item_id', $submittedItemIds)
