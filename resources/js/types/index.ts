@@ -1,5 +1,5 @@
-import { Currency } from 'lucide-react';
-import { Category, Item, ItemUnit, Product } from './item';
+import type { Currency } from 'lucide-react';
+import type { Category, Item, ItemUnit, Product } from './item';
 
 export type * from './auth';
 export type * from './navigation';
@@ -110,8 +110,10 @@ export interface InventoryBalance {
 
 export interface InventoryMovement {
     id: number;
-    location: Location;
-    item: Item;
+    location: Pick<Location, 'id' | 'name'>;
+    item: Pick<Item, 'id' | 'name' | 'code' | 'unit' | 'base_unit_id'> & {
+        base_unit?: Pick<ItemUnit, 'name' | 'symbol'> | null;
+    };
     quantity: number;
     movement_type:
         | 'receipt'
@@ -124,7 +126,7 @@ export interface InventoryMovement {
         | 'adjustment_in'
         | 'adjustment_out';
     reference_no: string;
-    occured_at: Date;
+    occured_at: string;
 }
 
 export interface BOM {

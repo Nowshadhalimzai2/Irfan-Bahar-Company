@@ -1,18 +1,3 @@
-import { InventoryMovement } from '@/types';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableFooter,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
-import { SectionTitle } from '@/components/section-title';
-import LocationTranslator from '@/components/location-translator';
-import AppLayout from '@/layouts/app-layout';
-import PageLinks from '@/components/page-links';
-import { Input } from '@/components/ui/input';
 import {
     ArrowDownLeft,
     ArrowUpRight,
@@ -22,6 +7,21 @@ import {
     X,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
+import PageLinks from '@/components/page-links';
+import { SectionTitle } from '@/components/section-title';
+import { Input } from '@/components/ui/input';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableFooter,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '@/components/ui/table';
+import AppLayout from '@/layouts/app-layout';
+import type { InventoryMovement } from '@/types';
 
 interface Props {
     movements: {
@@ -49,15 +49,30 @@ const movementLabels: Record<string, string> = {
     adjustment_out: 'اصلاح موجودی خروجی',
 };
 
-const formatNumber = (value: number | string) =>value
-    // new Intl.NumberFormat('fa-AF').format(Number(value) || 0);
+const formatNumber = (value: number | string) =>
+    Number(value).toLocaleString('en-US', { maximumFractionDigits: 3 });
 
-const formatDate = (value: string | Date) =>
-    new Date(value).toLocaleDateString('fa-AF', {
+const formatDate = (value: string | Date) => {
+    const date =
+        value instanceof Date
+            ? value
+            : /^\d{4}-\d{2}-\d{2}$/.test(value)
+              ? new Date(`${value}T12:00:00`)
+              : new Date(value);
+
+    return date.toLocaleDateString('fa-AF', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
     });
+};
+
+const formatMovementUnit = (movement: InventoryMovement) => {
+    const unitName = movement.item.base_unit?.name ?? movement.item.unit;
+    const symbol = movement.item.base_unit?.symbol;
+
+    return `${getDariItemUnit(unitName)}${symbol ? ` (${symbol})` : ''}`;
+};
 
 const Index = ({ movements }: Props) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -75,7 +90,7 @@ const Index = ({ movements }: Props) => {
                 movement.item?.code,
                 movementLabels[movement.movement_type],
                 movement.location?.name,
-                new Date(movement.occured_at).toLocaleDateString('fa-AF'),
+                formatDate(movement.occured_at),
             ]
                 .filter(Boolean)
                 .join(' ')
@@ -216,7 +231,7 @@ const Index = ({ movements }: Props) => {
                                                     {movement.location ? LocationTranslator(movement.location.name) : 'نامشخص'}
                                                 </TableCell>
                                                 <TableCell className={`text-center font-semibold ${isIncoming ? 'text-emerald-700' : 'text-rose-700'}`} dir="ltr">
-                                                    {isIncoming ? '+' : ''}{formatNumber(movement.quantity)}
+                                                    {isIncoming ? '+' : ''}{formatNumber(movement.quantity)} {formatMovementUnit(movement)}
                                                 </TableCell>
                                                 <TableCell className='flex justify-center items-center'>
                                                     <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">

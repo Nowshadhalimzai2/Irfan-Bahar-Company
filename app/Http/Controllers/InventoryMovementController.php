@@ -16,7 +16,11 @@ class InventoryMovementController extends Controller
             'movement_id' => ['nullable', 'integer', 'exists:inventory_movements,id'],
         ]);
         $query = InventoryMovement::query()
-            ->with('location:id,name', 'item:id,name,code')
+            ->with([
+                'location:id,name',
+                'item:id,name,code,unit,base_unit_id',
+                'item.baseUnit:id,item_id,name,symbol',
+            ])
             ->select('id', 'location_id', 'item_id', 'movement_type', 'quantity', 'occured_at', 'reference_no')
             ->when(
                 isset($filters['movement_id']),

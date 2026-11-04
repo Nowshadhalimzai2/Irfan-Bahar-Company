@@ -9,14 +9,17 @@ class InventoryMovement extends Model
 {
     protected $fillable = ['location_id', 'item_id', 'quantity', 'notes', 'movement_type', 'reference_no', 'occured_at'];
 
+    protected $casts = [
+        'quantity' => 'float',
+    ];
+
     public function location(): BelongsTo
     {
-
         return $this->belongsTo(Location::class);
     }
+
     public function item(): BelongsTo
     {
-
         return $this->belongsTo(Item::class);
     }
 }
