@@ -23,7 +23,12 @@ import PersionDatePicker from '@/components/persion-date-picker';
 import AppLayout from '@/layouts/app-layout';
 
 type CatalogItem = { id: number | string; name: string };
-type ShopInventoryRow = { product: string; quantity: number; value: number; is_low_stock?: boolean };
+type ShopInventoryRow = { product: string; unit: string; quantity: number; value: number; currency: string; is_low_stock?: boolean };
+type CurrencySummaryRow = {
+    currency: string; sales_total: number; refund_total: number; net_total: number; expenses_total: number;
+    payments_total: number; cost_of_goods_sold: number; gross_profit: number; raw_material_purchase_cost: number;
+    production_cost: number; sales_count: number; refund_count: number; expense_count: number;
+};
 
 type ReportProps = {
     filters: {
@@ -33,23 +38,22 @@ type ReportProps = {
     };
     range: { start: string; end: string; label: string };
     summary: {
-        sales: { total: number; count: number }; expenses: { total: number; count: number };
-        payments: { total: number }; refunds: { total: number };
+        sales: { count: number }; expenses: { count: number };
+        payments: { count: number }; refunds: { count: number };
         attendance: { present: number; absent: number }; movements: number; production: number; activity: number;
-        cost_of_goods_sold?: number; gross_profit?: number; raw_material_purchase_cost?: number;
-        production_quantity_completed?: number; production_cost?: number; shop_stock_value?: number;
-        factory_stock_value?: number; low_stock_items_count?: number; internal_transfers?: number;
-        low_stock_items?: { item: { id: number, name: string, code: string }, quantity: number, total_cost: number }[]
+        production_quantity_completed?: number | string; shop_stock_value_afg?: number;
+        factory_stock_value_afg?: number; low_stock_items_count?: number; internal_transfers_value_afg?: number;
+        low_stock_items?: { item: { id: number, name: string, code: string, unit: string, currency: string }, quantity: number, total_value: number }[]
     };
-    dailySales: { label: string; date: string; sales: number; count: number }[];
+    dailySales: { label: string; date: string; currency: string; sales: number; count: number }[];
     expenseByCurrency: { currency: string; amount: number; count: number }[];
-    currencySummary: { currency: string; sales_total: number; refund_total: number; net_total: number; expenses_total: number; sales_count: number; refund_count: number; expense_count: number }[];
-    movementSummary: { type: string; movements: number; quantity: number }[];
+    currencySummary: CurrencySummaryRow[];
+    movementSummary: { type: string; unit: string; movements: number; quantity: number }[];
     productionSummary: { status: string; total: number }[];
-    topProducts: { name: string; total: number; quantity: number }[];
-    customerSales: { customer: string; total: number; orders: number }[];
-    vendorPurchases: { vendor: string; total: number; count: number }[];
-    internalTransfers: { date: string; product: string; quantity: number; value: number }[];
+    topProducts: { name: string; unit: string; currency: string; total: number; quantity: number }[];
+    customerSales: { customer: string; currency: string; total: number; orders: number }[];
+    vendorPurchases: { vendor: string; currency: string; total: number; count: number }[];
+    internalTransfers: { date: string; product: string; unit: string; quantity: number; value: number; currency: string }[];
     shopInventory: ShopInventoryRow[];
     catalog?: { products?: CatalogItem[]; categories?: CatalogItem[]; customers?: CatalogItem[]; suppliers?: CatalogItem[] };
 };
@@ -63,8 +67,8 @@ const statusLabels: Record<string, string> = {
     pending: 'در انتظار', progress: 'در جریان', completed: 'تکمیل‌شده', drafted: 'پیش‌نویس', cancelled: 'لغوشده',
 };
 const presetLabels: Record<string, string> = { custom: 'دلخواه', today: 'امروز', yesterday: 'دیروز', this_month: 'این ماه', last_month: 'ماه گذشته' };
-const businessUnitLabels: Record<string, string> = { consolidated: 'مجموعی', factory: 'کارخانه', shop: 'فروشگاه' };
 const money = (value: number) => Number.isFinite(value) ? value.toLocaleString('en-US', { maximumFractionDigits: 2 }) : '0';
+const currencyName = (currency: string) => currency || 'AFG';
 const formatPersianDate = (date: Date, period: 'daily' | 'monthly') => {
     const parts = new Intl.DateTimeFormat('en-u-ca-persian-nu-latn', {
         year: 'numeric', month: '2-digit', day: '2-digit',
@@ -75,7 +79,7 @@ const formatPersianDate = (date: Date, period: 'daily' | 'monthly') => {
     return period === 'monthly' ? `${values.year}/${month}` : `${values.year}/${month}/${values.day.padStart(2, '0')}`;
 };
 
-export default function Reports({ filters, range, summary, dailySales, expenseByCurrency, currencySummary, movementSummary, productionSummary, topProducts, customerSales, vendorPurchases, internalTransfers, catalog }: ReportProps) {
+export default function Reports({ filters, range, summary, dailySales, expenseByCurrency, currencySummary, movementSummary, productionSummary, topProducts, customerSales, vendorPurchases, internalTransfers, shopInventory, catalog }: ReportProps) {
 
     const applyPresetValue = (nextPreset: string, nextPeriod: 'daily' | 'monthly') => {
         const today = new Date();
@@ -110,7 +114,15 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
     const [customer, setCustomer] = useState(String(filters.customer ?? ''));
     const [date, setDate] = useState(filters.date);
     const [pickerDate, setPickerDate] = useState(() => new Date(`${filters.dateGregorian ?? new Date().toISOString().slice(0, 10)}T12:00:00`));
-    const maxSales = useMemo(() => Math.max(...dailySales.map((item) => item.sales), 1), [dailySales]);
+    const dailySalesByCurrency = useMemo(() => dailySales.reduce<Record<string, typeof dailySales>>((groups, item) => {
+        (groups[item.currency] ??= []).push(item);
+
+        return groups;
+    }, {}), [dailySales]);
+    const currencyTotal = (key: keyof Pick<CurrencySummaryRow, 'net_total' | 'cost_of_goods_sold' | 'gross_profit' | 'raw_material_purchase_cost' | 'expenses_total' | 'payments_total' | 'refund_total' | 'production_cost'>) =>
+        currencySummary.filter((item) => item[key] !== 0)
+            .map((item) => `${money(item[key])} ${currencyName(item.currency)}`)
+            .join(' · ') || '0';
 
     const applyFilters = (event: FormEvent) => {
         event.preventDefault();
@@ -133,17 +145,17 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
     };
     const printReport = () => window.print();
     const cards = [
-        ['عاید فروش بیرونی', summary.sales.total, `${summary.sales.count} فروش / سفارش`, ArrowUpRight, 'emerald'],
-        ['بهای تمام‌شده کالای فروخته‌شده', summary.cost_of_goods_sold ?? 0, 'مبنای هزینهٔ تولید', ArrowDownLeft, 'rose'],
-        ['سود ناخالص', summary.gross_profit ?? 0, 'عاید منهای بهای تمام‌شده', Coins, 'sky'],
-        ['هزینهٔ خرید مواد خام', summary.raw_material_purchase_cost ?? 0, 'هزینهٔ خرید خارجی', CreditCard, 'amber'],
-        ['مصارف شرکت', summary.expenses.total, `${summary.expenses.count} ثبت هزینه`, CreditCard, 'rose'],
-        ['پرداخت‌های دریافتی', summary.payments.total, 'پرداخت ثبت‌شده در دوره', Coins, 'emerald'],
-        ['برگشت فروش', summary.refunds.total, 'مبالغ برگشتی در دوره', ArrowDownLeft, 'rose'],
-        ['تولید تکمیل‌شده', summary.production_quantity_completed ?? 0, 'خروجی در دوره', Factory, 'violet'],
-        ['هزینهٔ تولید', summary.production_cost ?? 0, 'مبنای هزینهٔ عملیات', Activity, 'indigo'],
-        ['ارزش موجودی فروشگاه', summary.shop_stock_value ?? 0, 'ارزش‌گذاری موجودی', Boxes, 'sky'],
-        ['ارزش موجودی کارخانه', summary.factory_stock_value ?? 0, 'کالای نهایی در کارخانه', Boxes, 'emerald'],
+        ['عاید فروش بیرونی', currencyTotal('net_total'), `${summary.sales.count} فروش / سفارش`, ArrowUpRight, 'emerald'],
+        ['بهای تمام‌شده کالای فروخته‌شده', currencyTotal('cost_of_goods_sold'), 'با ارز فروش سند', ArrowDownLeft, 'rose'],
+        ['سود ناخالص', currencyTotal('gross_profit'), 'محاسبه‌شده جداگانه با ارز فروش', Coins, 'sky'],
+        ['هزینهٔ خرید مواد خام', currencyTotal('raw_material_purchase_cost'), 'با ارز رسید خرید', CreditCard, 'amber'],
+        ['مصارف شرکت', currencyTotal('expenses_total'), `${summary.expenses.count} ثبت هزینه`, CreditCard, 'rose'],
+        ['پرداخت‌های دریافتی', currencyTotal('payments_total'), 'با ارز هر پرداخت', Coins, 'emerald'],
+        ['برگشت فروش', currencyTotal('refund_total'), 'با ارز برگشت', ArrowDownLeft, 'rose'],
+        ['تولید تکمیل‌شده', summary.production_quantity_completed ?? 0, 'اجناس تولید شده', Factory, 'violet'],
+        ['هزینهٔ تقریبی تولید', currencyTotal('production_cost'), 'برآورد با نرخ مواد خام ', Activity, 'indigo'],
+        ['ارزش فروش موجودی فروشگاه', `${money(summary.shop_stock_value_afg ?? 0)} AFG`, 'موجودی پایه × قیمت فروش پایه', Boxes, 'sky'],
+        ['ارزش فروش موجودی کارخانه', `${money(summary.factory_stock_value_afg ?? 0)} AFG`, 'موجودی پایه × قیمت فروش پایه', Boxes, 'emerald'],
         ['اقلام کم‌موجودی', summary.low_stock_items_count ?? 0, 'نیازمند تأمین مجدد', TriangleAlert, 'amber'],
     ] as const;
 
@@ -210,13 +222,37 @@ export default function Reports({ filters, range, summary, dailySales, expenseBy
                 </div>
                 <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-100"><div className="flex items-center gap-2"><TriangleAlert className="h-4 w-4" /><span>انتقالات داخلی کارخانه به فروشگاه در راپور عملیاتی دیده می‌شود، اما در عاید بیرونی و سود ناخالص مجموعی محاسبه نمی‌گردد.</span></div></div>
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between"><div className="flex items-center gap-2 text-sm text-slate-500"><CalendarDays className="h-4 w-4" /> نمایش <span className="font-semibold text-slate-700 dark:text-slate-200">{range.label}</span><span className="text-slate-300">|</span>{range.start} تا {range.end}</div><div className="flex flex-wrap gap-2 text-xs text-slate-500"><span className="rounded-full border border-slate-200 bg-white px-2 py-1 dark:border-slate-700 dark:bg-slate-900">بازه: {presetLabels[preset] ?? preset}</span></div></div>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value, detail, Icon, tone]) => <MetricCard key={label} label={label} value={money(value)} detail={detail} icon={Icon} tone={tone} />)}</div>
-                <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]"><section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="flex items-center justify-between"><div><h2 className="font-bold text-slate-900 dark:text-white">فعالیت فروش</h2><p className="mt-1 text-xs text-slate-500">عاید بیرونی در دورهٔ انتخاب‌شده</p></div><BarChart3 className="h-5 w-5 text-primary" /></div><div className="mt-6 flex h-48 items-end gap-2 border-b border-slate-100 pb-0 dark:border-slate-800">{dailySales.length === 0 ? <p className="w-full pb-8 text-center text-sm text-slate-400">در این دوره فروشی ثبت نشده است.</p> : dailySales.map((item) => <div key={item.date} className="group flex h-full flex-1 flex-col items-center justify-end gap-2"><div className="relative w-full max-w-10 rounded-t-lg bg-emerald-400/80 transition hover:bg-emerald-500" style={{ height: `${Math.max((item.sales / maxSales) * 100, 4)}%` }} title={`${money(item.sales)} · ${item.count} فروش`} /><span className="text-[10px] text-slate-400">{item.label}</span></div>)}</div></section><SummaryPanel title="خلاصهٔ هزینه‌ها" icon={Coins} rows={expenseByCurrency.map((item) => [item.currency, `${money(item.amount)} — ${item.count} ثبت`])} empty="در این دوره هزینه‌ای ثبت نشده است." /></div>
-                <div className="grid gap-5 lg:grid-cols-3"><SummaryPanel title="کارکنان و فعالیت" icon={Users} rows={[['حاضر', summary.attendance.present], ['غایب', summary.attendance.absent], ['عملیات سیستم', summary.activity]]} /><SummaryPanel title="حرکت‌های موجودی" icon={Boxes} rows={movementSummary.map((item) => [movementLabels[item.type] ?? item.type, `${item.movements} حرکت ${money(item.quantity)} مقدار`])} empty="هیچ حرکت موجودی ثبت نشده است." /><SummaryPanel title="سفارش‌های تولید" icon={Factory} rows={productionSummary.map((item) => [statusLabels[item.status] ?? item.status, item.total])} empty="هیچ سفارش تولید ثبت نشده است." /></div>
-                <div className="grid gap-5 xl:grid-cols-2"><TableCard title="محصولات پرفروش" columns={['محصول', 'مقدار', 'ارزش']} rows={topProducts.map((row) => [row.name, money(row.quantity), money(row.total)])} empty="در این دوره فروشی ثبت نشده است." /><TableCard title="فروش مشتریان" columns={['#','مشتری', 'سفارش‌ها', 'مجموع']} rows={customerSales.map((row,ind) => [(ind+1).toString(),row.customer, String(row.orders), money(row.total)])} empty="فروشی برای مشتریان یافت نشد." /></div>
-                <div className="grid gap-5 xl:grid-cols-2"><TableCard title="خرید از تأمین‌کنندگان" columns={['تأمین‌کننده', 'ثبت‌ها', 'مجموع']} rows={vendorPurchases.map((row) => [row.vendor, String(row.count), money(row.total)])} empty="در این دوره خریدی از تأمین‌کننده ثبت نشده است." /><TableCard title="انتقالات داخلی" columns={['تاریخ', 'محصول', 'مقدار', 'ارزش']} rows={internalTransfers.map((row) => [row.date, row.product, money(row.quantity), money(row.value)])} empty="انتقال داخلی ثبت نشده است." /></div>
-                <div className="grid gap-5 xl:grid-cols-1"><TableCard title="خلاصهٔ ارزها" columns={['ارز', 'فروش', 'برگشت', 'خالص', 'هزینه‌ها']} rows={currencySummary.map((row) => [row.currency, money(row.sales_total), money(row.refund_total), money(row.net_total), money(row.expenses_total)])} empty="برای این دوره خلاصهٔ ارزی وجود ندارد." /></div>
-                <div className="grid gap-5 xl:grid-cols-2"><TableCard title="اقلام کم‌موجودی" columns={['محصول', 'کود جنس', 'مقدار', 'ارزش']} rows={summary.low_stock_items ? summary.low_stock_items?.map((row) => [row.item.name, row.item.code, money(row.quantity), money(row.total_cost)]) : []} empty="هیچ قلم کم‌موجودی گزارش نشده است." /><TableCard title="یادداشت‌های عملیاتی" columns={['مورد', 'مقدار']} rows={[[`عاید بیرونی`, money(summary.sales.total)], [`برگشت فروش`, money(summary.refunds.total ?? 0)], [`بهای تمام‌شده`, money(summary.cost_of_goods_sold ?? 0)], [`سود ناخالص`, money(summary.gross_profit ?? 0)], [`ارزش انتقالات داخلی`, money(summary.internal_transfers ?? 0)]]} empty="خلاصهٔ عملیاتی موجود نیست." /></div>
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value, detail, Icon, tone]) => <MetricCard key={label} label={label} value={typeof value === 'number' ? money(value) : value} detail={detail} icon={Icon} tone={tone} />)}</div>
+                <div className="grid gap-5 xl:grid-cols-[1.5fr_1fr]">
+                    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                        <div className="flex items-center justify-between"><div><h2 className="font-bold text-slate-900 dark:text-white">فعالیت فروش</h2><p className="mt-1 text-xs text-slate-500">عاید بیرونی به تفکیک ارز</p></div><BarChart3 className="h-5 w-5 text-primary" /></div>
+                        <div className="mt-6 space-y-5">
+                            {Object.entries(dailySalesByCurrency).length === 0 ? <p className="pb-8 text-center text-sm text-slate-400">در این دوره فروشی ثبت نشده است.</p> : Object.entries(dailySalesByCurrency).map(([currency, rows]) => {
+                                const maxSales = Math.max(...rows.map((item) => item.sales), 1);
+
+                                return <div key={currency}>
+                                    <p className="mb-2 text-xs font-semibold text-slate-500">{currencyName(currency)}</p>
+                                    <div className="flex h-40 items-end gap-2 border-b border-slate-100 dark:border-slate-800">
+                                        {[...rows].sort((left, right) => left.date.localeCompare(right.date)).map((item) => <div key={item.date} className="group flex h-full flex-1 flex-col items-center justify-end gap-2">
+                                            <div className="relative w-full max-w-10 rounded-t-lg bg-emerald-400/80 transition hover:bg-emerald-500" style={{ height: `${Math.max((item.sales / maxSales) * 100, 4)}%` }} title={`${money(item.sales)} ${currencyName(currency)} · ${item.count} فروش`} />
+                                            <span className="text-[10px] text-slate-400">{item.label}</span>
+                                        </div>)}
+                                    </div>
+                                </div>;
+                            })}
+                        </div>
+                    </section>
+                    <SummaryPanel title="خلاصهٔ هزینه‌ها" icon={Coins} rows={expenseByCurrency.map((item) => [currencyName(item.currency), `${money(item.amount)} — ${item.count} ثبت`])} empty="در این دوره هزینه‌ای ثبت نشده است." />
+                </div>
+                <div className="grid gap-5 lg:grid-cols-3">
+                    <SummaryPanel title="کارکنان و فعالیت" icon={Users} rows={[['حاضر', summary.attendance.present], ['غایب', summary.attendance.absent], ['عملیات سیستم', summary.activity]]} />
+                    <SummaryPanel title="حرکت‌های موجودی" icon={Boxes} rows={movementSummary.map((item) => [`${movementLabels[item.type] ?? item.type} (${item.unit})`, `${item.movements} حرکت ${money(item.quantity)} ${item.unit}`])} empty="هیچ حرکت موجودی ثبت نشده است." />
+                    <SummaryPanel title="سفارش‌های تولید" icon={Factory} rows={productionSummary.map((item) => [statusLabels[item.status] ?? item.status, item.total])} empty="هیچ سفارش تولید ثبت نشده است." />
+                </div>
+                <div className="grid gap-5 xl:grid-cols-2"><TableCard title="محصولات پرفروش" columns={['محصول', 'مقدار', 'ارزش', 'ارز']} rows={topProducts.map((row) => [row.name, `${money(row.quantity)} ${row.unit}`, money(row.total), currencyName(row.currency)])} empty="در این دوره فروشی ثبت نشده است." /><TableCard title="فروش مشتریان" columns={['#','مشتری', 'سفارش‌ها', 'مجموع', 'ارز']} rows={customerSales.map((row,ind) => [(ind+1).toString(),row.customer, String(row.orders), money(row.total), currencyName(row.currency)])} empty="فروشی برای مشتریان یافت نشد." /></div>
+                <div className="grid gap-5 xl:grid-cols-2"><TableCard title="خرید از تأمین‌کنندگان" columns={['تأمین‌کننده', 'ثبت‌ها', 'مجموع', 'ارز']} rows={vendorPurchases.map((row) => [row.vendor, String(row.count), money(row.total), currencyName(row.currency)])} empty="در این دوره خریدی از تأمین‌کننده ثبت نشده است." /><TableCard title="انتقالات داخلی" columns={['تاریخ', 'محصول', 'مقدار', 'ارزش', 'ارز']} rows={internalTransfers.map((row) => [row.date, row.product, `${money(row.quantity)} ${row.unit}`, money(row.value), currencyName(row.currency)])} empty="انتقال داخلی ثبت نشده است." /></div>
+                <div className="grid gap-5 xl:grid-cols-2"><TableCard title="موجودی فروشگاه" columns={['محصول', 'مقدار', 'ارزش برآوردی', 'ارز']} rows={shopInventory.map((row) => [row.product, `${money(row.quantity)} ${row.unit}`, money(row.value), currencyName(row.currency)])} empty="موجودی فروشگاهی ثبت نشده است." /><TableCard title="خلاصهٔ ارزها" columns={['ارز', 'فروش', 'برگشت', 'خالص', 'مصارف', 'پرداخت', 'بهای تمام‌شده', 'سود ناخالص', 'خرید مواد خام']} rows={currencySummary.map((row) => [currencyName(row.currency), money(row.sales_total), money(row.refund_total), money(row.net_total), money(row.expenses_total), money(row.payments_total), money(row.cost_of_goods_sold), money(row.gross_profit), money(row.raw_material_purchase_cost)])} empty="برای این دوره خلاصهٔ ارزی وجود ندارد." /></div>
+                        <div className="grid gap-5 xl:grid-cols-2"><TableCard title="اقلام کم‌موجودی" columns={['محصول', 'کود جنس', 'مقدار', 'ارزش']} rows={summary.low_stock_items ? summary.low_stock_items?.map((row) => [row.item.name, row.item.code, `${money(row.quantity)} ${row.item.unit}`, `${money(row.total_value)} · ${row.item.currency}`]) : []} empty="هیچ قلم کم‌موجودی گزارش نشده است." /><TableCard title="یادداشت‌های عملیاتی" columns={['مورد', 'مقدار']} rows={[[`عاید بیرونی`, currencyTotal('net_total')], [`برگشت فروش`, currencyTotal('refund_total')], [`بهای تمام‌شده`, currencyTotal('cost_of_goods_sold')], [`سود ناخالص`, currencyTotal('gross_profit')], [`ارزش انتقالات داخلی`, `${money(summary.internal_transfers_value_afg ?? 0)} AFG`]]} empty="خلاصهٔ عملیاتی موجود نیست." /></div>
                 <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900 sm:grid-cols-3"><MiniMetric icon={ClipboardList} label="حرکت‌های موجودی" value={summary.movements} /><MiniMetric icon={Factory} label="سفارش‌های تولید" value={summary.production} /><MiniMetric icon={Activity} label="فعالیت سیستم" value={summary.activity} /></div>
             </div>
         </AppLayout>
@@ -288,7 +324,7 @@ function TableCard({ title, columns, rows, empty }: { title: string; columns: st
     return (
         <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <h2 className="font-bold text-slate-900 dark:text-white">{title}</h2>
-            <div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="mt-4 overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
                 <table className="min-w-full text-right text-sm">
                     <thead className="bg-slate-50 dark:bg-slate-800">
                         <tr>{columns.map((column) => <th key={column} className="px-3 py-2 font-semibold text-slate-600 dark:text-slate-200">{column}</th>)}</tr>

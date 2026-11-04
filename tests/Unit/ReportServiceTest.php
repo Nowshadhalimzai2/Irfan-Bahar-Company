@@ -2,9 +2,13 @@
 
 namespace Tests\Unit;
 
+use App\Http\Controllers\SaleController;
 use App\Models\Category;
 use App\Models\Currency;
+use App\Models\InventoryBalance;
+use App\Models\InventoryMovement;
 use App\Models\Item;
+use App\Models\ItemUnit;
 use App\Models\Location;
 use App\Models\Sale;
 use App\Models\SaleLine;
@@ -23,6 +27,128 @@ use Tests\TestCase;
 class ReportServiceTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_report_quantities_and_inventory_values_use_the_items_base_unit(): void
+    {
+        $factory = Location::query()->firstOrCreate([
+            'name' => 'factory',
+            'type' => 'factory',
+            'address' => 'Factory floor',
+            'is_active' => true,
+        ]);
+        $shop = Location::query()->firstOrCreate([
+            'name' => 'shop',
+            'type' => 'shop',
+            'address' => 'Main shop',
+            'is_active' => true,
+        ]);
+        $category = Category::query()->firstOrCreate(['name' => 'soap']);
+        $currency = Currency::query()->firstOrCreate(['name' => 'AFG']);
+        $item = Item::query()->create([
+            'sku' => 'SOAP-BASE-UNIT',
+            'name' => 'Base Unit Soap',
+            'code' => 'SOAP-BASE-UNIT',
+            'item_type' => 'product',
+            'unit' => 'kg',
+            'default_sale_price' => 999,
+            'category_id' => $category->id,
+        ]);
+        $baseUnit = ItemUnit::query()->create([
+            'item_id' => $item->id,
+            'name' => 'kilogram',
+            'symbol' => 'kg',
+            'conversion_to_base' => 1,
+            'code' => 'SOAP-BASE-KG',
+            'selling_price' => 3,
+            'purchase_price' => 2,
+            'is_active' => true,
+        ]);
+        $cartonUnit = ItemUnit::query()->create([
+            'item_id' => $item->id,
+            'name' => 'carton',
+            'symbol' => 'ctn',
+            'conversion_to_base' => 10,
+            'code' => 'SOAP-BASE-CTN',
+            'selling_price' => 30,
+            'purchase_price' => 20,
+            'is_active' => true,
+        ]);
+        $item->update(['base_unit_id' => $baseUnit->id]);
+
+        $saleDate = Carbon::parse('2026-10-04 12:00:00');
+        $sale = Sale::query()->create([
+            'customer_name' => 'Base Unit Customer',
+            'currency_id' => $currency->id,
+            'status' => 'completed',
+            'total' => 200,
+            'discount_total' => 0,
+            'after_descount_total' => 200,
+            'amount_paid' => 200,
+            'sold_at' => $saleDate,
+        ]);
+        SaleLine::query()->create([
+            'sale_id' => $sale->id,
+            'item_id' => $item->id,
+            'item_unit_id' => $cartonUnit->id,
+            'unit' => 'carton',
+            'quantity' => 2,
+            'conversion_factor' => 10,
+            'base_quantity' => 20,
+            'unit_cost' => 20,
+            'unit_price' => 100,
+            'discount' => 0,
+            'discount_total' => 0,
+            'line_total' => 200,
+            'sort_order' => 1,
+        ]);
+
+        $transfer = Transfer::query()->create([
+            'source_id' => $factory->id,
+            'destination_id' => $shop->id,
+            'reference_no' => 'TR-BASE-01',
+            'notes' => 'Base-unit report test',
+            'transferred_at' => $saleDate->toDateString(),
+            'status' => 'completed',
+        ]);
+        TransferLine::query()->create([
+            'transfer_id' => $transfer->id,
+            'item_id' => $item->id,
+            'item_unit_id' => $cartonUnit->id,
+            'quantity' => 2,
+            'conversion_factor' => 10,
+            'base_quantity' => 20,
+            'unit_price' => 20,
+        ]);
+        InventoryBalance::query()->create([
+            'item_id' => $item->id,
+            'location_id' => $shop->id,
+            'quantity_on_hand' => 10,
+            'reserved' => 2,
+        ]);
+        InventoryMovement::query()->create([
+            'location_id' => $factory->id,
+            'item_id' => $item->id,
+            'movement_type' => 'production_consumption',
+            'quantity' => -5,
+            'reference_no' => 'MOV-BASE-01',
+            'occured_at' => $saleDate->toDateString(),
+            'notes' => 'Base-unit report test',
+        ]);
+
+        $report = app(ReportService::class)->buildForPeriod('daily', $saleDate);
+
+        $this->assertSame(20.0, $report['topProducts'][0]['quantity']);
+        $this->assertSame('kilogram', $report['topProducts'][0]['unit']);
+        $this->assertSame(20.0, $report['internalTransfers'][0]['quantity']);
+        $this->assertSame('kilogram', $report['internalTransfers'][0]['unit']);
+        $this->assertSame(30.0, $report['shopInventory'][0]['value']);
+        $this->assertSame(30.0, $report['summary']['shop_stock_value_afg']);
+        $this->assertSame(24.0, $report['summary']['low_stock_items'][0]['total_value']);
+        $this->assertSame('kilogram', $report['summary']['low_stock_items'][0]['item']['unit']);
+        $this->assertSame(5.0, $report['movementSummary'][0]['quantity']);
+        $this->assertSame('kilogram', $report['movementSummary'][0]['unit']);
+        $this->assertSame(10.0, collect($report['currencySummary'])->firstWhere('currency', 'AFG')['production_cost']);
+    }
 
     public function test_it_keeps_internal_transfers_out_of_external_revenue_and_profit(): void
     {
@@ -100,10 +226,11 @@ class ReportServiceTest extends TestCase
 
         $report = app(ReportService::class)->buildForPeriod('daily', $saleDate);
 
-        $this->assertSame(1000.0, round((float) $report['summary']['sales']['total'], 2));
-        $this->assertSame(400.0, round((float) $report['summary']['cost_of_goods_sold'], 2));
-        $this->assertSame(600.0, round((float) $report['summary']['gross_profit'], 2));
-        $this->assertSame(450.0, round((float) $report['summary']['internal_transfers'], 2));
+        $currencySummary = collect($report['currencySummary'])->firstWhere('currency', 'AFG');
+        $this->assertSame(1000.0, $currencySummary['net_total']);
+        $this->assertSame(400.0, $currencySummary['cost_of_goods_sold']);
+        $this->assertSame(600.0, $currencySummary['gross_profit']);
+        $this->assertSame(450.0, $report['summary']['internal_transfers_value_afg']);
     }
 
     public function test_it_adjusts_sales_and_profit_for_returns_and_groups_by_currency(): void
@@ -225,11 +352,21 @@ class ReportServiceTest extends TestCase
 
         $report = app(ReportService::class)->buildForPeriod('daily', $saleDate);
 
-        $this->assertSame(950.0, round((float) $report['summary']['sales']['total'], 2));
-        $this->assertSame(250.0, round((float) $report['summary']['returns_total'], 2));
-        $this->assertSame(660.0, round((float) $report['summary']['gross_profit'], 2));
+        $this->assertSame(750.0, collect($report['currencySummary'])->firstWhere('currency', 'AFG')['net_total']);
+        $this->assertSame(250.0, collect($report['currencySummary'])->firstWhere('currency', 'AFG')['refund_total']);
+        $this->assertSame(660.0, collect($report['currencySummary'])->sum('gross_profit'));
         $this->assertTrue(collect($report['currencySummary'])->pluck('currency')->contains('AFG'));
         $this->assertTrue(collect($report['currencySummary'])->pluck('currency')->contains('USD'));
+        $afg = collect($report['currencySummary'])->firstWhere('currency', 'AFG');
+        $usd = collect($report['currencySummary'])->firstWhere('currency', 'USD');
+        $this->assertSame(750.0, $afg['net_total']);
+        $this->assertSame(510.0, $afg['gross_profit']);
+        $this->assertSame(200.0, $usd['net_total']);
+        $this->assertSame(150.0, $usd['gross_profit']);
+        $this->assertArrayNotHasKey('total', $report['summary']['sales']);
+        $this->assertEquals(['AFG', 'USD'], collect($report['dailySales'])->pluck('currency')->sort()->values()->all());
+        $this->assertEquals(['AFG', 'USD'], collect($report['topProducts'])->pluck('currency')->sort()->values()->all());
+        $this->assertEquals(['AFG', 'USD'], collect($report['customerSales'])->pluck('currency')->sort()->values()->all());
     }
 
     public function test_it_uses_today_as_the_base_for_today_preset_even_when_a_different_date_is_selected(): void
@@ -274,7 +411,7 @@ class ReportServiceTest extends TestCase
         $this->assertSame('1405/07/10', $report['range']['start']);
         $this->assertSame('1405/07/10', $report['range']['end']);
         $this->assertSame(2, $report['summary']['sales']['count']);
-        $this->assertSame(50.0, (float) $report['summary']['sales']['total']);
+        $this->assertSame(50.0, collect($report['currencySummary'])->firstWhere('currency', 'AFG')['net_total']);
     }
 
     public function test_daily_report_includes_legacy_sales_without_sold_at_using_created_at(): void
@@ -290,7 +427,7 @@ class ReportServiceTest extends TestCase
         $report = app(ReportService::class)->buildForPeriod('daily', '1405/07/10');
 
         $this->assertSame(1, $report['summary']['sales']['count']);
-        $this->assertSame(75.0, (float) $report['summary']['sales']['total']);
+        $this->assertSame(75.0, collect($report['currencySummary'])->firstWhere('currency', 'AFG')['net_total']);
         $this->assertSame($range['start']->toDateString(), $report['dailySales'][0]['date']);
     }
 
@@ -308,7 +445,7 @@ class ReportServiceTest extends TestCase
         $this->assertSame('1405/07/01', $report['range']['start']);
         $this->assertSame('1405/07/30', $report['range']['end']);
         $this->assertSame(2, $report['summary']['sales']['count']);
-        $this->assertSame(50.0, (float) $report['summary']['sales']['total']);
+        $this->assertSame(50.0, collect($report['currencySummary'])->firstWhere('currency', 'AFG')['net_total']);
     }
 
     public function test_report_accepts_persian_digits_and_applies_customer_filter_to_sales(): void
@@ -323,7 +460,7 @@ class ReportServiceTest extends TestCase
         ]);
 
         $this->assertSame(1, $report['summary']['sales']['count']);
-        $this->assertSame(100.0, (float) $report['summary']['sales']['total']);
+        $this->assertSame(100.0, collect($report['currencySummary'])->firstWhere('currency', 'AFG')['net_total']);
         $this->assertSame('1405/07/10', $report['range']['start']);
     }
 
@@ -336,7 +473,7 @@ class ReportServiceTest extends TestCase
 
     public function test_dashboard_trend_uses_persian_days_for_display(): void
     {
-        $controller = app(\App\Http\Controllers\SaleController::class);
+        $controller = app(SaleController::class);
         $saleDate = Carbon::parse('2026-10-13 12:00:00');
 
         $trend = $controller->getTrend(
@@ -359,7 +496,7 @@ class ReportServiceTest extends TestCase
 
     public function test_dashboard_period_uses_three_months_ago_correctly(): void
     {
-        $controller = app(\App\Http\Controllers\SaleController::class);
+        $controller = app(SaleController::class);
         $method = new \ReflectionMethod($controller, 'resolveMonthRange');
         $method->setAccessible(true);
 
