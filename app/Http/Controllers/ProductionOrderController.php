@@ -20,6 +20,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log as ApplicationLog;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -86,6 +87,7 @@ class ProductionOrderController extends Controller
     {
         $data = $this->validateOrder($request);
         $log = new Log;
+        $order = null;
         DB::beginTransaction();
 
         try {
@@ -114,6 +116,12 @@ class ProductionOrderController extends Controller
                 $user->notify(new NewOrderCreated($order));
             }
             DB::commit();
+            ApplicationLog::info('Production order created.', [
+                'user_id' => Auth::id(),
+                'production_order_id' => $order->id,
+                'reference_no' => $order->reference_no,
+                'status' => $order->status,
+            ]);
             Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
 
             return redirect()->to(route('orders.index'));
@@ -124,10 +132,15 @@ class ProductionOrderController extends Controller
                 throw $th;
             }
             $des = ' متاسفانه سفارش'.($data['ordered_by'] ?? '').'در ثبت سیستم ثبت نشد ';
-            $log->create('insert', $des);
-
             DB::rollBack();
-            Inertia::flash('toast', ['type' => 'error', 'message' => $des.$th->getMessage()]);
+            ApplicationLog::error('Production order creation failed.', [
+                'user_id' => Auth::id(),
+                'production_order_id' => $order->id ?? null,
+                'reference_no' => $order->reference_no ?? null,
+                'status' => 'failed',
+                'exception' => $th,
+            ]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'ثبت سفارش تولید ناموفق بود. لطفاً دوباره تلاش کنید.']);
 
             return redirect()->back();
         }
@@ -186,6 +199,13 @@ class ProductionOrderController extends Controller
 
                 $order->status = $status;
                 $order->save();
+                DB::afterCommit(fn () => ApplicationLog::info('Production order status updated.', [
+                    'user_id' => Auth::id(),
+                    'production_order_id' => $order->id,
+                    'reference_no' => $order->reference_no,
+                    'previous_status' => $currentStatus,
+                    'status' => $status,
+                ]));
                 $log = new Log;
                 $des = 'حالت سفارش '.$order->reference_no.' تغیر از '.$currentStatus.' به'.$status.'شد';
                 $log->create('update', $des, null, route('orders.show', $order->id));
@@ -205,7 +225,14 @@ class ProductionOrderController extends Controller
                 throw $th;
             }
 
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'تغییر وضعیت سفارش انجام نشد: '.$th->getMessage()]);
+            ApplicationLog::error('Production order status update failed.', [
+                'user_id' => Auth::id(),
+                'production_order_id' => $production_order->id,
+                'reference_no' => $production_order->reference_no,
+                'requested_status' => $status,
+                'exception' => $th,
+            ]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'تغییر وضعیت سفارش ناموفق بود. لطفاً دوباره تلاش کنید.']);
 
             return redirect()->back();
         }

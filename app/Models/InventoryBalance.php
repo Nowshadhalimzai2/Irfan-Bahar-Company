@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InventoryBalance extends Model
 {
+    public const LOW_STOCK_THRESHOLD = 10;
+
     protected $fillable = ['item_id','location_id','quantity_on_hand','reserved'];
 
     protected $casts = [

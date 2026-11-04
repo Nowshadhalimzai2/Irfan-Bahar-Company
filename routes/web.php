@@ -8,6 +8,7 @@ use App\Http\Controllers\BOMController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\ExpenseController;
+use App\Http\Controllers\FactoryDashboardController;
 use App\Http\Controllers\GoodsReceiptController;
 use App\Http\Controllers\InventoryBalanceController;
 use App\Http\Controllers\InventoryMovementController;
@@ -28,12 +29,10 @@ use App\Http\Controllers\TransferController;
 use App\Http\Controllers\WasteController;
 use App\Models\Currency;
 use App\Models\Item;
-use App\Models\ProductionOrder;
 use App\Models\Role;
 use App\Models\ShopAccount;
 use App\Models\User;
 use App\Services\DashboardService;
-use App\Services\HighProductionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -227,43 +226,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/barcode', [BarcodeController::class, 'index'])->name('barcode.index')->middleware(['superadmin']);
     Route::get('/barcode/image', [BarcodeController::class, 'show'])->name('barcode.image')->middleware('superadmin');
     Route::prefix('factory')->group(function () {
-        // Route::middleware('allowOnlyFactoryClerk')->group(function(){});
-        Route::get('/home', function () {
-            $auth = Auth::user();
-            if ($auth instanceof User)
-                Gate::allowIf(!$auth->hasRole('shop_clerk'));
-            //  ===========  get items available in Factory  ===========
-            $items = Item::with([
-                'inventoryBalances' => function ($query) {
-                    $query->whereHas('location', function ($locationQuery) {
-                        $locationQuery->where('type', 'factory');
-                    });
-                },
-                'inventoryBalances.location:id,name,type',
-                'product:item_id,per_pack,weight',
-                'category:id,name',
-            ])->whereHas('inventoryBalances', function ($p0) {
-                $p0->whereNot('quantity_on_hand', 0)
-                    ->whereHas('location', function ($locationQuery) {
-                        $locationQuery->where('type', 'factory');
-                    });
-            })->paginate(4);
+        Route::get('/home', FactoryDashboardController::class)
+            ->name('factory');
 
-            $highProductionService = new HighProductionService();
-            $productionByCategory = $highProductionService->getCategoryByProduction();
-
-            $topProductionCategories = $highProductionService->topProductionCategory($productionByCategory);
-
-            $productionChart = $highProductionService->GenerateProductionChart($productionByCategory, $topProductionCategories);
-
-            $pendingOrders = ProductionOrder::with('bom:id,category_id', 'bom.category:id,name', 'productionOutputs:id,production_order_id,quantity_produced')
-                ->select('id', 'ordered_by', 'order_date', 'status', 'bom_id')
-                ->where('status', 'pending')
-                ->orderBy('id')
-                ->take(3)
-                ->get();
-            return Inertia::render('factory/home', compact('items', 'pendingOrders', 'productionChart', 'topProductionCategories'));
-        })->name('factory');
         Route::get('/proudction-orders/{production_order}', [ProductionOrderController::class, 'show'])
             ->name('orders.show-typo');
 

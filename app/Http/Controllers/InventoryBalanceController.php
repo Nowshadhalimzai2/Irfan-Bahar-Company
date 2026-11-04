@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\InventoryBalance;
 use App\Models\Item;
 use App\Models\Location;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -15,9 +16,16 @@ class InventoryBalanceController extends Controller
      */
     public function index(Request $request)
     {
+        $allowedLocationTypes = $request->user() instanceof User
+            && $request->user()->hasRole('factory_clerk')
+            ? ['factory', 'warehouse']
+            : ['factory', 'warehouse', 'shop'];
+
         $query = Item::query()
             ->with([
-                'inventoryBalances.location:id,name',
+                'inventoryBalances' => fn ($balanceQuery) => $balanceQuery
+                    ->whereHas('location', fn ($locationQuery) => $locationQuery->whereIn('type', $allowedLocationTypes))
+                    ->with('location:id,name'),
                 'units' => fn ($unitQuery) => $unitQuery
                     ->select('id', 'item_id', 'name', 'symbol', 'conversion_to_base', 'code', 'barcode', 'selling_price', 'purchase_price', 'is_active')
                     ->where('is_active', true)
@@ -26,15 +34,13 @@ class InventoryBalanceController extends Controller
                 'product:item_id,per_pack,weight,barcode,description',
                 'category:id,name',
             ])
-            ->whereHas('inventoryBalances', function ($balanceQuery) {
+            ->whereHas('inventoryBalances', function ($balanceQuery) use ($allowedLocationTypes) {
                 $balanceQuery
                     ->where(function ($quantityQuery) {
                         $quantityQuery->whereNot('quantity_on_hand', 0)
                             ->orWhereNot('reserved', 0);
                     })
-                    ->whereHas('location', function ($locationQuery) {
-                        $locationQuery->whereIn('type', ['factory', 'warehouse', 'shop']);
-                    });
+                    ->whereHas('location', fn ($locationQuery) => $locationQuery->whereIn('type', $allowedLocationTypes));
             });
 
         $itemType = $request->query('item_type');
@@ -58,15 +64,16 @@ class InventoryBalanceController extends Controller
 
         $locationId = $request->query('location_id');
         if ($locationId !== null && $locationId !== '' && $locationId !== 'all') {
-            $query->whereHas('inventoryBalances', function ($balanceQuery) use ($locationId) {
-                $balanceQuery->where('location_id', (int) $locationId);
-            });
+        $query->whereHas('inventoryBalances', function ($balanceQuery) use ($locationId, $allowedLocationTypes) {
+            $balanceQuery->where('location_id', (int) $locationId)
+                ->whereHas('location', fn ($locationQuery) => $locationQuery->whereIn('type', $allowedLocationTypes));
+        });
         }
 
         $items = $query->paginate(10)->withQueryString();
         $locations = Location::query()
             ->select('id', 'name')
-            ->whereIn('type', ['factory', 'warehouse', 'shop'])
+            ->whereIn('type', $allowedLocationTypes)
             ->orderBy('name')->get();
 
         return Inertia::render('inventory-balance/index', compact('items', 'locations'));

@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log as ApplicationLog;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -67,13 +68,21 @@ class GoodsReceiptController extends Controller
                     ->withQueryString();
             }
         }
-        $transfers = Transfer::with(
+        $transferQuery = Transfer::with(
             'source:id,name',
             'destination:id,name',
             'transferLines:id,item_id,item_unit_id,transfer_id,quantity,base_quantity,unit_price',
             'transferLines.item:id,name,unit,item_type,default_sale_price',
             'transferLines.itemUnit:id,item_id,name,symbol,conversion_to_base,selling_price'
-        )
+        );
+        if ($user instanceof User && $user->hasRole('factory_clerk')) {
+            $transferQuery->where(function ($query) {
+                $query->whereHas('source', fn ($locationQuery) => $locationQuery->whereIn('type', ['factory', 'warehouse']))
+                    ->orWhereHas('destination', fn ($locationQuery) => $locationQuery->whereIn('type', ['factory', 'warehouse']));
+            });
+        }
+
+        $transfers = $transferQuery
             ->select('id', 'source_id', 'destination_id', 'reference_no', 'notes', 'transferred_at', 'status')
             ->when($transferDate, fn ($query) => $query->whereDate('transferred_at', $transferDate))
             ->orderBy('id', 'desc')
@@ -171,6 +180,7 @@ class GoodsReceiptController extends Controller
         }
 
         $log = new Log();
+        $receipt = null;
         DB::beginTransaction();
         try {
             $totalAmount = collect($data['receiptLines'])->sum(
@@ -215,19 +225,43 @@ class GoodsReceiptController extends Controller
 
             $log->create('insert', ' جنس نو وارد شد در ' . $receipt->location->name);
             DB::commit();
+            ApplicationLog::info('Goods receipt recorded.', [
+                'user_id' => Auth::id(),
+                'receipt_id' => $receipt->id,
+                'reference_no' => $receipt->reference_no,
+                'destination_location_id' => $receipt->destination_location_id,
+                'line_count' => count($data['receiptLines']),
+                'status' => 'received',
+            ]);
 
             Inertia::flash('toast', ['type' => 'success', 'message' => "جنس نو امد به {$receipt->location->name}"]);
             return redirect()->route('receipts.index');
         } catch (\Throwable $th) {
-            $log->create('insert', 'جنس نو وارد نشد ');
-            DB::rollBack();
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'جنس نو وارد نشد .' . $th->getMessage()]);
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            ApplicationLog::error('Goods receipt transaction failed.', [
+                'user_id' => Auth::id(),
+                'receipt_id' => $receipt->id ?? null,
+                'reference_no' => $receipt->reference_no ?? null,
+                'destination_location_id' => $data['destination_location_id'],
+                'status' => 'failed',
+                'exception' => $th,
+            ]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'ثبت رسید اجناس ناموفق بود. لطفاً دوباره تلاش کنید.']);
             return redirect()->back();
         }
     }
 
-    public function show(GoodsReceipt $receipt)
+    public function show(Request $request, GoodsReceipt $receipt)
     {
+        if ($request->user() instanceof User && $request->user()->hasRole('factory_clerk')) {
+            abort_unless(
+                $receipt->location()->whereIn('type', ['factory', 'warehouse'])->exists(),
+                403,
+            );
+        }
+
         $receipt->load(
             'location:id,name',
             'currency:id,name',

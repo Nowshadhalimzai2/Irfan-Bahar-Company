@@ -427,7 +427,7 @@ class ReportService
             ->orderBy('quantity_on_hand')
             ->when(! $export, fn ($query) => $query->limit(8))
             ->get()
-            ->map(fn ($row) => ['product' => $row->product, 'quantity' => (float) $row->quantity, 'value' => (float) $row->value, 'is_low_stock' => $row->quantity < 10 ? true : false])
+            ->map(fn ($row) => ['product' => $row->product, 'quantity' => (float) $row->quantity, 'value' => (float) $row->value, 'is_low_stock' => $row->quantity < InventoryBalance::LOW_STOCK_THRESHOLD])
             ->values();
 
         $paymentsQuery = Payment::query()

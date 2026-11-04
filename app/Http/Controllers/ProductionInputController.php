@@ -14,6 +14,7 @@ use App\Services\ProductionOrderService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log as ApplicationLog;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
@@ -160,9 +161,17 @@ class ProductionInputController extends Controller
                 'message' => 'تولیدات سفارش ذخیره شد.',
             ]);
 
+            ApplicationLog::info('Production outputs confirmed.', [
+                'user_id' => auth()->id(),
+                'production_order_id' => $production_order->id,
+                'reference_no' => $production_order->reference_no,
+                'output_count' => count($data['outputs']),
+                'status' => $production_order->status,
+            ]);
+
             return redirect()->route('orders.confirm-inputs', [$production_order->id, $status]);
         } catch (\Throwable $exception) {
-            return $this->backWithError($exception);
+            return $this->backWithError($exception, $production_order, 'confirm_outputs');
         }
     }
 
@@ -252,13 +261,22 @@ class ProductionInputController extends Controller
                 'message' => 'سفارش با موفقیت تکمیل شد.',
             ]);
 
+            ApplicationLog::info('Production order completed.', [
+                'user_id' => auth()->id(),
+                'production_order_id' => $production_order->id,
+                'reference_no' => $production_order->reference_no,
+                'input_count' => count($data['orderInputs']),
+                'output_count' => $production_order->productionOutputs()->count(),
+                'status' => 'completed',
+            ]);
+
             if ($data['doesItHaveWaste']) {
                 return redirect()->route('wastes.create', $production_order->id);
             }
 
             return redirect()->route('orders.show', $production_order->id);
         } catch (\Throwable $exception) {
-            return $this->backWithError($exception);
+            return $this->backWithError($exception, $production_order, 'complete_order');
         }
     }
 
@@ -356,8 +374,21 @@ class ProductionInputController extends Controller
         }
     }
 
-    private function backWithError(\Throwable $exception)
+    private function backWithError(
+        \Throwable $exception,
+        ProductionOrder $order,
+        string $operation,
+    )
     {
+        ApplicationLog::error('Production order operation failed.', [
+            'user_id' => auth()->id(),
+            'production_order_id' => $order->id,
+            'reference_no' => $order->reference_no,
+            'operation' => $operation,
+            'status' => $order->status,
+            'exception' => $exception,
+        ]);
+
         Inertia::flash('toast', [
             'type' => 'error',
             'message' => 'درخواست پذیرفته نشد. '.$exception->getMessage(),

@@ -11,6 +11,7 @@ use App\Models\Transfer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log as ApplicationLog;
 use Illuminate\Validation\ValidationException;
 use App\Models\InventoryBalance;
 use App\Models\TransferLine;
@@ -117,6 +118,7 @@ class TransferController extends Controller
             }
         }
 
+        $transfer = null;
         DB::beginTransaction();
         try {
             // create the goods receipt 
@@ -173,6 +175,15 @@ class TransferController extends Controller
             $des = 'اجناس از ' . $transfer->source->name . ' به ' . $transfer->destination->name . ' پیشنهاد شد';
             $log->create('insert', $des);
             DB::commit();
+            ApplicationLog::info('Inventory transfer requested.', [
+                'user_id' => auth()->id(),
+                'transfer_id' => $transfer->id,
+                'reference_no' => $transfer->reference_no,
+                'source_location_id' => $transfer->source_id,
+                'destination_location_id' => $transfer->destination_id,
+                'line_count' => count($data['transferLines']),
+                'status' => $transfer->status,
+            ]);
         } catch (\Throwable $th) {
             if (DB::transactionLevel() > 0) {
                 DB::rollBack();
@@ -180,7 +191,16 @@ class TransferController extends Controller
             if ($th instanceof ValidationException) {
                 throw $th;
             }
-            Inertia::flash('toast', ['type' => 'error', 'message' => 'ثبت انتقال اجناس ناموفق بود: ' . $th->getMessage()]);
+            ApplicationLog::error('Inventory transfer request failed.', [
+                'user_id' => auth()->id(),
+                'transfer_id' => $transfer->id ?? null,
+                'reference_no' => $transfer->reference_no ?? null,
+                'source_location_id' => $data['source_id'],
+                'destination_location_id' => $data['destination_id'],
+                'status' => 'failed',
+                'exception' => $th,
+            ]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'ثبت انتقال اجناس ناموفق بود. لطفاً دوباره تلاش کنید.']);
             return redirect()->back()->withInput();
         }
 
@@ -199,8 +219,16 @@ class TransferController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Transfer $transfer)
+    public function show(Request $request, Transfer $transfer)
     {
+        if ($request->user() instanceof User && $request->user()->hasRole('factory_clerk')) {
+            $hasAuthorizedLocation = Location::query()
+                ->whereIn('type', ['factory', 'warehouse'])
+                ->whereIn('id', [$transfer->source_id, $transfer->destination_id])
+                ->exists();
+            abort_unless($hasAuthorizedLocation, 403);
+        }
+
         $transfer->load(
             'source:id,name',
             'destination:id,name',
@@ -286,10 +314,27 @@ class TransferController extends Controller
                 Inertia::flash('toast', ['type' => 'success', 'message' => $des]);
             }
             DB::commit();
+            ApplicationLog::info('Inventory transfer status updated.', [
+                'user_id' => auth()->id(),
+                'transfer_id' => $transfer->id,
+                'reference_no' => $transfer->reference_no,
+                'source_location_id' => $transfer->source_id,
+                'destination_location_id' => $transfer->destination_id,
+                'status' => $status,
+            ]);
             return redirect()->back();
         } catch (\Throwable $th) {
-            DB::rollBack();
-            Inertia::flash('toast', ['type' => 'success', 'message' => 'انتقال اجناس تکمل نشد ' . $th->getMessage()]);
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            ApplicationLog::error('Inventory transfer status update failed.', [
+                'user_id' => auth()->id(),
+                'transfer_id' => $transfer->id,
+                'reference_no' => $transfer->reference_no,
+                'status' => $status,
+                'exception' => $th,
+            ]);
+            Inertia::flash('toast', ['type' => 'error', 'message' => 'تغییر وضعیت انتقال ناموفق بود. لطفاً دوباره تلاش کنید.']);
             return redirect()->back();
         }
     }

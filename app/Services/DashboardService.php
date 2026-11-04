@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Expense;
 use App\Models\Employee;
+use App\Models\InventoryBalance;
 use App\Models\Invoice;
 use App\Models\Item;
 use App\Models\Payment;
@@ -20,7 +21,6 @@ class DashboardService
 {
     public function __construct(private PersianDateConverter $persianDateConverter) {}
 
-    private const REORDER_THRESHOLD = 10;
     private const SHOP_TRANSFER_LIMIT = 3;
     private const CASH_PAYMENT_METHOD = 'cash';
     private const SHOP_LOCATION = 'shop';
@@ -152,11 +152,11 @@ class DashboardService
             ->whereHas(
                 'inventoryBalances',
                 fn($query) =>
-                $query->where('quantity_on_hand', '<', self::REORDER_THRESHOLD)
+                $query->where('quantity_on_hand', '<', InventoryBalance::LOW_STOCK_THRESHOLD)
             )
             ->withCount([
                 'inventoryBalances as reorder_inventory_balances_count' => fn($query) =>
-                $query->where('quantity_on_hand', '<', self::REORDER_THRESHOLD),
+                $query->where('quantity_on_hand', '<', InventoryBalance::LOW_STOCK_THRESHOLD),
             ])
             ->get()
             ->sum('reorder_inventory_balances_count');
