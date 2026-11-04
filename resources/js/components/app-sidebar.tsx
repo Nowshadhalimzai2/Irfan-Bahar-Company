@@ -16,22 +16,17 @@ import { dashboard } from '@/routes';
 import type { NavItem } from '@/types';
 import { footerNavItems, mainNavFactoryClerkItems, mainNavItems, mainNevShopClerkItems } from './main-nav-items';
 
-
 export function AppSidebar() {
-    let NavItems: NavItem[] = [];
-    const { auth, roles } = usePage().props;
-    const roleID: number = auth.user.role_id;
-    const roleName = roles.filter(role=>role.id==roleID)[0].name;
-    if (roleName === 'super_admin') {
-        NavItems = mainNavItems;
-    }
-    else if (roleName === 'admin') {
-        NavItems = mainNavItems;
-    }
-    else if (roleName === 'shop_clerk')
-        NavItems = mainNevShopClerkItems;
-    else if (roleName === 'factory_clerk') {
-        NavItems = mainNavFactoryClerkItems;
+    let navItems: NavItem[] = [];
+    const { auth } = usePage().props;
+    const roleName = auth.role;
+
+    if (roleName === 'super_admin' || roleName === 'admin') {
+        navItems = mainNavItems;
+    } else if (roleName === 'shop_clerk') {
+        navItems = mainNevShopClerkItems;
+    } else if (roleName === 'factory_clerk') {
+        navItems = mainNavFactoryClerkItems;
     }
 
     return (
@@ -49,7 +44,7 @@ export function AppSidebar() {
             </SidebarHeader>
 
             <SidebarContent>
-                <NavMain items={NavItems} />
+                <NavMain items={navItems} />
             </SidebarContent>
 
             <SidebarFooter>

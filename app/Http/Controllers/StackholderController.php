@@ -24,7 +24,9 @@ class StackholderController extends Controller
         $startOfMonth = now()->startOfMonth()->toDateString();
         $endOfMonth = now()->endOfMonth()->toDateString();
 
-        $this->ensureTodayAttendance();
+        if (Auth::user()?->status) {
+            $this->ensureTodayAttendance();
+        }
 
         $employees = Employee::query()
             ->select(['id', 'name', 'position', 'salary', 'status'])

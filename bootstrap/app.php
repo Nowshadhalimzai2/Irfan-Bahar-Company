@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\allowOnlyFactoryClerk;
+use App\Http\Middleware\BlockWritesForInactiveUsers;
 use App\Http\Middleware\EnsureUserIsSuperAdmin;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleAppearance::class,
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
+            BlockWritesForInactiveUsers::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

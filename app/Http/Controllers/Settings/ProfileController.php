@@ -5,10 +5,13 @@ namespace App\Http\Controllers\Settings;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\ProfileDeleteRequest;
 use App\Http\Requests\Settings\ProfileUpdateRequest;
+use App\Models\User;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -50,9 +53,24 @@ class ProfileController extends Controller
     {
         $user = $request->user();
 
-        Auth::logout();
+        DB::transaction(function () use ($user): void {
+            if ($user->hasRole('super_admin')) {
+                $activeSuperAdmins = User::query()
+                    ->whereHas('role', fn ($query) => $query->where('name', 'super_admin'))
+                    ->where('status', true)
+                    ->lockForUpdate()
+                    ->pluck('id');
 
-        $user->delete();
+                if ($activeSuperAdmins->count() <= 1) {
+                    throw ValidationException::withMessages([
+                        'password' => 'حداقل یک سوپر ادمین فعال باید باقی بماند.',
+                    ]);
+                }
+            }
+
+            Auth::logout();
+            $user->delete();
+        });
 
         $request->session()->invalidate();
         $request->session()->regenerateToken();

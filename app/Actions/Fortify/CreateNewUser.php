@@ -6,6 +6,10 @@ use App\Concerns\PasswordValidationRules;
 use App\Concerns\ProfileValidationRules;
 use App\Models\Role;
 use App\Models\User;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Validator;
 use Laravel\Fortify\Contracts\CreatesNewUsers;
 
@@ -20,44 +24,62 @@ class CreateNewUser implements CreatesNewUsers
      */
     public function create(array $input): User
     {
-        $isFirstUser = User::query()->count() === 0;
-
-        if ($isFirstUser) {
+        return DB::transaction(function () use ($input): User {
             $this->ensureDefaultRolesExist();
-        }
+            $superAdminRole = Role::query()
+                ->where('name', 'super_admin')
+                ->lockForUpdate()
+                ->firstOrFail();
+            $isFirstUser = ! User::query()->exists();
+            $currentUser = Auth::user();
 
-        $validationRules = [
-            ...$this->profileRules(),
-            'password' => $this->passwordRules(),
-        ];
+            if (! $isFirstUser) {
+                abort_unless(
+                    $currentUser instanceof User
+                        && $currentUser->status
+                        && $currentUser->hasAnyRole(['admin', 'super_admin']),
+                    403,
+                );
+            }
 
-        if (! $isFirstUser) {
-            $validationRules['role_id'] = ['required', 'exists:roles,id'];
-        }
+            $validationRules = [
+                ...$this->profileRules(),
+                'password' => $this->passwordRules(),
+            ];
 
-        Validator::make($input, $validationRules)->validate();
+            if (! $isFirstUser) {
+                $validationRules['role_id'] = [
+                    'required',
+                    'integer',
+                    Rule::exists('roles', 'id')->where(
+                        fn (Builder $query) => $query->whereIn('name', Role::SUPPORTED_NAMES),
+                    ),
+                ];
+            }
 
-        $roleId = $input['role_id'] ?? null;
+            Validator::make($input, $validationRules)->validate();
 
-        if ($isFirstUser) {
-            $roleId = Role::where('name', 'super_admin')->value('id');
-        }
+            $roleId = $isFirstUser ? $superAdminRole->id : (int) $input['role_id'];
+            $role = Role::query()->findOrFail($roleId);
 
-        if (! $roleId) {
-            throw new \InvalidArgumentException('A valid role is required to create a user.');
-        }
+            if (! $isFirstUser && ! $currentUser->hasRole('super_admin') && $role->name === 'super_admin') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'role_id' => 'فقط سوپر ادمین می‌تواند این نقش را تعیین کند.',
+                ]);
+            }
 
-        return User::create([
-            'name' => $input['name'],
-            'email' => $input['email'],
-            'password' => $input['password'],
-            'role_id' => $roleId,
-        ]);
+            return User::create([
+                'name' => $input['name'],
+                'email' => $input['email'],
+                'password' => $input['password'],
+                'role_id' => $roleId,
+            ]);
+        });
     }
 
     private function ensureDefaultRolesExist(): void
     {
-        foreach (['super_admin', 'admin', 'shop_clerk', 'factory_clerk'] as $roleName) {
+        foreach (Role::SUPPORTED_NAMES as $roleName) {
             Role::firstOrCreate(['name' => $roleName]);
         }
     }

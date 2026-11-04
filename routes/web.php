@@ -1,7 +1,5 @@
 <?php
 
-use App\Actions\Fortify\CreateNewUser;
-use App\Custome\Log;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\BarcodeController;
 use App\Http\Controllers\BOMController;
@@ -26,67 +24,25 @@ use App\Http\Controllers\SaleReturnController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SupplierPaymentController;
 use App\Http\Controllers\TransferController;
+use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\WasteController;
 use App\Models\Currency;
 use App\Models\Item;
-use App\Models\Role;
 use App\Models\ShopAccount;
-use App\Models\User;
 use App\Services\DashboardService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Validation\Rules\Password;
 use Inertia\Inertia;
 use App\Http\Controllers\StackholderController;
 
 
 // ---------------------------------------------------------------------------------
 
-Route::get('/register', function () {
-    $roles = Role::select('id', 'name');
-    if (User::query()->exists()) {
-        Gate::authorize('manage-users');
-        $roles = $roles->get();
-        }
-        else{
-        $roles = $roles->where('name', 'super_admin')->get();
-    }
-
-    return Inertia::render('auth/register', [
-        'passwordRules' => Password::defaults()->toPasswordRulesString(),
-        'roles' => $roles,
-    ]);
-})->name('register');
-
-Route::post('/register', function (Request $request, CreateNewUser $creator) {
-    if (User::query()->exists()) {
-        Gate::authorize('manage-users');
-    }
-
-    DB::beginTransaction();
-    try {
-        $user = $creator->create($request->all());
-
-        if (! Auth::check()) {
-            Auth::login($user);
-        }
-
-        $log = new Log();
-        $log->create('insert', ' یوزر  جدید', $user->name);
-        Inertia::flash('toast', ['type' => 'success', 'message' => " موفقانه ایجاد شد {$request->name} اکونت یوزر"]);
-        DB::commit();
-    } catch (\Throwable $th) {
-        DB::rollBack();
-        Inertia::flash('toast', ['type' => 'success', 'message' => ' یک مشکل در وجود امد. ' . $th->getMessage()]);
-        return redirect()->back();
-    }
-
-    return redirect()->route('dashboard')->with('success', 'User created successfully.');
-})->name('register.store');
+Route::get('/register', [UserManagementController::class, 'create'])->name('register');
+Route::post('/register', [UserManagementController::class, 'store'])
+    ->name('register.store');
 
 
 Route::middleware(['auth', 'verified'])->group(function () {
