@@ -1,4 +1,4 @@
-import LocationTranslator from '@/components/location-translator';
+import LocationTranslator, { getDariItemUnit } from '@/components/location-translator';
 import { SectionTitle } from '@/components/section-title';
 import {
     Table,
@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import type { GoodsReceipt } from '@/types/item';
+import { Link } from '@inertiajs/react';
 
 interface Props {
     receipt: GoodsReceipt;
@@ -105,10 +106,10 @@ const Show = ({ receipt }: Props) => {
                                                         {line.quantity}
                                                     </TableCell>
                                                     <TableCell className="text-center">
-                                                        {line.item_unit?.name ??
+                                                        {getDariItemUnit(line.item_unit?.name ??
                                                             line.item.base_unit
                                                                 ?.name ??
-                                                            line.item.unit}
+                                                            line.item.unit)}
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         {line.base_quantity ??

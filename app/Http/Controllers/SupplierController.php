@@ -56,7 +56,11 @@ class SupplierController extends Controller
     public function show(Supplier $supplier)
     {
         $supplier->load('goodsReceipts.location:id,name', 'goodsReceipts.currency:id,name');
-        $supplier->load('goodsReceipts.receiptLines.item:id,name');
+        $supplier->load([
+            'goodsReceipts.receiptLines.item:id,name,unit,base_unit_id',
+            'goodsReceipts.receiptLines.item.baseUnit:id,name,symbol',
+            'goodsReceipts.receiptLines.itemUnit:id,name,symbol',
+        ]);
         $supplier->load([
             'payments' => fn ($query) => $query->where('status', 'completed')->latest('paid_at'),
             'payments.currency:id,name',
@@ -108,13 +112,24 @@ class SupplierController extends Controller
                     'received_at' => $receipt->received_at ? Carbon::parse($receipt->received_at)->format('Y-m-d') : null,
                     'currency_id' => $receipt->currency_id,
                     'currency' => $receipt->currency?->name,
-                    'lines' => $receipt->receiptLines->map(fn (GoodsReceiptLine $line) => [
-                        'id' => $line->id,
-                        'item' => $line->item?->name,
-                        'quantity' => (float) $line->quantity,
-                        'unit_cost' => (float) $line->unit_cost,
-                        'subTotal' => round((float) $line->quantity * (float) $line->unit_cost, 2),
-                    ])->values(),
+                    'lines' => $receipt->receiptLines->map(function (GoodsReceiptLine $line) {
+                        $conversionFactor = (float) ($line->conversion_factor ?: 1);
+                        $quantity = (float) $line->quantity;
+                        $baseUnit = $line->item?->baseUnit;
+
+                        return [
+                            'id' => $line->id,
+                            'item' => $line->item?->name,
+                            'quantity' => $quantity,
+                            'unit' => $line->itemUnit?->symbol ?: ($line->itemUnit?->name ?? $line->item?->unit),
+                            'base_quantity' => $line->base_quantity !== null
+                                ? (float) $line->base_quantity
+                                : round($quantity * $conversionFactor, 3),
+                            'base_unit' => $baseUnit?->symbol ?: ($baseUnit?->name ?? $line->item?->unit),
+                            'unit_cost' => (float) $line->unit_cost,
+                            'subTotal' => round($quantity * (float) $line->unit_cost, 2),
+                        ];
+                    })->values(),
                 ];
             })->values(),
             'payments' => $supplier->payments->map(fn (SupplierPayment $payment) => [

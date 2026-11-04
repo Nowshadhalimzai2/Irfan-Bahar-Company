@@ -2,8 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Category;
 use App\Models\Currency;
 use App\Models\GoodsReceipt;
+use App\Models\GoodsReceiptLine;
+use App\Models\Item;
+use App\Models\ItemUnit;
 use App\Models\Location;
 use App\Models\Role;
 use App\Models\Supplier;
@@ -14,6 +18,67 @@ use Tests\TestCase;
 class SupplierArchiveTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_supplier_receipt_history_includes_entered_and_base_units(): void
+    {
+        $user = $this->createAdmin();
+        $supplier = Supplier::query()->create([
+            'name' => 'Unit-aware supplier',
+            'address' => 'Test address',
+        ]);
+        $receipt = $this->createReceipt($supplier);
+        $receipt->update(['total_amount' => 720]);
+        $item = Item::query()->create([
+            'name' => 'Bulk ingredient',
+            'item_type' => 'raw_material',
+            'unit' => 'kg',
+            'code' => 'BULK-001',
+            'sku' => 'BULK-001',
+            'category_id' => Category::query()->firstOrCreate(['name' => 'Raw material'])->id,
+        ]);
+        $baseUnit = ItemUnit::query()->create([
+            'item_id' => $item->id,
+            'name' => 'kilogram',
+            'symbol' => 'kg',
+            'conversion_to_base' => 1,
+            'code' => 'BULK-KG',
+            'selling_price' => 50,
+            'purchase_price' => 30,
+            'is_active' => true,
+        ]);
+        $cartonUnit = ItemUnit::query()->create([
+            'item_id' => $item->id,
+            'name' => 'carton',
+            'symbol' => 'ctn',
+            'conversion_to_base' => 12,
+            'code' => 'BULK-CTN',
+            'selling_price' => 600,
+            'purchase_price' => 360,
+            'is_active' => true,
+        ]);
+        $item->update(['base_unit_id' => $baseUnit->id]);
+        GoodsReceiptLine::query()->create([
+            'receipt_id' => $receipt->id,
+            'item_id' => $item->id,
+            'item_unit_id' => $cartonUnit->id,
+            'quantity' => 2,
+            'conversion_factor' => 12,
+            'base_quantity' => 24,
+            'unit_cost' => 360,
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('suppliers.show', $supplier))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('supplier/show')
+                ->where('receipts.0.lines.0.quantity', 2)
+                ->where('receipts.0.lines.0.unit', 'ctn')
+                ->where('receipts.0.lines.0.base_quantity', 24)
+                ->where('receipts.0.lines.0.base_unit', 'kg')
+                ->where('receipts.0.lines.0.unit_cost', 360)
+                ->where('receipts.0.lines.0.subTotal', 720));
+    }
 
     public function test_deleting_a_supplier_deactivates_it_without_breaking_receipt_history(): void
     {

@@ -18,7 +18,7 @@ import { useMemo, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 
 import InputError from '@/components/input-error';
-import LocationTranslator, { getDariCurrency } from '@/components/location-translator';
+import LocationTranslator, { getDariCurrency, getDariItemUnit } from '@/components/location-translator';
 import {
     formatGregorianDate,
     formatPersianDate,
@@ -42,6 +42,9 @@ type ReceiptLine = {
     id: number;
     item: string | null;
     quantity: number;
+    unit: string | null;
+    base_quantity: number;
+    base_unit: string | null;
     unit_cost: number;
     subTotal: number;
 };
@@ -687,11 +690,26 @@ export default function Show({
                                         <td className="max-w-xs px-4 py-4">
                                             {receipt.lines.length
                                                 ? receipt.lines
-                                                    .map(
-                                                        (line) =>
-                                                            `${line.item ?? 'جنس'} (${line.quantity})`,
-                                                    )
-                                                    .join('، ')
+                                                    .map((line) => (
+                                                        <span
+                                                            key={line.id}
+                                                            className="mb-1 block"
+                                                        >
+                                                            {line.item ?? 'جنس'} (
+                                                            {line.quantity}{' '}
+                                                            {getDariItemUnit(line.unit ?? 'unit') ?? ''}
+                                                            {/* {line.base_unit
+                                                                ? ` / ${line.base_quantity} ${line.base_unit}`
+                                                                : ''}
+                                                            {' · '}
+                                                            {money(
+                                                                line.unit_cost,
+                                                                receipt.currency ?? 'AFG',
+                                                            )}
+                                                            /{line.unit ?? ''} */}
+                                                            )
+                                                        </span>
+                                                    ))
                                                 : '—'}
                                         </td>
 
