@@ -63,6 +63,9 @@ class ItemStoreBarcodeTest extends TestCase
         $this->assertStringContainsString('-U2', $barcodes[1]);
         $this->assertStringContainsString('-U3', $barcodes[2]);
 
+        // Legacy items can have unit rows without barcodes after migration.
+        $item->units()->update(['barcode' => null]);
+        $item->load('units');
         $baseUnit = $item->units->firstWhere('id', $item->base_unit_id);
         $additionalUnits = $item->units
             ->where('id', '!=', $baseUnit->id)
@@ -96,7 +99,7 @@ class ItemStoreBarcodeTest extends TestCase
                 'name' => $baseUnit->name,
                 'symbol' => $baseUnit->symbol,
                 'conversion_to_base' => 1,
-                'barcode' => $baseUnit->barcode,
+                'barcode' => null,
                 'selling_price' => (float) $baseUnit->selling_price,
                 'purchase_price' => (float) $baseUnit->purchase_price,
             ],

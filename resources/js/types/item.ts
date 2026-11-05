@@ -78,9 +78,9 @@ export interface Category {
 export interface Product extends Item {
     item_id: number;
     item: Item;
-    weight: number;
-    per_pack: number;
-    barcode: string;
+    weight: number | null;
+    per_pack?: number;
+    barcode?: string;
     description: string;
 }
 

@@ -9,9 +9,11 @@ use App\Models\Currency;
 use App\Models\Supplier;
 use App\Models\SupplierPayment;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\Gate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate as FacadesGate;
 use Inertia\Inertia;
 
 class SupplierController extends Controller
@@ -154,13 +156,15 @@ class SupplierController extends Controller
 
     public function edit(Supplier $supplier)
     {
+        FacadesGate::authorize('manage-users');
         return inertia('supplier/edit', [
             'supplier' => $supplier,
         ]);
     }
 
     public function update(Request $request, Supplier $supplier): RedirectResponse
-    {
+    {   
+        FacadesGate::authorize('manage-users');
         $data = $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|numeric|starts_with:07',
@@ -171,7 +175,7 @@ class SupplierController extends Controller
         try {
             $supplier->update($data);
             $log = new Log();
-            $log->create('update', 'تأمین کننده ' . $supplier->name);
+            $log->create('update',sprintf("تامیین کننده %s معلومات شان اپدیت شد ",$supplier->name));
             DB::commit();
             Inertia::flash('toast', ['type' => 'success', 'message' => 'تأمین کننده با موفقیت ویرایش شد.']);
             return redirect()->route('suppliers.show', $supplier);

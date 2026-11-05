@@ -5,7 +5,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle, Dia
 import { Input } from '@/components/ui/input';
 import AppLayout from '@/layouts/app-layout';
 import invoice from '@/routes/sales/invoice';
-import { Link, router } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { ArrowLeft, CircleDollarSign, FileText, RotateCcw, Search, ShoppingBag, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 type Order = { invoice_id: number, isCancelable: boolean; saleId: number; id: string; hasInvoice: boolean; customer: string; date: string; amount: number; status: string, currency: 'AFG' | 'PKR' | 'USD' };
@@ -161,7 +161,7 @@ const allSale = ({ orders }: Props) => {
                                                         <FileText className="size-3.5" /> ایجاد
                                                     </button>
                                                 )}
-                                                {order.status !== 'cancelled' && (order.hasInvoice ? <button disabled={order.status == 'returned'} type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className={`inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 ${order.status == 'returned' && 'text-gray-400 hover:text-gray-400'}`}>
+                                                {(usePage().props.auth.role==='shop_clerk' && order.status !== 'cancelled') && (order.hasInvoice ? <button disabled={order.status == 'returned'} type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className={`inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 ${order.status == 'returned' && 'text-gray-400 hover:text-gray-400'}`}>
                                                     <RotateCcw className="size-3.5" /> برگشت
 
                                                 </button>

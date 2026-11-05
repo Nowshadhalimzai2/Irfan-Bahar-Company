@@ -623,13 +623,18 @@ class ItemController extends Controller
     private function syncItemUnits(Item $item, array $baseUnit, array $additionalUnits): void
     {
         $base = $item->units()->whereKey($baseUnit['id'])->firstOrFail();
+        $reservedBarcodes = collect([$baseUnit, ...$additionalUnits])
+            ->pluck('barcode')
+            ->filter(fn ($barcode): bool => filled($barcode))
+            ->map(fn ($barcode): string => trim((string) $barcode))
+            ->all();
         $base->update([
             'name' => trim($baseUnit['name']),
             'symbol' => filled($baseUnit['symbol'] ?? null) ? trim($baseUnit['symbol']) : null,
             'conversion_to_base' => 1,
             'barcode' => filled($baseUnit['barcode'] ?? null)
                 ? trim($baseUnit['barcode'])
-                : null,
+                : ($base->barcode ?: $this->generateBarcode($item, 1, $reservedBarcodes)),
             'selling_price' => $baseUnit['selling_price'],
             'purchase_price' => $baseUnit['purchase_price'] ?? null,
             'is_active' => true,
@@ -638,29 +643,27 @@ class ItemController extends Controller
         $item->update(['base_unit_id' => $base->id]);
 
         foreach (array_values($additionalUnits) as $index => $unitData) {
-            $reservedBarcodes = collect([$baseUnit, ...$additionalUnits])
-                ->pluck('barcode')
-                ->filter(fn ($barcode): bool => filled($barcode))
-                ->map(fn ($barcode): string => trim((string) $barcode))
-                ->all();
+            $existingUnit = ! empty($unitData['id'])
+                ? $item->units()->whereKey($unitData['id'])->firstOrFail()
+                : null;
             $attributes = [
                 'name' => trim($unitData['name']),
                 'symbol' => filled($unitData['symbol'] ?? null) ? trim($unitData['symbol']) : null,
                 'conversion_to_base' => $unitData['conversion_to_base'],
                 'barcode' => filled($unitData['barcode'] ?? null)
                     ? trim($unitData['barcode'])
-                    : $this->generateBarcode(
+                    : ($existingUnit?->barcode ?: $this->generateBarcode(
                         $item,
                         $item->units()->count() + $index + 1,
                         $reservedBarcodes
-                    ),
+                    )),
                 'selling_price' => $unitData['selling_price'],
                 'purchase_price' => $unitData['purchase_price'] ?? null,
                 'is_active' => (bool) $unitData['is_active'],
             ];
 
             if (! empty($unitData['id'])) {
-                $item->units()->whereKey($unitData['id'])->firstOrFail()->update($attributes);
+                $existingUnit->update($attributes);
                 continue;
             }
 

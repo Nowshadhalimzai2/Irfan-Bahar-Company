@@ -31,7 +31,7 @@ class InventoryBalanceController extends Controller
                     ->where('is_active', true)
                     ->orderBy('conversion_to_base'),
                 'baseUnit:id,item_id,name,symbol,conversion_to_base,code,barcode,selling_price,purchase_price,is_active',
-                'product:item_id,per_pack,weight,barcode,description',
+                'product:item_id,weight,description',
                 'category:id,name',
             ])
             ->whereHas('inventoryBalances', function ($balanceQuery) use ($allowedLocationTypes) {

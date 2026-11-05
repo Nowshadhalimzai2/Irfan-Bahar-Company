@@ -21,7 +21,8 @@ class SaleReturnController extends Controller
 {
     public function create(Sale $sale): Response
     {
-       Gate::allowIf($sale->status!='cancelled','این جنس لغو شده است.');
+        Gate::authorize('allow-shop-clerk');
+        if ($sale->status != 'cancelled') abort(203, 'این جنس لغو شده است.');
         $sale->load(['customer:id,name', 'currency:id,name', 'invoice', 'saleLines.item:id,name,unit', 'saleLines.itemUnit:id,item_id,name,symbol,conversion_to_base', 'invoice.payments:id,invoice_id,amount']);
         $returnedQuantities = $this->returnedQuantities($sale->id);
         $locations = Location::query()->where('type', 'shop')->where('is_active', true)->orderBy('name')->get(['id', 'name']);
@@ -48,8 +49,10 @@ class SaleReturnController extends Controller
 
     public function store(Request $request, Sale $sale): RedirectResponse
     {
+
+        Gate::authorize('allow-shop-clerk');
         if ($sale->status == 'cancelled') {
-            abort(505,'این جنس قبلا لغو شده است. قابل بازګشت نمودن نیست');
+            abort(505, 'این جنس قبلا لغو شده است. قابل بازګشت نمودن نیست');
         }
         $data = $request->validate([
             'location_id' => ['required', 'integer', 'exists:locations,id'],

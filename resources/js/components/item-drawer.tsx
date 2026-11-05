@@ -36,11 +36,12 @@ type Item = ItemModel & {
 
 };
 interface Props {
-    item: Item;
+    item: Item ;
     trigger: React.ReactNode;
     quantity?: number;
 }
 const ItemDrawer = ({ item, trigger, quantity }: Props) => {
+    
     const currency = { id: 1, name: 'AFG' };
     const activeUnits = item.units?.filter((unit) => unit.is_active) ?? [];
     const baseUnit = item.base_unit ?? activeUnits.find((unit) => unit.conversion_to_base === 1);
@@ -58,7 +59,7 @@ const ItemDrawer = ({ item, trigger, quantity }: Props) => {
         },
         {
             label: 'بارکد',
-            value: item.product?.barcode || '—',
+            value: baseUnit?.barcode || '—',
             icon: Barcode,
         },
         {
@@ -76,12 +77,6 @@ const ItemDrawer = ({ item, trigger, quantity }: Props) => {
             value: item.product?.weight,
             icon: Scale,
             visible: item.product?.weight !== undefined,
-        },
-        {
-            label: 'تعداد در بسته',
-            value: item.product?.per_pack,
-            icon: Boxes,
-            visible: item.product?.per_pack !== undefined,
         },
     ];
     const totalInventory =
@@ -222,7 +217,7 @@ const ItemDrawer = ({ item, trigger, quantity }: Props) => {
                                         {activeUnits.map((unit) => (
                                             <article
                                                 key={unit.id}
-                                                className="group rounded-2xl border border-border/60 bg-muted/20 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/[0.03] hover:shadow-md"
+                                                className="group rounded-2xl border border-border/60 bg-muted/20 p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/3 hover:shadow-md"
                                             >
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div className="min-w-0">

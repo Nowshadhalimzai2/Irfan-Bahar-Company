@@ -1,4 +1,4 @@
-import { Link, router, useForm } from '@inertiajs/react';
+import { Link, router, useForm, usePage } from '@inertiajs/react';
 import {
     Banknote,
     Building2,
@@ -500,12 +500,12 @@ export default function Show({
                         </div>
 
                         <div className="flex flex-wrap gap-2">
-                            <Link
+                            {usePage().props.auth.role.includes('admin') && <Link
                                 href={`/suppliers/${supplier.id}/edit`}
                                 className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-50"
                             >
                                 ویرایش اطلاعات
-                            </Link>
+                            </Link>}
 
                             <button
                                 type="button"

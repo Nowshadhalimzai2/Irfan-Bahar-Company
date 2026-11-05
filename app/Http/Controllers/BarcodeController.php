@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Product;
+use App\Models\ItemUnit;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Picqer\Barcode\Renderers\SvgRenderer;
@@ -12,31 +12,48 @@ class BarcodeController extends Controller
 {
     public function index()
     {
-        $products = Product::query()
-            ->with(['item:id,name,code,sku,unit,category_id', 'item.category:id,name'])
+        $units = ItemUnit::query()
+            ->with([
+                'item:id,name,code,sku,item_type,category_id,base_unit_id',
+                'item.category:id,name',
+                'item.baseUnit:id,item_id,name,symbol',
+                'item.product:item_id,weight',
+            ])
+            ->where('is_active', true)
             ->whereNotNull('barcode')
             ->where('barcode', '<>', '')
             ->whereHas('item')
             ->orderBy('item_id')
+            ->orderBy('conversion_to_base')
             ->get();
 
-        $missingBarcodeCount = Product::query()
+        $missingBarcodeCount = ItemUnit::query()
+            ->where('is_active', true)
             ->where(function ($query) {
                 $query->whereNull('barcode')->orWhere('barcode', '');
             })
+            ->whereHas('item')
             ->count();
 
         return Inertia::render('barcode', [
-            'products' => $products->map(fn (Product $product) => [
-                'id' => $product->item_id,
-                'name' => $product->item->name,
-                'code' => $product->item->code,
-                'sku' => $product->item->sku,
-                'unit' => $product->item->unit,
-                'category' => $product->item->category?->name,
-                'weight' => (float) $product->weight,
-                'perPack' => $product->per_pack,
-                'barcode' => $product->barcode,
+            'units' => $units->map(fn (ItemUnit $unit) => [
+                'id' => $unit->id,
+                'item_id' => $unit->item_id,
+                'item_name' => $unit->item->name,
+                'item_code' => $unit->item->code,
+                'item_sku' => $unit->item->sku,
+                'item_type' => $unit->item->item_type,
+                'category' => $unit->item->category?->name,
+                'product_weight' => $unit->item->product?->weight === null
+                    ? null
+                    : (float) $unit->item->product->weight,
+                'unit_name' => $unit->name,
+                'unit_symbol' => $unit->symbol,
+                'base_unit_name' => $unit->item->baseUnit?->name,
+                'base_unit_symbol' => $unit->item->baseUnit?->symbol,
+                'conversion_to_base' => (float) $unit->conversion_to_base,
+                'barcode' => $unit->barcode,
+                'is_active' => $unit->is_active,
             ])->values(),
             'missingBarcodeCount' => $missingBarcodeCount,
         ]);

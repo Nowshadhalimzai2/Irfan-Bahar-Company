@@ -328,8 +328,7 @@ class PaymentController extends Controller
 
     public function allPayments()
     {
-        // $now = Carbon::now(config('app.timezone'));
-        // $threeMonthsAgo = $now->copy()->subMonth()->subMonth();
+      
 
         $invoices = Invoice::query()
             ->with(['sale:id,amount_paid,status,currency_id', 'sale.saleReturns:id,sale_id,total,refund_amount', 'payments:id,invoice_id,amount,method,reference,paid_at', 'sale.customer:id,name'])

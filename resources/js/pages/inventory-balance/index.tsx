@@ -31,6 +31,7 @@ interface Props {
             label: string;
             active: boolean;
         }[];
+        
     };
     locations: {
         id: number;
@@ -71,7 +72,7 @@ const Index = ({ items, locations }: Props) => {
             const matchesLocation = selectedLocation === 'all' || item.inventory_balances.some((balance) => String(balance.location?.id ?? balance.location.id) === selectedLocation);
             const matchesSearch =
                 normalizedSearch === '' ||
-                [item.name, item.sku, item.code, item.product?.barcode ?? ''].some((value) =>
+                [item.name, item.sku, item.code].some((value) =>
                     value.toLowerCase().includes(normalizedSearch),
                 ) ||
                 (item.units ?? []).some((unit) =>
@@ -152,7 +153,7 @@ const Index = ({ items, locations }: Props) => {
                     tone='cyan'
                 />
 
-                <section className="mt-5">
+                <section className="mt-5" dir='rtl'>
                     <div className="grid grid-cols-1 gap-3">
                         <div className="rounded-2xl border bg-linear-to-br from-white via-slate-50 to-slate-100 p-4 shadow-[0_12px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-200/80 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 dark:ring-slate-700/80">
                             <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-200/80 pb-3 dark:border-slate-700/80">
@@ -263,11 +264,11 @@ const Index = ({ items, locations }: Props) => {
                         </div>
 
                         <div className="relative mt-5">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                            <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                             <Input
                                 autoFocus
-                                className="pl-10 h-12 rounded-2xl border-slate-200 bg-white/80 shadow-sm transition focus-visible:ring-primary/30 dark:border-slate-700 dark:bg-slate-900"
-                                placeholder='جستجوی اجناس به اساس نام، اسکی یو، بار کود و کد نمبر'
+                                className="pr-10 h-12 rounded-2xl border-slate-200 bg-white/80 shadow-sm transition focus-visible:ring-primary/30 dark:border-slate-700 dark:bg-slate-900"
+                                placeholder={`جستجوی اجناس به اساس نام، اسکی یو، بار کود و کد نمبر (${items.data.length}) `}
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -303,7 +304,6 @@ const Index = ({ items, locations }: Props) => {
                                                 <p className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">کتگوری: {item.category?.name ? getDariCategory(item.category.name) : '—'}</p>
                                                 <p className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">واحد پایه: {baseUnit(item)?.name ?? getDariItemUnit(item.unit)}</p>
                                                 {item.product?.weight != null && <p className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">وزن: {item.product.weight}</p>}
-                                                {item.product?.per_pack != null && <p className="rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-center text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">تعداد در بسته: {item.product.per_pack}</p>}
                                             </div>
                                             <div className="rounded-2xl border border-slate-200/80 bg-linear-to-br from-slate-50 to-white p-3 shadow-sm dark:border-slate-700 dark:from-slate-800/80 dark:to-slate-900">
                                                 <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
