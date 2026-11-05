@@ -34,7 +34,25 @@ interface Props {
     locations: Location[];
     currencies: Currency[];
     items: Item[];
+    receipt?: ReceiptToEdit;
+    canChangeSupplierCurrency?: boolean;
 }
+
+type ReceiptToEdit = {
+    id: number;
+    supplier_id: number | null;
+    destination_location_id: number;
+    currency_id: number;
+    received_at: string;
+    notes: string | null;
+    amount_paid: number | string;
+    receipt_lines: {
+        item_id: number;
+        item_unit_id: number;
+        quantity: number | string;
+        unit_cost: number | string;
+    }[];
+};
 
 type ReceiptLine = {
     item_id: number;
@@ -72,25 +90,49 @@ const getUnits = (item?: Item): ItemUnit[] => {
     return item.base_unit ? [item.base_unit] : [];
 };
 
-const Create = ({ suppliers, locations, currencies, items }: Props) => {
+const Create = ({
+    suppliers,
+    locations,
+    currencies,
+    items,
+    receipt,
+    canChangeSupplierCurrency = true,
+}: Props) => {
     const firstItem = items[0];
     const firstUnit = getUnits(firstItem)[0];
-    const [receiptLines, setReceiptLines] = useState<ReceiptLine[]>([]);
-    const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+    const [receiptLines, setReceiptLines] = useState<ReceiptLine[]>(
+        receipt?.receipt_lines.map((line) => ({
+            item_id: line.item_id,
+            item_unit_id: line.item_unit_id,
+            quantity: Number(line.quantity),
+            unit_cost: Number(line.unit_cost),
+        })) ?? [],
+    );
+    const initialDate = receipt?.received_at
+        ? new Date(`${receipt.received_at.slice(0, 10)}T00:00:00`)
+        : new Date();
+    const [selectedDate, setSelectedDate] = useState<Date | null>(initialDate);
     const [currentLine, setCurrentLine] = useState<ReceiptLine>({
         item_id: firstItem?.id ?? 0,
         item_unit_id: firstUnit?.id ?? 0,
         quantity: 1,
         unit_cost: Number(firstUnit?.purchase_price ?? 0),
     });
-    const { data, setData, errors, post, processing } =
+    const { data, setData, errors, post, put, processing } =
         useForm<GoodsReceiptForm>({
-            supplier_id: suppliers[0]?.id ?? 0,
-            destination_location_id: locations[0]?.id ?? 0,
-            received_at: formatDate(new Date()),
-            notes: '',
-            receiptLines: [],
-            currency_id: currencies[0]?.id ?? 0,
+            supplier_id: receipt?.supplier_id ?? suppliers[0]?.id ?? 0,
+            destination_location_id:
+                receipt?.destination_location_id ?? locations[0]?.id ?? 0,
+            received_at: receipt?.received_at.slice(0, 10) ?? formatDate(new Date()),
+            notes: receipt?.notes ?? '',
+            receiptLines:
+                receipt?.receipt_lines.map((line) => ({
+                    item_id: line.item_id,
+                    item_unit_id: line.item_unit_id,
+                    quantity: Number(line.quantity),
+                    unit_cost: Number(line.unit_cost),
+                })) ?? [],
+            currency_id: receipt?.currency_id ?? currencies[0]?.id ?? 0,
         });
 
     useEffect(
@@ -134,12 +176,16 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
 
     const handleReceipt = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        post('/receipts', {
-            onSuccess: () => {
-                setReceiptLines([]);
-                resetLine();
-            },
-        });
+        if (receipt) {
+            put(`/receipts/${receipt.id}`);
+        } else {
+            post('/receipts', {
+                onSuccess: () => {
+                    setReceiptLines([]);
+                    resetLine();
+                },
+            });
+        }
     };
 
     const handleItemChange = (itemId: number) => {
@@ -190,7 +236,12 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
         <AppLayout
             breadcrumbs={[
                 { title: 'اموال خرید شد نو', href: '/receipts' },
-                { title: 'خرید جنس نو', href: '/receipts/create' },
+                {
+                    title: receipt ? `ویرایش ${receipt.id}` : 'خرید جنس نو',
+                    href: receipt
+                        ? `/receipts/${receipt.id}/edit`
+                        : '/receipts/create',
+                },
             ]}
         >
             <div className="min-h-screen space-y-6 bg-linear-to-b from-slate-50 via-background to-background p-3 md:p-6 dark:from-slate-950">
@@ -203,7 +254,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                     موجودی ورودی
                                 </div>
                                 <h1 className="text-3xl font-bold tracking-tight">
-                                    ثبت رسید جدید
+                                    {receipt ? 'ویرایش رسید اجناس' : 'ثبت رسید جدید'}
                                 </h1>
                                 <p className="text-sm text-slate-300">
                                     مقدار را با واحد واقعی دریافت و قیمت همان
@@ -232,6 +283,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                         id="supplier_id"
                                         className="rounded-md border p-2"
                                         value={data.supplier_id}
+                                        disabled={!canChangeSupplierCurrency}
                                         onChange={(event) =>
                                             setData(
                                                 'supplier_id',
@@ -300,6 +352,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                         id="currency_id"
                                         className="rounded-md border p-2"
                                         value={data.currency_id}
+                                        disabled={!canChangeSupplierCurrency}
                                         onChange={(event) =>
                                             setData(
                                                 'currency_id',
@@ -551,7 +604,7 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                     candidate.id ===
                                                     line.item_id,
                                             );
-                                            const unit = getUnits(item).find(
+                                            const unit = item?.units?.find(
                                                 (candidate) =>
                                                     candidate.id ===
                                                     line.item_unit_id,
@@ -573,7 +626,22 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                         {unit?.name}
                                                     </TableCell>
                                                     <TableCell className="text-center">
-                                                        {line.quantity}
+                                                        <Input
+                                                            type="number"
+                                                            min={0.001}
+                                                            step="0.001"
+                                                            value={line.quantity}
+                                                            className="mx-auto w-28 text-center"
+                                                            onChange={(event) =>
+                                                                setReceiptLines((lines) =>
+                                                                    lines.map((current, lineIndex) =>
+                                                                        lineIndex === index
+                                                                            ? { ...current, quantity: Number(event.target.value) }
+                                                                            : current,
+                                                                    ),
+                                                                )
+                                                            }
+                                                        />
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         {(
@@ -585,7 +653,22 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                         ).toLocaleString()}
                                                     </TableCell>
                                                     <TableCell className="text-center">
-                                                        {line.unit_cost.toLocaleString()}
+                                                        <Input
+                                                            type="number"
+                                                            min={0.01}
+                                                            step="0.01"
+                                                            value={line.unit_cost}
+                                                            className="mx-auto w-28 text-center"
+                                                            onChange={(event) =>
+                                                                setReceiptLines((lines) =>
+                                                                    lines.map((current, lineIndex) =>
+                                                                        lineIndex === index
+                                                                            ? { ...current, unit_cost: Number(event.target.value) }
+                                                                            : current,
+                                                                    ),
+                                                                )
+                                                            }
+                                                        />
                                                     </TableCell>
                                                     <TableCell className="text-center">
                                                         {(
@@ -644,8 +727,8 @@ const Create = ({ suppliers, locations, currencies, items }: Props) => {
                                                 processing ? '' : 'hidden'
                                             }
                                         />
-                                        <CheckCircle2 className="size-4" /> ثبت
-                                        رسید
+                                        <CheckCircle2 className="size-4" />
+                                        {receipt ? 'ذخیره تغییرات' : 'ثبت رسید'}
                                     </Button>
                                 </div>
                             </section>

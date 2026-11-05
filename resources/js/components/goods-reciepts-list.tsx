@@ -1,5 +1,5 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import { ChevronDown, PackagePlus, Search, SlidersHorizontal, Warehouse, X } from 'lucide-react';
+import { ChevronDown, PackagePlus, Pencil, Search, SlidersHorizontal, Warehouse, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import LocationTranslator from '@/components/location-translator';
 import { formatGregorianDate, formatPersianDate } from '@/components/persian-date-picker';
@@ -109,6 +109,7 @@ const GoodsReceiptList = ({ goodsReceipts, receivedDate, transferDate }: Props) 
                                     <TableHead className="text-center">منزل</TableHead>
                                     <TableHead className="text-center">تاریخ </TableHead>
                                     <TableHead className="text-center">ارزش اجناس</TableHead>
+                                    <TableHead className="text-center">عملیات</TableHead>
 
                                 </TableRow>
                             </TableHeader>
@@ -121,14 +122,28 @@ const GoodsReceiptList = ({ goodsReceipts, receivedDate, transferDate }: Props) 
                                         <TableCell className="text-center">{LocationTranslator(receipt.location.name)}</TableCell>
                                         <TableCell className="text-center text-sm text-muted-foreground">{formatPersianDate(String(receipt.received_at))}</TableCell>
                                         <TableCell className="text-center font-semibold">{receipt.receipt_lines.reduce((total, line) => total + Number(line.quantity) * Number(line.unit_cost), 0).toLocaleString()}</TableCell>
+                                        <TableCell className="text-center">
+                                            {(userRole === 'admin' || userRole === 'super_admin' ||
+                                                (userRole === 'factory_clerk' && ['factory', 'warehouse'].includes(receipt.location.type)) ||
+                                                (userRole === 'shop_clerk' && receipt.location.type === 'shop')) && (
+                                                <Link
+                                                    href={`/receipts/${receipt.id}/edit`}
+                                                    onClick={(event) => event.stopPropagation()}
+                                                    className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted"
+                                                >
+                                                    <Pencil className="size-4" />
+                                                    ویرایش
+                                                </Link>
+                                            )}
+                                        </TableCell>
                                     </TableRow>
                                 ) : <TableRow>
-                                    <TableCell colSpan={6}><p className="w-full p-10 text-center text-muted-foreground">موردی با این مشخصات پیدا نشد.</p></TableCell>
+                                    <TableCell colSpan={7}><p className="w-full p-10 text-center text-muted-foreground">موردی با این مشخصات پیدا نشد.</p></TableCell>
                                 </TableRow>}
                             </TableBody>
                             <TableFooter>
                                 <TableRow>
-                                    <TableCell colSpan={6}>
+                                    <TableCell colSpan={7}>
                                         <PageLinks links={goodsReceipts.links} />
                                     </TableCell>
                                 </TableRow>

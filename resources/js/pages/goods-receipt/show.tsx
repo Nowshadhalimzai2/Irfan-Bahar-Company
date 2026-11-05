@@ -12,12 +12,20 @@ import {
 } from '@/components/ui/table';
 import AppLayout from '@/layouts/app-layout';
 import type { GoodsReceipt } from '@/types/item';
-import { Link } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 
 interface Props {
     receipt: GoodsReceipt;
 }
 const Show = ({ receipt }: Props) => {
+    const userRole = usePage().props.auth.role;
+    const canEditReceipt =
+        userRole === 'admin' ||
+        userRole === 'super_admin' ||
+        (userRole === 'factory_clerk' &&
+            ['factory', 'warehouse'].includes(receipt.location.type)) ||
+        (userRole === 'shop_clerk' && receipt.location.type === 'shop');
+
     return (
         <AppLayout
             breadcrumbs={[
@@ -31,7 +39,17 @@ const Show = ({ receipt }: Props) => {
             <div>
                 <section className="section">
                     <div className="mx-auto max-w-4xl">
-                        <SectionTitle title={'جنس ' + receipt.reference_no} />
+                        <div className="flex items-center justify-between gap-4">
+                            <SectionTitle title={'جنس ' + receipt.reference_no} />
+                            {canEditReceipt && (
+                                <Link
+                                    href={`/receipts/${receipt.id}/edit`}
+                                    className="rounded-md border px-4 py-2 text-sm font-medium hover:bg-muted"
+                                >
+                                    ویرایش رسید
+                                </Link>
+                            )}
+                        </div>
 
                         <div className="mt-5">
                             <div className="p-5">

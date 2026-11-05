@@ -38,7 +38,7 @@ class GoodsReceiptController extends Controller
         $user = Auth::user();
         if ($user instanceof User) {
             if ($user->hasRole('factory_clerk')) {
-                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')
+                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name,type')
                     ->whereIn('destination_location_id', function ($query) {
                         $query->select('id')
                             ->from('locations')
@@ -50,7 +50,7 @@ class GoodsReceiptController extends Controller
                     ->withQueryString();
             }
             elseif ($user->hasRole('shop_clerk')) {
-                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name', 'currency:id,name')
+                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name,type', 'currency:id,name')
                     ->whereIn('destination_location_id', function ($query) {
                         $query->select('id')
                             ->from('locations')
@@ -61,7 +61,7 @@ class GoodsReceiptController extends Controller
                     ->paginate(10)
                     ->withQueryString();
             } else {
-                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name')
+                $goodsReceipts = GoodsReceipt::with('supplier:id,name', 'receiptLines', 'location:id,name,type')
                     ->when($receivedDate, fn ($query) => $query->whereDate('received_at', $receivedDate))
                     ->orderBy('id', 'desc')
                     ->paginate(10)
@@ -129,6 +129,51 @@ class GoodsReceiptController extends Controller
         return Inertia::render('goods-receipt/create', compact('suppliers', 'locations', 'currencies', 'items'));
     }
 
+    public function edit(Request $request, GoodsReceipt $receipt)
+    {
+        $this->authorizeReceiptEdit($request, $receipt);
+
+        $receipt->load([
+            'supplier:id,name',
+            'location:id,name,type',
+            'currency:id,name',
+            'receiptLines:id,receipt_id,item_id,item_unit_id,quantity,conversion_factor,base_quantity,unit_cost',
+        ]);
+
+        $suppliers = Supplier::query()
+            ->where(fn ($query) => $query
+                ->where('status', true)
+                ->orWhere('id', $receipt->supplier_id))
+            ->select('id', 'name')
+            ->orderBy('name')
+            ->get();
+        $locations = $this->receiptLocations($request);
+        $currencies = Currency::query()->select('id', 'name')->get();
+        $items = Item::query()
+            ->with([
+                'product:item_id,weight',
+                'units' => fn ($query) => $query
+                    ->select('id', 'item_id', 'name', 'symbol', 'conversion_to_base', 'code', 'barcode', 'selling_price', 'purchase_price', 'is_active')
+                    ->orderBy('id'),
+                'baseUnit:id,item_id,name,symbol,conversion_to_base,code,barcode,selling_price,purchase_price,is_active',
+            ])
+            ->select('id', 'name', 'unit', 'default_sale_price', 'item_type', 'code', 'sku', 'base_unit_id')
+            ->orderBy('name')
+            ->get();
+        $canChangeSupplierCurrency = (float) $receipt->amount_paid <= 0
+            && ! $receipt->payments()->exists()
+            && ! $receipt->paymentAllocations()->exists();
+
+        return Inertia::render('goods-receipt/create', compact(
+            'suppliers',
+            'locations',
+            'currencies',
+            'items',
+            'receipt',
+            'canChangeSupplierCurrency',
+        ));
+    }
+
     public function store(Request $request)
     {
         Gate::authorize('reject-admins');
@@ -144,9 +189,7 @@ class GoodsReceiptController extends Controller
             'destination_location_id' => [
                 'required',
                 'integer',
-                Rule::exists('locations', 'id')->where(function ($query) {
-                    $query->whereIn('type', ['warehouse', 'factory', 'shop']);
-                }),
+                Rule::exists('locations', 'id')->where(fn ($query) => $query->whereIn('type', $this->allowedLocationTypes($request))),
             ],
             'received_at' => 'required|date',
             'notes' => 'nullable|string|max:255',
@@ -253,6 +296,209 @@ class GoodsReceiptController extends Controller
         }
     }
 
+    public function update(Request $request, GoodsReceipt $receipt)
+    {
+        $this->authorizeReceiptEdit($request, $receipt);
+
+        $data = $request->validate([
+            'supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
+            'currency_id' => ['required', 'integer', 'exists:currencies,id'],
+            'destination_location_id' => [
+                'required',
+                'integer',
+                Rule::exists('locations', 'id')->where(
+                    fn ($query) => $query->whereIn('type', $this->allowedLocationTypes($request))
+                ),
+            ],
+            'received_at' => ['required', 'date'],
+            'notes' => ['nullable', 'string', 'max:255'],
+            'receiptLines' => ['required', 'array', 'min:1'],
+            'receiptLines.*.item_id' => ['required', 'integer', 'exists:items,id'],
+            'receiptLines.*.item_unit_id' => ['required', 'integer', 'exists:item_units,id', 'distinct'],
+            'receiptLines.*.quantity' => ['required', 'numeric', 'gt:0', 'max:99999999.999'],
+            'receiptLines.*.unit_cost' => ['required', 'numeric', 'gt:0', 'max:999999.99'],
+        ]);
+
+        $totalAmount = collect($data['receiptLines'])->sum(
+            fn (array $line) => round(
+                (float) $line['quantity'] * (float) $line['unit_cost'],
+                2,
+            )
+        );
+
+        try {
+            DB::transaction(function () use ($data, $receipt, $totalAmount): void {
+                $lockedReceipt = GoodsReceipt::query()
+                    ->lockForUpdate()
+                    ->findOrFail($receipt->id);
+                $supplier = Supplier::query()
+                    ->lockForUpdate()
+                    ->findOrFail($data['supplier_id']);
+
+                if (! $supplier->status && (int) $supplier->id !== (int) $lockedReceipt->supplier_id) {
+                    throw ValidationException::withMessages([
+                        'supplier_id' => 'تأمین‌کننده جدید باید فعال باشد.',
+                    ]);
+                }
+
+                $allocatedAmount = (float) $lockedReceipt->paymentAllocations()->sum('amount');
+                $amountPaid = (float) $lockedReceipt->amount_paid;
+                $hasPaymentAllocations = $lockedReceipt->paymentAllocations()->exists();
+                if ($totalAmount + 0.00001 < max($allocatedAmount, $amountPaid)) {
+                    throw ValidationException::withMessages([
+                        'receiptLines' => 'مجموع رسید نمی‌تواند کمتر از مبلغ پرداخت‌شده یا تخصیص‌یافته باشد.',
+                    ]);
+                }
+
+                if (
+                    (int) $data['supplier_id'] !== (int) $lockedReceipt->supplier_id
+                    || (int) $data['currency_id'] !== (int) $lockedReceipt->currency_id
+                ) {
+                    if ($amountPaid > 0 || $hasPaymentAllocations || $lockedReceipt->payments()->exists()) {
+                        throw ValidationException::withMessages([
+                            'supplier_id' => 'تأمین‌کننده یا واحد پول رسیدی که پرداخت دارد قابل تغییر نیست.',
+                        ]);
+                    }
+                }
+
+                $units = ItemUnit::query()
+                    ->whereIn('id', collect($data['receiptLines'])->pluck('item_unit_id'))
+                    ->lockForUpdate()
+                    ->get(['id', 'item_id', 'conversion_to_base', 'is_active'])
+                    ->keyBy('id');
+
+                foreach ($data['receiptLines'] as $index => $line) {
+                    $unit = $units->get((int) $line['item_unit_id']);
+                    $isExistingLine = $lockedReceipt->receiptLines()
+                        ->where('item_id', $line['item_id'])
+                        ->where('item_unit_id', $line['item_unit_id'])
+                        ->exists();
+
+                    if (
+                        ! $unit
+                        || (int) $unit->item_id !== (int) $line['item_id']
+                        || (! $unit->is_active && ! $isExistingLine)
+                    ) {
+                        throw ValidationException::withMessages([
+                            "receiptLines.{$index}.item_unit_id" => 'واحد انتخاب‌شده برای این جنس قابل استفاده نیست.',
+                        ]);
+                    }
+                }
+
+                $oldLocationId = (int) $lockedReceipt->destination_location_id;
+                $newLocationId = (int) $data['destination_location_id'];
+                $oldQuantities = $lockedReceipt->receiptLines()
+                    ->selectRaw('item_id, SUM(COALESCE(base_quantity, quantity * COALESCE(conversion_factor, 1))) as quantity')
+                    ->groupBy('item_id')
+                    ->get()
+                    ->mapWithKeys(fn ($line) => [
+                        "{$oldLocationId}:{$line->item_id}" => (float) $line->quantity,
+                    ]);
+                $newQuantities = collect($data['receiptLines'])
+                    ->groupBy(fn (array $line) => "{$newLocationId}:{$line['item_id']}")
+                    ->map(fn ($lines) => $lines->sum(function (array $line) use ($units): float {
+                        $unit = $units->get((int) $line['item_unit_id']);
+
+                        return round(
+                            (float) $line['quantity'] * (float) $unit->conversion_to_base,
+                            3,
+                        );
+                    }));
+
+                foreach ($oldQuantities->keys()->merge($newQuantities->keys())->unique() as $key) {
+                    $delta = round((float) $newQuantities->get($key, 0) - (float) $oldQuantities->get($key, 0), 3);
+                    if (abs($delta) < 0.0005) {
+                        continue;
+                    }
+
+                    [$locationId, $itemId] = array_map('intval', explode(':', $key));
+                    $movement = new InvMovement();
+                    try {
+                        $movement->move(
+                            $locationId,
+                            $itemId,
+                            abs($delta),
+                            'receipt',
+                            $data['notes'] ?? '',
+                            $delta < 0 ? '-' : '+',
+                        );
+                    } catch (\RuntimeException) {
+                        throw ValidationException::withMessages([
+                            'receiptLines' => 'موجودی قابل برداشت نیست؛ بخشی از این رسید مصرف، انتقال یا رزرو شده است.',
+                        ]);
+                    }
+                }
+
+                $lockedReceipt->update([
+                    'supplier_id' => $data['supplier_id'],
+                    'currency_id' => $data['currency_id'],
+                    'destination_location_id' => $newLocationId,
+                    'received_at' => $data['received_at'],
+                    'notes' => $data['notes'] ?? '',
+                    'total_amount' => $totalAmount,
+                ]);
+
+                $retainedLineIds = [];
+                foreach ($data['receiptLines'] as $line) {
+                    $unit = $units->get((int) $line['item_unit_id']);
+                    $conversionFactor = (float) $unit->conversion_to_base;
+                    $quantity = (float) $line['quantity'];
+                    $receiptLine = $lockedReceipt->receiptLines()
+                        ->where('item_id', $line['item_id'])
+                        ->where('item_unit_id', $line['item_unit_id'])
+                        ->first();
+
+                    $attributes = [
+                        'item_id' => $line['item_id'],
+                        'item_unit_id' => $line['item_unit_id'],
+                        'quantity' => $quantity,
+                        'conversion_factor' => $conversionFactor,
+                        'base_quantity' => round($quantity * $conversionFactor, 3),
+                        'unit_cost' => $line['unit_cost'],
+                    ];
+
+                    if ($receiptLine) {
+                        $receiptLine->update($attributes);
+                        $retainedLineIds[] = $receiptLine->id;
+                    } else {
+                        $retainedLineIds[] = $lockedReceipt->receiptLines()
+                            ->create($attributes)
+                            ->id;
+                    }
+                }
+                $lockedReceipt->receiptLines()
+                    ->whereNotIn('id', $retainedLineIds)
+                    ->delete();
+
+                (new Log())->create(
+                    'update',
+                    "رسید اجناس {$lockedReceipt->reference_no} ویرایش شد",
+                    null,
+                    route('receipts.show', $lockedReceipt),
+                );
+            }, 3);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            ApplicationLog::error('Goods receipt update failed.', [
+                'user_id' => Auth::id(),
+                'receipt_id' => $receipt->id,
+                'exception' => $exception,
+            ]);
+
+            Inertia::flash('toast', [
+                'type' => 'error',
+                'message' => 'ویرایش رسید اجناس ناموفق بود. لطفاً دوباره تلاش کنید.',
+            ]);
+
+            return redirect()->back();
+        }
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'رسید اجناس با موفقیت ویرایش شد.']);
+
+        return redirect()->route('receipts.show', $receipt);
+    }
+
     public function show(Request $request, GoodsReceipt $receipt)
     {
         if ($request->user() instanceof User && $request->user()->hasRole('factory_clerk')) {
@@ -275,5 +521,47 @@ class GoodsReceiptController extends Controller
             'receiptLines.item.product:item_id,weight'
         );
         return Inertia::render('goods-receipt/show', compact('receipt'));
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function allowedLocationTypes(Request $request): array
+    {
+        return $this->canManageAllReceipts($request)
+            ? ['warehouse', 'shop', 'office', 'factory', 'other']
+            : (
+                $request->user()?->hasRole('factory_clerk')
+                    ? ['factory', 'warehouse']
+                    : ($request->user()?->hasRole('shop_clerk') ? ['shop'] : [])
+            );
+    }
+
+    private function canManageAllReceipts(Request $request): bool
+    {
+        return $request->user()?->hasAnyRole(['admin', 'super_admin']) ?? false;
+    }
+
+    private function authorizeReceiptEdit(Request $request, GoodsReceipt $receipt): void
+    {
+        if ($this->canManageAllReceipts($request)) {
+            return;
+        }
+
+        Gate::authorize('reject-admins');
+        $allowedTypes = $this->allowedLocationTypes($request);
+        abort_unless(
+            $allowedTypes !== [] && $receipt->location()->whereIn('type', $allowedTypes)->exists(),
+            403,
+        );
+    }
+
+    private function receiptLocations(Request $request)
+    {
+        return Location::query()
+            ->select('id', 'name')
+            ->whereIn('type', $this->allowedLocationTypes($request))
+            ->orderBy('name')
+            ->get();
     }
 }
