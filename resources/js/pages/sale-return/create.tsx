@@ -18,23 +18,25 @@ type ReturnableLine = {
     quantity: number;
     returned_quantity: number;
     remaining_quantity: number;
+    net_line_total: number;
+    remaining_return_value: number;
     unit_price: number;
 };
 type Sale = {
     id: number;
-    total: number;
     after_descount_total: number;
     sold_at: string;
     customer?: { name: string };
     currency?: { name: string };
     invoice?: { invoice_number: string };
-    discount_total: number;
 };
 type Props = {
     sale: Sale;
     locations: Location[];
     returnableLines: ReturnableLine[];
     paidAmount: number;
+    previousReturnTotal: number;
+    previousRefundTotal: number;
 };
 type ReturnLine = {
     sale_line_id: number;
@@ -47,23 +49,62 @@ type ReturnLine = {
 const money = (value: number, currency = 'AFG') =>
     `${Number(value || 0).toFixed(2)} ${currency === 'AFG' ? 'افغانی' : currency === 'PKR' ? 'کلداری' : 'دالر'}`;
 
+const roundMoney = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+const getLineReturnValue = (line: ReturnableLine, quantity: number) => {
+    if (quantity <= 0 || line.quantity <= 0) {
+        return 0;
+    }
+
+    if (quantity >= line.remaining_quantity - 0.000001) {
+        return line.remaining_return_value;
+    }
+
+    return Math.min(
+        line.remaining_return_value,
+        roundMoney((quantity * line.net_line_total) / line.quantity),
+    );
+};
+
 export default function Create({
     sale,
     locations,
     returnableLines,
     paidAmount,
+    previousReturnTotal,
+    previousRefundTotal,
 }: Props) {
     const [quantities, setQuantities] = useState<Record<number, number>>({});
     const [restock, setRestock] = useState<Record<number, boolean>>({});
     const currency = sale.currency?.name ?? 'AFG';
     const selectedTotal = useMemo(
         () =>
-            returnableLines.reduce(
-                (sum, line) =>
-                    sum + (quantities[line.id] || 0) * line.unit_price,
-                0,
+            roundMoney(
+                returnableLines.reduce(
+                    (sum, line) =>
+                        sum +
+                        getLineReturnValue(line, quantities[line.id] || 0),
+                    0,
+                ),
             ),
         [quantities, returnableLines],
+    );
+    const hasSelectedLines = returnableLines.some(
+        (line) => (quantities[line.id] || 0) > 0,
+    );
+    const maximumRefund = Math.min(
+        selectedTotal,
+        Math.max(
+            0,
+            paidAmount -
+                previousRefundTotal -
+                Math.max(
+                    0,
+                    sale.after_descount_total -
+                        previousReturnTotal -
+                        selectedTotal,
+                ),
+        ),
     );
     const form = useForm({
         location_id: locations[0]?.id?.toString() ?? '',
@@ -74,29 +115,6 @@ export default function Create({
         refund_reference: '',
         lines: [] as ReturnLine[],
     });
-    const colculateRefundableAmount = (
-        total: number,
-        paid: number,
-        returnTotal: number,
-        discount: number,
-    ) => {
-        // total = 1350.4
-        // paid = 1350
-        // returnTotal = 1350.4
-        // DISCOUNT: 54
-        // refundable = ?
-        console.log(total + ' : ', paid + ' : ', returnTotal);
-
-        const balance = Math.max(total - paid, 0);
-        console.log('balance : ', balance);
-        console.log(
-            'refundable : ',
-            Math.max(returnTotal - balance - discount, 0),
-        );
-
-        return Math.max(returnTotal - balance - discount, 0);
-    };
-
     function submit(event: FormEvent) {
         event.preventDefault();
         form.transform((data) => ({
@@ -185,7 +203,7 @@ export default function Create({
                                             برگشت: {line.remaining_quantity}
                                         </p>
                                         <p className="mt-1 text-xs text-slate-400">
-                                            قیمت واحد:{' '}
+                                            قیمت فروش واحد:{' '}
                                             {money(line.unit_price, currency)}
                                         </p>
                                     </div>
@@ -198,17 +216,21 @@ export default function Create({
                                             max={line.remaining_quantity}
                                             step="0.001"
                                             value={quantities[line.id] ?? ''}
-                                            onChange={(event) =>
-                                                setQuantities({
-                                                    ...quantities,
-                                                    [line.id]: Math.min(
-                                                        Number(
-                                                            event.target.value,
+                                            onChange={(event) => {
+                                                const quantity = Number(
+                                                    event.target.value,
+                                                );
+                                                setQuantities((current) => ({
+                                                    ...current,
+                                                    [line.id]: Math.max(
+                                                        0,
+                                                        Math.min(
+                                                            quantity,
+                                                            line.remaining_quantity,
                                                         ),
-                                                        line.remaining_quantity,
                                                     ),
-                                                })
-                                            }
+                                                }));
+                                            }}
                                             className="mt-2 w-full rounded-xl border-slate-200"
                                         />
                                     </label>
@@ -266,6 +288,11 @@ export default function Create({
                                             </option>
                                         ))}
                                     </select>
+                                    {form.errors.location_id && (
+                                        <p className="mt-1 text-sm text-red-600">
+                                            {form.errors.location_id}
+                                        </p>
+                                    )}
                                 </label>
                                 <label className="block text-sm text-slate-600">
                                     دلیل برگشت
@@ -301,19 +328,10 @@ export default function Create({
                             <h2 className="text-lg font-bold text-slate-800">
                                 بازپرداخت اختیاری
                             </h2>
-                            {/* <div className="mt-4 space-y-4"><p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">حداکثر بازپرداخت قابل ثبت: {money(Math.min(selectedTotal, Number(sale.total || 0)), currency)}</p> */}
                             <div className="mt-4 space-y-4">
                                 <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
                                     حداکثر بازپرداخت قابل ثبت:{' '}
-                                    {money(
-                                        colculateRefundableAmount(
-                                            sale.after_descount_total,
-                                            paidAmount,
-                                            selectedTotal,
-                                            sale.discount_total,
-                                        ),
-                                        currency,
-                                    )}
+                                    {money(maximumRefund, currency)}
                                 </p>
 
                                 <label className="block text-sm text-slate-600">
@@ -321,12 +339,7 @@ export default function Create({
                                     <input
                                         type="number"
                                         min="0"
-                                        max={colculateRefundableAmount(
-                                            sale.after_descount_total,
-                                            paidAmount,
-                                            selectedTotal,
-                                            sale.discount_total,
-                                        )}
+                                        max={maximumRefund}
                                         step="0.01"
                                         value={form.data.refund_amount}
                                         onChange={(event) =>
@@ -337,6 +350,11 @@ export default function Create({
                                         }
                                         className="mt-2 w-full rounded-xl border-slate-200"
                                     />
+                                    {form.errors.refund_amount && (
+                                        <p className="mt-1 text-sm text-red-600">
+                                            {form.errors.refund_amount}
+                                        </p>
+                                    )}
                                 </label>
                                 <label className="block text-sm text-slate-600">
                                     روش بازپرداخت
@@ -357,6 +375,11 @@ export default function Create({
                                         </option>
                                         <option value="office">دفتر</option>
                                     </select>
+                                    {form.errors.refund_method && (
+                                        <p className="mt-1 text-sm text-red-600">
+                                            {form.errors.refund_method}
+                                        </p>
+                                    )}
                                 </label>
                                 <label className="block text-sm text-slate-600">
                                     مرجع بازپرداخت
@@ -386,7 +409,7 @@ export default function Create({
                                 type="submit"
                                 disabled={
                                     form.processing ||
-                                    selectedTotal <= 0 ||
+                                    !hasSelectedLines ||
                                     !form.data.location_id
                                 }
                                 className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-400 px-4 py-3 font-bold text-[#092b4c] transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
@@ -396,11 +419,6 @@ export default function Create({
                             {form.errors.lines && (
                                 <p className="mt-3 text-sm text-red-200">
                                     {form.errors.lines}
-                                </p>
-                            )}
-                            {form.errors.refund_amount && (
-                                <p className="mt-3 text-sm text-red-200">
-                                    {form.errors.refund_amount}
                                 </p>
                             )}
                         </div>

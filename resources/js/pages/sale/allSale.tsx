@@ -161,12 +161,17 @@ const allSale = ({ orders }: Props) => {
                                                         <FileText className="size-3.5" /> ایجاد
                                                     </button>
                                                 )}
-                                                {(usePage().props.auth.role==='shop_clerk' && order.status !== 'cancelled') && (order.hasInvoice ? <button disabled={order.status == 'returned'} type="button" onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)} className={`inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 ${order.status == 'returned' && 'text-gray-400 hover:text-gray-400'}`}>
-                                                    <RotateCcw className="size-3.5" /> برگشت
-
-                                                </button>
-                                                    : <p className='text-xs text-gray-400 '>بل ندارد</p>
-                                                )}
+                                                {usePage().props.auth.role === 'shop_clerk' &&
+                                                    ['completed', 'partially_returned', 'returned'].includes(order.status) && (
+                                                        <button
+                                                            disabled={order.status === 'returned'}
+                                                            type="button"
+                                                            onClick={() => router.visit(`/sales/${order.saleId}/returns/create`)}
+                                                            className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-600 hover:text-amber-700 disabled:cursor-not-allowed disabled:text-gray-400"
+                                                        >
+                                                            <RotateCcw className="size-3.5" /> برگشت
+                                                        </button>
+                                                    )}
                                             </div>
                                         </td>
 

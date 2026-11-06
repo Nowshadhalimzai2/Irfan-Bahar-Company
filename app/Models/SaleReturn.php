@@ -48,6 +48,11 @@ class SaleReturn extends Model
         return $this->belongsTo(Invoice::class);
     }
 
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
+
     public function lines(): HasMany
     {
         return $this->hasMany(SaleReturnLine::class);

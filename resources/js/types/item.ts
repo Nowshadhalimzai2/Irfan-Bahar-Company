@@ -192,18 +192,24 @@ export interface Payment {
 export interface SaleReturn {
     id: number;
     sale: Sale;
-    invoice: Invoice;
-    created_by: string;
-    return_no: string;
-    status: string;
-    reason: string;
+    location?: Location | null;
+    invoice?: Invoice | null;
+    created_by: number | null;
+    return_number: string;
+    status: 'draft' | 'received' | 'refunded';
+    reason?: string | null;
     currency: 'AFG' | 'PKR' | 'USD';
     total: number;
     refund_amount: number;
-    refund_method: 'cash' | 'office' | 'bank_transfer' | 'teller';
-    refund_reference_no: string;
+    refund_method?: 'cash' | 'office' | 'bank_transfer' | null;
+    refund_reference?: string | null;
+    requested_at?: Date | null;
+    approved_at?: Date | null;
+    received_at?: Date | null;
+    refunded_at?: Date | null;
 
-    notes?: string;
+    notes?: string | null;
+    lines?: SaleReturnLine[];
 }
 
 export interface SaleReturnLine {
@@ -211,10 +217,13 @@ export interface SaleReturnLine {
     sale_return: SaleReturn;
     sale_line: SaleLine;
     item: Item;
+    item_unit?: ItemUnit | null;
     quantity: number;
+    conversion_factor?: number;
+    base_quantity?: number | null;
     unit_price: number;
     line_total: number;
-    condition: string;
-    restock_action: string;
+    condition?: string | null;
+    restock_action: 'restock' | 'none';
     notes?: string;
 }
