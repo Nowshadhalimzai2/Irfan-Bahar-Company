@@ -479,6 +479,133 @@ class SaleController extends Controller
         return redirect()->route('sales.invoice.print', $sale);
     }
 
+    public function show(Sale $sale): \Inertia\Response
+    {
+        $sale->load([
+            'customer:id,name,phone,address',
+            'currency:id,name',
+            'location:id,name,type',
+            'saleLines.item:id,name,code,unit,item_type',
+            'saleLines.itemUnit:id,item_id,name,symbol,code,conversion_to_base',
+            'invoice.payments:id,invoice_id,amount,method,reference,payment_number,paid_at,notes,currency_id',
+            'saleReturns.location:id,name,type',
+            'saleReturns.lines.item:id,name,code,unit',
+            'saleReturns.lines.itemUnit:id,item_id,name,symbol,code,conversion_to_base',
+            'saleReturns.lines.saleLine:id,unit,item_unit_id',
+        ]);
+
+        $invoice = $sale->invoice;
+        $financialSummary = $invoice
+            ? $invoice->financialSummary()
+            : [
+                'original_total' => (float) $sale->after_descount_total,
+                'return_total' => (float) $sale->saleReturns->sum('total'),
+                'refunded_amount' => (float) $sale->saleReturns->sum('refund_amount'),
+                'gross_paid' => (float) $sale->amount_paid,
+                'total' => max(
+                    0,
+                    (float) $sale->after_descount_total - (float) $sale->saleReturns->sum('total'),
+                ),
+                'paid' => max(
+                    0,
+                    (float) $sale->amount_paid - (float) $sale->saleReturns->sum('refund_amount'),
+                ),
+                'due' => $sale->status === 'cancelled'
+                    ? 0
+                    : max(
+                        0,
+                        (float) $sale->after_descount_total
+                            - (float) $sale->saleReturns->sum('total')
+                            - (float) $sale->amount_paid
+                            + (float) $sale->saleReturns->sum('refund_amount'),
+                    ),
+            ];
+
+        return Inertia::render('sale/show', [
+            'sale' => [
+                'id' => $sale->id,
+                'status' => $sale->status,
+                'customer' => $sale->customer ? [
+                    'name' => $sale->customer->name,
+                    'phone' => $sale->customer->phone,
+                    'address' => $sale->customer->address,
+                ] : null,
+                'customer_name' => $sale->customer_name,
+                'currency' => $sale->currency?->name ?? 'AFG',
+                'location' => $sale->location ? [
+                    'name' => $sale->location->name,
+                    'type' => $sale->location->type,
+                ] : null,
+                'sold_at' => $sale->sold_at,
+                'created_at' => $sale->created_at,
+                'notes' => $sale->notes,
+                'total' => (float) $sale->total,
+                'discount_total' => (float) $sale->discount_total,
+                'after_discount_total' => (float) $sale->after_descount_total,
+                'amount_paid' => (float) $sale->amount_paid,
+                'invoice' => $invoice ? [
+                    'id' => $invoice->id,
+                    'number' => $invoice->invoice_number,
+                    'status' => $invoice->status,
+                    'issued_on' => $invoice->issued_on,
+                    'due_on' => $invoice->due_on,
+                    'bill_to_name' => $invoice->bill_to_name,
+                    'bill_to_phone' => $invoice->bill_to_phone,
+                    'bill_to_address' => $invoice->bill_to_address,
+                    'total' => (float) $invoice->total,
+                ] : null,
+                'financial_summary' => $financialSummary,
+                'lines' => $sale->saleLines->map(fn (SaleLine $line) => [
+                    'id' => $line->id,
+                    'item_name' => $line->item?->name ?? 'جنس حذف‌شده',
+                    'item_code' => $line->item?->code,
+                    'item_type' => $line->item?->item_type,
+                    'unit' => $line->itemUnit?->name ?? $line->unit ?? $line->item?->unit,
+                    'unit_symbol' => $line->itemUnit?->symbol,
+                    'quantity' => (float) $line->quantity,
+                    'conversion_factor' => (float) ($line->conversion_factor ?? $line->itemUnit?->conversion_to_base ?? 1),
+                    'base_quantity' => (float) ($line->base_quantity ?? $line->quantity),
+                    'unit_price' => (float) $line->unit_price,
+                    'line_total' => (float) $line->line_total,
+                    'discount_total' => (float) $line->discount_total,
+                    'net_total' => max(0, round((float) $line->line_total - (float) $line->discount_total, 2)),
+                ])->values(),
+                'payments' => $invoice?->payments->map(fn (Payment $payment) => [
+                    'id' => $payment->id,
+                    'number' => $payment->payment_number,
+                    'amount' => (float) $payment->amount,
+                    'method' => $payment->method,
+                    'reference' => $payment->reference,
+                    'paid_at' => $payment->paid_at,
+                    'notes' => $payment->notes,
+                ])->values() ?? collect(),
+                'returns' => $sale->saleReturns->map(fn ($return) => [
+                    'id' => $return->id,
+                    'number' => $return->return_number,
+                    'status' => $return->status,
+                    'reason' => $return->reason,
+                    'location' => $return->location?->name,
+                    'total' => (float) $return->total,
+                    'refund_amount' => (float) $return->refund_amount,
+                    'refund_method' => $return->refund_method,
+                    'refund_reference' => $return->refund_reference,
+                    'received_at' => $return->received_at,
+                    'refunded_at' => $return->refunded_at,
+                    'notes' => $return->notes,
+                    'lines' => $return->lines->map(fn ($line) => [
+                        'item_name' => $line->item?->name ?? 'جنس حذف‌شده',
+                        'unit' => $line->itemUnit?->name ?? $line->saleLine?->unit,
+                        'quantity' => (float) $line->quantity,
+                        'base_quantity' => (float) ($line->base_quantity ?? $line->quantity),
+                        'unit_price' => (float) $line->unit_price,
+                        'line_total' => (float) $line->line_total,
+                        'restock_action' => $line->restock_action,
+                    ])->values(),
+                ])->values(),
+            ],
+        ]);
+    }
+
     public function printInvoice(Sale $sale)
     {
         $sale->load(['customer:id,name,phone,address', 'currency:id,name', 'saleLines.item:id,name,unit,code', 'saleLines.itemUnit:id,item_id,name,symbol', 'invoice']);

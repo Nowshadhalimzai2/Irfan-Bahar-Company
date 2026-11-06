@@ -529,6 +529,12 @@ export default function Index({ stats, trend, channels, topProducts, orders, com
                                             </td>
                                             <td className="py-3">
                                                 <div className="flex items-center gap-3">
+                                                    <Link
+                                                        href={`/sales/${order.saleId}`}
+                                                        className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-primary hover:underline"
+                                                    >
+                                                        جزئیات
+                                                    </Link>
                                                     {order.hasInvoice ? (
                                                         <button type="button" onClick={() => router.visit(`/sales/${order.saleId}/invoice/print`)} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
                                                             <FileText className="size-3.5" /> چاپ

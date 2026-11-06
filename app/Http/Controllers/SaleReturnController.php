@@ -23,7 +23,8 @@ class SaleReturnController extends Controller
 {
     public function create(Sale $sale): Response
     {
-        Gate::authorize('allow-shop-clerk');
+        abort(404);
+        // Gate::authorize('allow-shop-clerk');
         abort_unless(
             in_array($sale->status, ['completed', 'partially_returned'], true),
             403,
@@ -88,7 +89,8 @@ class SaleReturnController extends Controller
 
     public function store(Request $request, Sale $sale): RedirectResponse
     {
-        Gate::authorize('allow-shop-clerk');
+        abort(404);
+        // Gate::authorize('allow-shop-clerk');
         $data = $request->validate([
             'location_id' => [
                 'required',
