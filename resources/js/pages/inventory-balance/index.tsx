@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { router,usePage } from '@inertiajs/react';
 import { AlertTriangle, Boxes, CheckCircle2, Filter, PackageOpen, Search, SearchX, SlidersHorizontal, Sparkles, Store, Warehouse } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import ItemDrawer from '@/components/item-drawer';
@@ -138,20 +138,29 @@ const Index = ({ items, locations }: Props) => {
         item.units?.filter((unit) => unit.is_active) ?? [];
     const baseUnit = (item: ItemWithInventory) =>
         item.base_unit ?? activeUnits(item).find((unit) => Number(unit.conversion_to_base) === 1);
-
+    const userRole = usePage().props.auth.role;
     return (
         <AppLayout breadcrumbs={[
             { title: 'ستاک', href: '/inventory-balances' },
         ]}>
 
             <div className="p-5">
+               {userRole!=='factory_clerk' ? <PageHead
+                    HeadIcon={Store}
+                    title="ذخیره اجناس"
+                    description={`نمایش ${items.data.length} از ${items.total} قلم دارای موجودی`}
+                    subtitle="اجناس شرکت"
+                    tone='cyan'
+                    actionTitle='ثبت جنس جدید'
+                    actionURL='/items/create'
+                />:
                 <PageHead
                     HeadIcon={Store}
                     title="ذخیره اجناس"
                     description={`نمایش ${items.data.length} از ${items.total} قلم دارای موجودی`}
                     subtitle="اجناس شرکت"
                     tone='cyan'
-                />
+                />}
 
                 <section className="mt-5" dir='rtl'>
                     <div className="grid grid-cols-1 gap-3">

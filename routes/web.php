@@ -147,6 +147,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::get('/payments/{payment}/receipt', [PaymentController::class, 'receipt'])->name('payments.receipt');
         Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
+        Route::resource('items', ItemController::class)->names('items');
     });
 
 
@@ -160,7 +161,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // ============================  Goods Receipt and Transfers Section =====================
     Route::resource('receipts', GoodsReceiptController::class)->names('receipts');
-    Route::resource('items', ItemController::class)->names('items');
     Route::put('/transfers/{transfer}/status/{status}', [TransferController::class, 'changeStatus'])->name('transfers.status');
     Route::resource('transfers', TransferController::class)->names('transfers');
     Route::get('/transfers/{location}/create', [TransferController::class, 'create']);

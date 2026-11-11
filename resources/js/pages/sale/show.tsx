@@ -254,33 +254,33 @@ export default function Show({ sale }: Props) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>جنس</TableHead>
-                                    <TableHead>کود</TableHead>
-                                    <TableHead>مقدار فروخته‌شده</TableHead>
-                                    <TableHead>مقدار پایه</TableHead>
-                                    <TableHead>قیمت واحد فروش</TableHead>
-                                    <TableHead>مجموع</TableHead>
-                                    <TableHead>تخفیف</TableHead>
-                                    <TableHead>خالص قلم</TableHead>
+                                    <TableHead className='text-center'>جنس</TableHead>
+                                    <TableHead className='text-center'>کود</TableHead>
+                                    <TableHead className='text-center'>مقدار فروخته‌شده</TableHead>
+                                    <TableHead className='text-center'>مقدار پایه</TableHead>
+                                    <TableHead className='text-center'>قیمت واحد فروش</TableHead>
+                                    <TableHead className='text-center'>مجموع</TableHead>
+                                    <TableHead className='text-center'>تخفیف</TableHead>
+                                    <TableHead className='text-center'>خالص قلم</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
                                 {sale.lines.map((line) => (
                                     <TableRow key={line.id}>
-                                        <TableCell>
+                                        <TableCell className='text-center'>
                                             <div className="font-medium">{line.item_name}</div>
                                             <div className="text-xs text-muted-foreground">
                                                 {line.unit ?? '—'}
                                                 {line.unit_symbol ? ` (${line.unit_symbol})` : ''}
                                             </div>
                                         </TableCell>
-                                        <TableCell>{line.item_code ?? '—'}</TableCell>
-                                        <TableCell>{line.quantity}</TableCell>
-                                        <TableCell>{line.base_quantity}</TableCell>
-                                        <TableCell>{money(line.unit_price, currency)}</TableCell>
-                                        <TableCell>{money(line.line_total, currency)}</TableCell>
-                                        <TableCell>{money(line.discount_total, currency)}</TableCell>
-                                        <TableCell>{money(line.net_total, currency)}</TableCell>
+                                        <TableCell className='text-center'>{line.item_code ?? '—'}</TableCell>
+                                        <TableCell className='text-center'>{line.quantity}</TableCell>
+                                        <TableCell className='text-center'>{line.base_quantity}</TableCell>
+                                        <TableCell className='text-center'>{money(line.unit_price, currency)}</TableCell>
+                                        <TableCell className='text-center'>{money(line.line_total, currency)}</TableCell>
+                                        <TableCell className='text-center'>{money(line.discount_total, currency)}</TableCell>
+                                        <TableCell className='text-center'>{money(line.net_total, currency)}</TableCell>
                                     </TableRow>
                                 ))}
                                 {sale.lines.length === 0 && (
@@ -307,23 +307,23 @@ export default function Show({ sale }: Props) {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead>شماره پرداخت</TableHead>
-                                        <TableHead>تاریخ</TableHead>
-                                        <TableHead>روش</TableHead>
-                                        <TableHead>مرجع</TableHead>
-                                        <TableHead>مبلغ</TableHead>
-                                        <TableHead>یادداشت</TableHead>
+                                        <TableHead className='text-center'>شماره پرداخت</TableHead>
+                                        <TableHead className='text-center'>تاریخ</TableHead>
+                                        <TableHead className='text-center'>روش</TableHead>
+                                        <TableHead className='text-center'>مرجع</TableHead>
+                                        <TableHead className='text-center'>مبلغ</TableHead>
+                                        <TableHead className='text-center'>یادداشت</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
                                     {sale.payments.map((payment) => (
                                         <TableRow key={payment.id}>
-                                            <TableCell>{payment.number ?? `#${payment.id}`}</TableCell>
-                                            <TableCell>{formatDate(payment.paid_at)}</TableCell>
-                                            <TableCell>{payment.method}</TableCell>
-                                            <TableCell>{payment.reference ?? '—'}</TableCell>
-                                            <TableCell>{money(payment.amount, currency)}</TableCell>
-                                            <TableCell>{payment.notes || '—'}</TableCell>
+                                            <TableCell className='text-center'>{payment.number ? <span className='hover:underline hover:text-blue-500 hover:cursor-pointer' onClick={()=>router.get(`/payments/${payment.id}/receipt`)}>{payment.number}</span> : `#${payment.id}`}</TableCell>
+                                            <TableCell className='text-center'>{formatDate(payment.paid_at)}</TableCell>
+                                            <TableCell className='text-center'>{payment.method}</TableCell>
+                                            <TableCell className='text-center'>{payment.reference ?? '—'}</TableCell>
+                                            <TableCell className='text-center'>{money(payment.amount, currency)}</TableCell>
+                                            <TableCell className='text-center'>{payment.notes || '—'}</TableCell>
                                         </TableRow>
                                     ))}
                                 </TableBody>

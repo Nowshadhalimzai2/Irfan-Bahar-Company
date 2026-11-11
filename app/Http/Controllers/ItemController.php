@@ -288,7 +288,7 @@ class ItemController extends Controller
             ...($data['additional_units'] ?? []),
         ]);
         $duplicateName = $units
-            ->map(fn (array $unit): string => Str::lower(trim($unit['name'])))
+            ->map(fn(array $unit): string => Str::lower(trim($unit['name'])))
             ->duplicates()
             ->first();
 
@@ -300,8 +300,8 @@ class ItemController extends Controller
 
         $barcodes = $units
             ->pluck('barcode')
-            ->filter(fn ($barcode): bool => filled($barcode))
-            ->map(fn ($barcode): string => trim((string) $barcode));
+            ->filter(fn($barcode): bool => filled($barcode))
+            ->map(fn($barcode): string => trim((string) $barcode));
 
         if ($barcodes->count() !== $barcodes->unique()->count()) {
             throw ValidationException::withMessages([
@@ -346,14 +346,14 @@ class ItemController extends Controller
             'additional_units.*.is_active' => ['required', 'boolean'],
         ]);
 
-        $allowedUnitIds = $item->units->pluck('id')->map(fn ($id): int => (int) $id);
+        $allowedUnitIds = $item->units->pluck('id')->map(fn($id): int => (int) $id);
         $submittedUnitIds = collect([
             $data['base_unit']['id'],
             ...collect($data['additional_units'] ?? [])
                 ->pluck('id')
                 ->filter()
                 ->all(),
-        ])->map(fn ($id): int => (int) $id);
+        ])->map(fn($id): int => (int) $id);
 
         if (
             $submittedUnitIds->duplicates()->isNotEmpty()
@@ -383,7 +383,7 @@ class ItemController extends Controller
     private function validateUnitNamesAndBarcodes(array $units, ?Item $item = null): void
     {
         $names = collect($units)
-            ->map(fn (array $unit): string => Str::lower(trim($unit['name'])));
+            ->map(fn(array $unit): string => Str::lower(trim($unit['name'])));
 
         if ($names->duplicates()->isNotEmpty()) {
             throw ValidationException::withMessages([
@@ -393,8 +393,8 @@ class ItemController extends Controller
 
         $barcodes = collect($units)
             ->pluck('barcode')
-            ->filter(fn ($barcode): bool => filled($barcode))
-            ->map(fn ($barcode): string => trim((string) $barcode));
+            ->filter(fn($barcode): bool => filled($barcode))
+            ->map(fn($barcode): string => trim((string) $barcode));
 
         if ($barcodes->count() !== $barcodes->unique()->count()) {
             throw ValidationException::withMessages([
@@ -406,7 +406,7 @@ class ItemController extends Controller
             $query = ItemUnit::query()->where('barcode', $barcode);
 
             if ($item) {
-                $submittedIds = collect($units)->pluck('id')->filter()->map(fn ($id): int => (int) $id);
+                $submittedIds = collect($units)->pluck('id')->filter()->map(fn($id): int => (int) $id);
                 $query->whereNotIn('id', $submittedIds);
             }
 
@@ -505,12 +505,27 @@ class ItemController extends Controller
     {
         return rtrim(rtrim(number_format((float) $value, 6, '.', ''), '0'), '.') ?: '0';
     }
-
     private function generateItemCode(Item $item): string
     {
-        $prefix = $this->getCategoryAcronym($item->category?->name ?? '');
+        $prefix = $this->getCategoryAcronym(
+            $item->category?->name ?? ''
+        );
 
-        return $prefix . '-' . str_pad((string) $item->id, 4, '0', STR_PAD_LEFT);
+        $baseCode = $prefix . '-' .
+            str_pad((string) $item->id, 4, '0', STR_PAD_LEFT);
+
+        $code = $baseCode;
+        $attempt = 1;
+
+        while (
+            Item::where('code', $code)
+            ->where('id', '!=', $item->id)
+            ->exists()
+        ) {
+            $code = $baseCode . '-' . $attempt++;
+        }
+
+        return $code;
     }
 
     private function getCategoryAcronym(string $name): string
@@ -576,8 +591,8 @@ class ItemController extends Controller
     {
         $reservedBarcodes = collect([$baseUnit, ...$additionalUnits])
             ->pluck('barcode')
-            ->filter(fn ($barcode): bool => filled($barcode))
-            ->map(fn ($barcode): string => trim((string) $barcode))
+            ->filter(fn($barcode): bool => filled($barcode))
+            ->map(fn($barcode): string => trim((string) $barcode))
             ->all();
 
         $base = $item->units()->create([
@@ -625,8 +640,8 @@ class ItemController extends Controller
         $base = $item->units()->whereKey($baseUnit['id'])->firstOrFail();
         $reservedBarcodes = collect([$baseUnit, ...$additionalUnits])
             ->pluck('barcode')
-            ->filter(fn ($barcode): bool => filled($barcode))
-            ->map(fn ($barcode): string => trim((string) $barcode))
+            ->filter(fn($barcode): bool => filled($barcode))
+            ->map(fn($barcode): string => trim((string) $barcode))
             ->all();
         $base->update([
             'name' => trim($baseUnit['name']),
